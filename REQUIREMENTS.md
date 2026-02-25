@@ -128,7 +128,9 @@ graph TB
    - **Sold out**: products present in the previous snapshot marked as in-stock, now either absent or marked out-of-stock.
    - **Back in stock**: products previously marked as out-of-stock, now available again.
 6. If changes are detected, a **change report** is persisted and the **Notification Service** is triggered.
-7. The Notification Service queries all users subscribed to that category, compiles an email (or future channel) with a summary of changes, and sends it to each user.
+7. The Notification Service queries all users subscribed to that category:
+   - **Paid Users**: The service immediately compiles an email (or future channel) with a summary of the changes and sends it to each Paid user.
+   - **Free Users**: Changes are recorded but no immediate email is sent. Instead, a separate "Digest Cron" runs every 6 hours, aggregates all changes since the user's `last_digest_sent_at`, and sends a single compiled summary email.
 
 ---
 
@@ -158,6 +160,18 @@ graph TB
 
 ---
 
+### 4.3 User Roles & Permissions
+
+The system implements a tiered role system to manage resource utilization and provide premium value.
+
+| Role | Category Tracking Limit | Notification Interval | Description |
+|---|---|---|---|
+| **Free** | Max 3 categories | 6-Hour Digest | Entry-level tier. Users select up to 3 categories. The diff engine aggregates all changes and sends a single summary email every 6 hours based on their `last_digest_sent_at`. |
+| **Paid** | Max 6 categories | Immediate | Premium tier. Users receive immediate email notifications the moment a scrape finishes if a change is detected. |
+| **Admin** | Unlimited | Immediate | Superuser tier. Can track unlimited categories and has access to system management APIs (e.g., manually triggering category refreshes). |
+
+---
+
 ## 5. Database Design
 
 ### 5.1 Entity Relationship Diagram
@@ -181,6 +195,8 @@ erDiagram
         string email UK
         string password_hash
         string name
+        enum role "free | paid | admin"
+        timestamp last_digest_sent_at "nullable"
         boolean is_active
         timestamp created_at
         timestamp updated_at
@@ -282,7 +298,7 @@ erDiagram
 ### 5.2 Table Descriptions
 
 #### `users`
-Stores registered users. Each user can create multiple subscriptions and notification channels. The email is unique and doubles as the default notification destination.
+Stores registered users. Each user can create multiple subscriptions and notification channels depending on their `role` (free, paid, or admin). The email is unique and doubles as the default notification destination. The `last_digest_sent_at` timestamp is used exclusively for Free users to track when their 6-hour scheduled summary email was last dispatched.
 
 #### `categories`
 Defines **what** to scrape and **how often**. This maps directly to Mabrik.ee's navigation tree. It supports subcategories via `parent_id`. `next_run_at` is recalculated after every run so the scheduler knows which jobs to fire next. We only scrape a category if it has at least one active subscriber.
