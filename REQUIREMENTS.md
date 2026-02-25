@@ -161,14 +161,17 @@ graph TB
 
 ```mermaid
 erDiagram
-    users ||--o{ scrape_configs : "has many"
+    users ||--o{ user_subscriptions : "has many"
     users ||--o{ notification_channels : "has many"
-    scrape_configs ||--o{ scrape_runs : "triggers"
+    categories ||--o{ user_subscriptions : "has many"
+    categories ||--o{ scrape_runs : "triggers"
+    categories ||--o| categories : "parent of"
     scrape_runs ||--o{ product_snapshots : "contains"
     scrape_runs ||--o{ change_reports : "may produce"
     change_reports ||--o{ change_items : "contains"
     products ||--o{ product_snapshots : "referenced by"
     products ||--o{ change_items : "referenced by"
+    products }|--|| categories : "belongs to"
 
     users {
         uuid id PK
@@ -180,21 +183,30 @@ erDiagram
         timestamp updated_at
     }
 
-    scrape_configs {
+    categories {
         uuid id PK
-        uuid user_id FK
-        string category_slug
-        string category_name
-        int interval_hours "default 12"
+        string slug UK
+        string name_et
+        string name_en
+        uuid parent_id FK "nullable, for subcategories"
         boolean is_active "default true"
+        int scrape_interval_hours "default 12"
         timestamp next_run_at
         timestamp created_at
         timestamp updated_at
     }
 
+    user_subscriptions {
+        uuid id PK
+        uuid user_id FK
+        uuid category_id FK
+        boolean is_active "default true"
+        timestamp created_at
+    }
+
     scrape_runs {
         uuid id PK
-        uuid scrape_config_id FK
+        uuid category_id FK
         enum status "pending | running | completed | failed"
         int total_products
         int new_products
@@ -212,7 +224,7 @@ erDiagram
         string external_url UK "unique product page URL"
         string name
         string image_url
-        string category_slug
+        uuid category_id FK
         decimal current_price
         decimal original_price "nullable — set when on sale"
         boolean in_stock
@@ -267,22 +279,25 @@ erDiagram
 ### 5.2 Table Descriptions
 
 #### `users`
-Stores registered users. Each user can create multiple scrape configurations and notification channels. The email is unique and doubles as the default notification destination.
+Stores registered users. Each user can create multiple subscriptions and notification channels. The email is unique and doubles as the default notification destination.
 
-#### `scrape_configs`
-Defines **what** to scrape and **how often**. Each record maps a user to a specific mabrik.ee category with a cron interval. `next_run_at` is recalculated after every run so the scheduler knows which jobs to fire next.
+#### `categories`
+Defines **what** to scrape and **how often**. This maps directly to Mabrik.ee's navigation tree. It supports subcategories via `parent_id`. `next_run_at` is recalculated after every run so the scheduler knows which jobs to fire next. We only scrape a category if it has at least one active subscriber.
 
-#### `scrape_configs` → `scrape_runs` (one-to-many)
-Every time a scrape job fires for a config, a `scrape_run` is created to track execution status, timing, and high-level stats.
+#### `user_subscriptions`
+Maps a user to a category they want to follow. Multiple users can subscribe to the same category, meaning we only scrape it once.
+
+#### `categories` → `scrape_runs` (one-to-many)
+Every time a scrape job fires for a category, a `scrape_run` is created to track execution status, timing, and high-level stats.
 
 #### `products`
-A **canonical product registry** — a deduplicated record of every product ever seen. Keyed by `external_url` (the mabrik.ee product page link) to prevent duplicates. `current_price` and `in_stock` reflect the latest known state.
+A **canonical product registry** — a deduplicated record of every product ever seen. Keyed by `external_url` (the mabrik.ee product page link) to prevent duplicates. Linked to `category_id`. `current_price` and `in_stock` reflect the latest known state.
 
 #### `product_snapshots`
 A **point-in-time record** of a product's data during a specific scrape run. This table powers the price history charts — by querying all snapshots for a `product_id`, ordered by `scraped_at`, we build the price timeline.
 
 #### `change_reports` & `change_items`
-When the diff engine detects differences between two consecutive scrape runs, it creates a `change_report` with individual `change_items`. Each item records the type of change (`price_increase`, `price_decrease`, `new_product`, `sold_out`, `back_in_stock`) and the before/after values. This is what gets compiled into the notification email.
+When the diff engine detects differences between two consecutive scrape runs for a category, it creates a `change_report` with individual `change_items`. Each item records the type of change (`price_increase`, `price_decrease`, `new_product`, `sold_out`, `back_in_stock`) and the before/after values. The Notifier then dispatches alerts to all users subscribed to that category.
 
 #### `notification_channels`
 Extensible notification configuration. On day one, only `email` is active. Future channels (Discord, WhatsApp, Signal, SMS) are added as new rows with their respective `channel_type` and `destination` (webhook URL, phone number, etc.). The `is_default` flag marks the primary channel per user.
@@ -291,11 +306,13 @@ Extensible notification configuration. On day one, only `email` is active. Futur
 
 | Relationship | Type | Description |
 |---|---|---|
-| `users` → `scrape_configs` | 1:N | A user can track multiple categories |
-| `scrape_configs` → `scrape_runs` | 1:N | Each config produces many runs over time |
+| `users` → `user_subscriptions` | 1:N | A user can track multiple categories |
+| `categories` → `user_subscriptions` | 1:N | A category can have many subscribers |
+| `categories` → `scrape_runs` | 1:N | Each category produces many runs over time |
 | `scrape_runs` → `product_snapshots` | 1:N | A run captures a snapshot of every product found |
 | `products` → `product_snapshots` | 1:N | A product appears in many snapshots over time |
-| `scrape_runs` → `change_reports` | 1:0..1 | A run may produce at most one change report |
+| `categories` → `products` | 1:N | A product belongs to a category |
+| `scrape_runs` → `change_reports` | 1:0..1 | A run may produce at most one change report per user |
 | `change_reports` → `change_items` | 1:N | A report lists all individual changes |
 | `users` → `notification_channels` | 1:N | A user can have multiple notification destinations |
 
@@ -311,13 +328,13 @@ Extensible notification configuration. On day one, only `email` is active. Futur
 | `POST` | `/api/auth/logout` | Invalidate token |
 | `GET` | `/api/auth/me` | Get current user profile |
 
-### Scrape Configuration
+### Categories & Subscriptions
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/api/configs` | List user's scrape configs |
-| `POST` | `/api/configs` | Create a new scrape config |
-| `PATCH` | `/api/configs/:id` | Update config (interval, category, active) |
-| `DELETE` | `/api/configs/:id` | Delete a scrape config |
+| `GET` | `/api/categories` | List available mabrik.ee categories (hierarchical) |
+| `GET` | `/api/subscriptions` | List user's active category subscriptions |
+| `POST` | `/api/subscriptions` | Subscribe to a category |
+| `DELETE` | `/api/subscriptions/:id` | Cancel a subscription |
 
 ### Scrape Runs & Data
 | Method | Endpoint | Description |
@@ -343,10 +360,10 @@ Extensible notification configuration. On day one, only `email` is active. Futur
 | `PATCH` | `/api/notifications/channels/:id` | Update channel settings |
 | `DELETE` | `/api/notifications/channels/:id` | Remove a channel |
 
-### Categories (reference)
+### System Operations
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/api/categories` | List available mabrik.ee categories |
+| `POST` | `/api/system/refresh-categories` | Scrape mabrik.ee nav menu to update categories DB (admin) |
 
 ---
 
@@ -356,7 +373,7 @@ Extensible notification configuration. On day one, only `email` is active. Futur
 
 > **Goal**: Project scaffolding, database, auth, and basic scraper.
 
-- [ ] Initialize monorepo structure (`/backend`, `/frontend`, `/shared`)
+- [x] Initialize monorepo structure (`/backend`, `/frontend`, `/shared`) ✅ *2025-02-25*
 - [ ] Set up backend: Express + TypeScript + Prisma
 - [ ] Set up PostgreSQL database + Prisma schema + migrations
 - [ ] Implement user registration and login (bcrypt + JWT)
@@ -376,7 +393,7 @@ Extensible notification configuration. On day one, only `email` is active. Futur
 - [ ] Create email templates (HTML) for change summaries
 - [ ] Integrate Nodemailer (dev) / Resend (prod) for email delivery
 - [ ] Set up Bull queue + Redis for job management
-- [ ] Implement `node-cron` scheduler that enqueues jobs based on `scrape_configs.next_run_at`
+- [ ] Implement `node-cron` scheduler that enqueues jobs based on `categories.next_run_at`
 - [ ] Build the `notification_channels` CRUD API
 
 ### Phase 3 — Dashboard: Core Views (Weeks 5–7)

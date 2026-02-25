@@ -34,14 +34,14 @@ export enum ChannelType {
 
 // ----- Category Definitions -----
 
-export interface Category {
+export interface CategoryDef {
     slug: string;
     nameEt: string;
     nameEn: string;
     productCount?: number;
 }
 
-export const MABRIK_CATEGORIES: Category[] = [
+export const MABRIK_CATEGORIES: CategoryDef[] = [
     { slug: "eeltellimused", nameEt: "Eeltellimused", nameEn: "Pre-orders" },
     { slug: "lauamangud", nameEt: "Lauamängud", nameEn: "Board Games", productCount: 1269 },
     { slug: "kodu-ja-kollektsioon", nameEt: "Kodu ja kollektsioon", nameEn: "Home & Collectibles", productCount: 992 },
@@ -66,21 +66,30 @@ export interface User {
     createdAt: string;
 }
 
-export interface ScrapeConfig {
+export interface Category {
     id: string;
-    userId: string;
-    categorySlug: string;
-    categoryName: string;
-    intervalHours: ScrapeInterval;
+    slug: string;
+    nameEt: string;
+    nameEn: string;
+    parentId?: string;
     isActive: boolean;
+    scrapeIntervalHours: ScrapeInterval;
     nextRunAt: string;
     createdAt: string;
     updatedAt: string;
 }
 
+export interface UserSubscription {
+    id: string;
+    userId: string;
+    categoryId: string;
+    isActive: boolean;
+    createdAt: string;
+}
+
 export interface ScrapeRun {
     id: string;
-    scrapeConfigId: string;
+    categoryId: string;
     status: ScrapeStatus;
     totalProducts: number;
     newProducts: number;
@@ -98,7 +107,7 @@ export interface Product {
     externalUrl: string;
     name: string;
     imageUrl: string;
-    categorySlug: string;
+    categoryId: string;
     currentPrice: number;
     originalPrice?: number;
     inStock: boolean;
