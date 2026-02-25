@@ -103,6 +103,8 @@ graph TB
 | **TypeScript** | Language | Type safety reduces bugs in complex scraper logic and data transformations |
 | **Cheerio** | HTML parser | jQuery-like API for server-side DOM traversal; fast, lightweight — ideal for parsing WooCommerce product pages without a full browser |
 | **Axios** | HTTP client | Promise-based, supports interceptors for retry logic, rate-limiting headers, and proxy rotation |
+| **helmet** | Security | Sets secure HTTP headers to protect against common web vulnerabilities (XSS, Clickjacking, etc.) |
+| **express-rate-limit** | Security | Prevents brute-force attacks and API abuse by limiting requests per IP address |
 | **node-cron** | Scheduling | Lightweight in-process cron scheduler for triggering scrape jobs on user-defined intervals |
 | **Bull + Redis** | Job queue | Reliable job queue with retries, concurrency control, and progress tracking; prevents overloading the target site |
 | **PostgreSQL 16** | Database | ACID compliance, JSONB support for flexible product metadata, excellent for time-series-like price history queries |
@@ -504,7 +506,7 @@ If a product goes out of stock and disappears from the category page entirely:
 | **Rate limiting** | Max 1 request/second to mabrik.ee; random 1–2s delay between pages |
 | **Retry logic** | 3 retries with exponential backoff on failed page fetches |
 | **Data retention** | Keep all historical snapshots (configurable purge after N months in future) |
-| **Security** | Passwords hashed with bcrypt (12 rounds); JWT tokens with 7d expiry; HTTPS only in production |
+| **Security** | **API**: Rate limiting (strict for auth/payments), CORS restricted to frontend domain, strict PayPal webhook signature verification.<br>**User**: Passwords hashed with bcrypt (12 rounds), JWTs issued as `HttpOnly` `Secure` cookies (immune to XSS), short-lived access tokens with DB-backed refresh tokens, Zod password policies.<br>**Database**: Network isolation (connections restricted to backend VPS IP), all secrets stored strictly in `.env`, Prisma ORM parameterized queries to block SQL injection. |
 | **Scalability** | Bull queue enables horizontal scaling of scraper workers independently |
 | **Monitoring** | Health check endpoint; scrape run status tracking; failed job alerts |
 
