@@ -113,6 +113,7 @@ graph TB
 | **PayPal APIs** | Payments | Subscriptions API / Webhooks to handle automatic monthly billing upgrades from Free to Paid |
 | **bcrypt + JWT** | Authentication | Industry-standard password hashing and stateless auth tokens |
 | **Zod** | Validation | Runtime schema validation for API inputs and scraped data integrity |
+| **Vitest** | Testing | Fast, Vite-native unit testing framework for backend logic (diff engine, scraper utils) |
 
 #### How the Scraper Works
 
@@ -149,6 +150,7 @@ graph TB
 | **Recharts** | Charts | Lightweight React charting library for price history graphs |
 | **React Hook Form + Zod** | Forms & validation | Performant form handling with schema validation (shared Zod schemas with backend) |
 | **CSS Modules** | Styling | Scoped styles, no naming conflicts, no extra dependencies |
+| **Vitest + RTL** | Testing | Unit and component testing using Vitest and React Testing Library |
 
 #### Dashboard Pages
 
@@ -427,6 +429,7 @@ If a product goes out of stock and disappears from the category page entirely:
   - Parse products with Cheerio
   - Handle pagination
   - Save to `products` and `product_snapshots`
+- [ ] Write backend unit tests for scraper parsing logic and pagination handling
 - [ ] Seed the `categories` reference data
 
 ### Phase 2 — Diff Engine & Email Notifications (Weeks 3–4)
@@ -435,6 +438,7 @@ If a product goes out of stock and disappears from the category page entirely:
 
 - [ ] Implement diff engine: compare latest snapshot to previous
 - [ ] Generate `change_reports` and `change_items`
+- [ ] Write backend unit tests for the diff engine logic (detecting price changes, sold out, etc.)
 - [ ] Create email templates (HTML) for change summaries
 - [ ] Integrate Nodemailer (dev) / Resend (prod) for email delivery
 - [ ] Set up Bull queue + Redis for job management
@@ -462,6 +466,7 @@ If a product goes out of stock and disappears from the category page entirely:
 - [ ] Build scrape detail page (product list + diff highlighting)
 - [ ] Build product price history page with Recharts
 - [ ] Set up TanStack Query for all API calls
+- [ ] Write frontend unit tests for core UI components and custom hooks
 
 ### Phase 6 — Dashboard: Settings & Configuration (Week 9)
 
@@ -505,6 +510,7 @@ If a product goes out of stock and disappears from the category page entirely:
 |---|---|
 | **Rate limiting** | Max 1 request/second to mabrik.ee; random 1–2s delay between pages |
 | **Retry logic** | 3 retries with exponential backoff on failed page fetches |
+| **Testing Strategy**| **Backend:** Unit test core business logic (scraper parser, diff engine, queue workers).<br>**Frontend:** Unit test core components and critical hooks using React Testing Library. |
 | **Data retention** | Keep all historical snapshots (configurable purge after N months in future) |
 | **Security** | **API**: Rate limiting (strict for auth/payments), CORS restricted to frontend domain, strict PayPal webhook signature verification.<br>**User**: Passwords hashed with bcrypt (12 rounds), JWTs issued as `HttpOnly` `Secure` cookies (immune to XSS), short-lived access tokens with DB-backed refresh tokens, Zod password policies.<br>**Database**: Network isolation (connections restricted to backend VPS IP), all secrets stored strictly in `.env`, Prisma ORM parameterized queries to block SQL injection. |
 | **Scalability** | Bull queue enables horizontal scaling of scraper workers independently |
