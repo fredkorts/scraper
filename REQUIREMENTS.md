@@ -113,19 +113,22 @@ graph TB
 
 #### How the Scraper Works
 
-1. **Scheduler** fires a cron job (default: every 12 hours) per active user configuration.
+1. **Scheduler** fires a cron job (default: every 12 hours) for categories that have active subscribers.
 2. The job is placed on a **Bull queue** (backed by Redis) to control concurrency and retries.
-3. The **Scraper worker** picks up the job, iterates through the configured category pages:
+3. The **Scraper worker** picks up the job, iterates through the category pages:
    - Fetches each page with Axios (with 1–2s random delays between requests to be respectful).
    - Parses the HTML with Cheerio to extract product name, price, image, URL, and stock status.
    - Handles pagination by following "next page" links until all pages are scraped.
-4. The scraped product list is saved as a new **scrape snapshot** in the database.
-5. The **Diff Engine** compares the latest snapshot against the previous snapshot for the same category:
+4. **State-based Snapshot saving**: The scraper compares the newly fetched data against the latest known `product` record in the database.
+   - If **NO change** is detected (price and stock remain identical), it **does not** create a new `product_snapshot`. It simply updates the `last_seen_at` timestamp on the `products` table.
+   - If **A change** is detected (e.g., price drop, stock status change), it updates the `products` table and inserts a new `product_snapshot` into the database.
+5. The **Diff Engine** builds a comprehensive summary of changes for that category run:
    - **Price changes**: products whose price differs.
-   - **New products**: products present in the new snapshot but absent from the previous one.
+   - **New products**: products discovered for the first time.
    - **Sold out**: products present in the previous snapshot marked as in-stock, now either absent or marked out-of-stock.
+   - **Back in stock**: products previously marked as out-of-stock, now available again.
 6. If changes are detected, a **change report** is persisted and the **Notification Service** is triggered.
-7. The Notification Service compiles an email (or future channel) with a summary of changes and sends it.
+7. The Notification Service queries all users subscribed to that category, compiles an email (or future channel) with a summary of changes, and sends it to each user.
 
 ---
 
@@ -294,7 +297,7 @@ Every time a scrape job fires for a category, a `scrape_run` is created to track
 A **canonical product registry** — a deduplicated record of every product ever seen. Keyed by `external_url` (the mabrik.ee product page link) to prevent duplicates. Linked to `category_id`. `current_price` and `in_stock` reflect the latest known state.
 
 #### `product_snapshots`
-A **point-in-time record** of a product's data during a specific scrape run. This table powers the price history charts — by querying all snapshots for a `product_id`, ordered by `scraped_at`, we build the price timeline.
+A **point-in-time record** of a product's data during a specific scrape run. This table powers the price history charts. Because we use **state-based snapshots**, a new row is ONLY created here when a product's price or stock status actually changes. By querying all snapshots for a `product_id`, ordered by `scraped_at`, we build the price timeline.
 
 #### `change_reports` & `change_items`
 When the diff engine detects differences between two consecutive scrape runs for a category, it creates a `change_report` with individual `change_items`. Each item records the type of change (`price_increase`, `price_decrease`, `new_product`, `sold_out`, `back_in_stock`) and the before/after values. The Notifier then dispatches alerts to all users subscribed to that category.
@@ -302,7 +305,13 @@ When the diff engine detects differences between two consecutive scrape runs for
 #### `notification_channels`
 Extensible notification configuration. On day one, only `email` is active. Future channels (Discord, WhatsApp, Signal, SMS) are added as new rows with their respective `channel_type` and `destination` (webhook URL, phone number, etc.). The `is_default` flag marks the primary channel per user.
 
-### 5.3 Key Relationships
+### 5.4 Edge Case: Sold Out & Restocks
+If a product goes out of stock and disappears from the category page entirely:
+1. The Diff Engine notices the product is missing from the scrape but exists in the DB as `in_stock = true`.
+2. It generates a `sold_out` change event and marks the `products` table record as `in_stock = false`.
+3. If the product is restocked weeks later under the same URL, the scraper identifies it via its `external_url` (the canonical unique key). It does NOT create a duplicate product. Instead, it flips `in_stock` back to `true`, saves a new snapshot, and emits a `back_in_stock` change event.
+
+### 5.5 Key Relationships
 
 | Relationship | Type | Description |
 |---|---|---|
