@@ -108,6 +108,7 @@ graph TB
 | **PostgreSQL 16** | Database | ACID compliance, JSONB support for flexible product metadata, excellent for time-series-like price history queries |
 | **Prisma** | ORM | Type-safe database client auto-generated from schema; great migration tooling; integrates naturally with TypeScript |
 | **Nodemailer / Resend** | Email delivery | Nodemailer for SMTP in development; Resend for production transactional emails with high deliverability |
+| **PayPal APIs** | Payments | Subscriptions API / Webhooks to handle automatic monthly billing upgrades from Free to Paid |
 | **bcrypt + JWT** | Authentication | Industry-standard password hashing and stateless auth tokens |
 | **Zod** | Validation | Runtime schema validation for API inputs and scraped data integrity |
 
@@ -172,6 +173,15 @@ The system implements a tiered role system to manage resource utilization and pr
 
 ---
 
+### 4.4 Payments & Upgrades (PayPal)
+
+Users upgrade from Free to Paid via **PayPal Subscriptions** (Monthly billing). The system uses PayPal Webhooks to manage the lifecycle:
+1. **Subscribe:** User completes checkout on the frontend. PayPal sends a `BILLING.SUBSCRIPTION.ACTIVATED` webhook. The backend updates the user's `role` to `paid` and saves their `paypal_subscription_id`.
+2. **Renew:** Every month, PayPal charges the user and sends a `PAYMENT.SALE.COMPLETED` webhook. The backend extends the user's `subscription_expires_at` date.
+3. **Cancel/Fail:** If the user cancels or the card fails, a `BILLING.SUBSCRIPTION.CANCELLED` webhook is received. Once their `subscription_expires_at` date passes, the backend downgrades them to `free`.
+
+---
+
 ## 5. Database Design
 
 ### 5.1 Entity Relationship Diagram
@@ -197,6 +207,8 @@ erDiagram
         string name
         enum role "free | paid | admin"
         timestamp last_digest_sent_at "nullable"
+        string paypal_subscription_id "nullable"
+        timestamp subscription_expires_at "nullable"
         boolean is_active
         timestamp created_at
         timestamp updated_at
@@ -298,7 +310,7 @@ erDiagram
 ### 5.2 Table Descriptions
 
 #### `users`
-Stores registered users. Each user can create multiple subscriptions and notification channels depending on their `role` (free, paid, or admin). The email is unique and doubles as the default notification destination. The `last_digest_sent_at` timestamp is used exclusively for Free users to track when their 6-hour scheduled summary email was last dispatched.
+Stores registered users. Each user can create multiple subscriptions and notification channels depending on their `role` (free, paid, or admin). The email is unique and doubles as the default notification destination. `last_digest_sent_at` tracks 6-hour digest emails. `paypal_subscription_id` and `subscription_expires_at` track active monthly recurring billing status.
 
 #### `categories`
 Defines **what** to scrape and **how often**. This maps directly to Mabrik.ee's navigation tree. It supports subcategories via `parent_id`. `next_run_at` is recalculated after every run so the scheduler knows which jobs to fire next. We only scrape a category if it has at least one active subscriber.
@@ -352,6 +364,12 @@ If a product goes out of stock and disappears from the category page entirely:
 | `POST` | `/api/auth/login` | Login, returns JWT |
 | `POST` | `/api/auth/logout` | Invalidate token |
 | `GET` | `/api/auth/me` | Get current user profile |
+
+### Payments (PayPal)
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/payments/create-subscription` | Initiates PayPal checkout for monthly plan |
+| `POST` | `/api/payments/webhook` | Listens for PayPal events (renewals, cancellations) |
 
 ### Categories & Subscriptions
 | Method | Endpoint | Description |
@@ -421,7 +439,17 @@ If a product goes out of stock and disappears from the category page entirely:
 - [ ] Implement `node-cron` scheduler that enqueues jobs based on `categories.next_run_at`
 - [ ] Build the `notification_channels` CRUD API
 
-### Phase 3 — Dashboard: Core Views (Weeks 5–7)
+### Phase 4 — Payments (PayPal Integration) (Week 5)
+
+> **Goal**: Implement PayPal subscriptions to gate the premium tier.
+
+- [ ] Add `@paypal/checkout-server-sdk`
+- [ ] Implement PayPal subscription creation endpoints
+- [ ] Build `/api/payments/webhook` to handle lifecycle events (active, payment success, cancelled)
+- [ ] Add user `role` upgrading/downgrading logic based on webhook events
+- [ ] Build the "Upgrade" UI flow in the frontend
+
+### Phase 5 — Dashboard: Core Views (Weeks 6–8)
 
 > **Goal**: Frontend dashboard with auth, scrape history, and product views.
 
@@ -433,7 +461,7 @@ If a product goes out of stock and disappears from the category page entirely:
 - [ ] Build product price history page with Recharts
 - [ ] Set up TanStack Query for all API calls
 
-### Phase 4 — Dashboard: Settings & Configuration (Week 8)
+### Phase 6 — Dashboard: Settings & Configuration (Week 9)
 
 > **Goal**: User settings for scrape interval, categories, and notifications.
 
@@ -444,7 +472,7 @@ If a product goes out of stock and disappears from the category page entirely:
 - [ ] Wire settings to backend CRUD APIs
 - [ ] Manual "scrape now" button with progress indicator
 
-### Phase 5 — Polish & Production Readiness (Weeks 9–10)
+### Phase 7 — Polish & Production Readiness (Weeks 10–11)
 
 > **Goal**: Error handling, rate limiting, monitoring, and deployment.
 
@@ -457,7 +485,7 @@ If a product goes out of stock and disappears from the category page entirely:
 - [ ] Set up CI/CD pipeline
 - [ ] Deploy to VPS or cloud platform
 
-### Phase 6 — Additional Notification Channels (Future)
+### Phase 8 — Additional Notification Channels (Future)
 
 > **Goal**: Extend notifications beyond email.
 

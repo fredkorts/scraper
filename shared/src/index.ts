@@ -62,6 +62,10 @@ export interface User {
     id: string;
     email: string;
     name: string;
+    role: "free" | "paid" | "admin";
+    lastDigestSentAt?: string;
+    paypalSubscriptionId?: string;
+    subscriptionExpiresAt?: string;
     isActive: boolean;
     createdAt: string;
 }
