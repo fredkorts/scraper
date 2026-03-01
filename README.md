@@ -90,6 +90,8 @@ Backend:
 npm run dev --workspace=backend
 npm run build --workspace=backend
 npm run test --workspace=backend
+npm run scrape:category --workspace=backend -- lauamangud
+npm run scrape:cleanup-stale-runs --workspace=backend -- 30
 npm run seed --workspace=backend
 npm run prisma:generate --workspace=backend
 npm run prisma:studio --workspace=backend
@@ -149,6 +151,14 @@ npx prisma migrate resolve --applied 20260301000000_init --schema backend/prisma
 
 Without that step, Prisma will fail with `P3005` because the database schema is non-empty but Prisma does not yet have matching migration history in `_prisma_migrations`.
 
+To mark abandoned `RUNNING` scraper jobs as failed, use:
+
+```bash
+DATABASE_URL='postgresql://mabrik:mabrik@localhost:5432/mabrik_scraper?schema=public' npm run scrape:cleanup-stale-runs --workspace=backend -- 30
+```
+
+The trailing argument is the stale threshold in minutes. If omitted, the script defaults to `30`.
+
 ## Current Status
 
 Implemented foundation:
@@ -157,12 +167,13 @@ Implemented foundation:
 - backend Prisma integration
 - PostgreSQL schema and initial migration
 - auth endpoints and auth test suite
+- basic scraper module
+- live scraper verification against a real seeded category
 - category seed script
 - local Docker setup for Postgres and Redis
 
 Not implemented yet:
 
-- scraper logic
 - diff engine
 - notifications
 - payments

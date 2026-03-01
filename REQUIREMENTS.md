@@ -472,12 +472,12 @@ If a product goes out of stock and disappears from the category page entirely:
 - [x] Implement user registration and login
 - [x] Implement refresh-token rotation and logout revocation
 - [x] Build `/api/auth/refresh` and `/api/auth/logout`
-- [ ] Build basic scraper module:
+- [x] Build basic scraper module:
   - Fetch a single category page
   - Parse products with Cheerio
   - Handle pagination
   - Save to `products` and `product_snapshots`
-- [ ] Write backend unit tests for scraper parsing logic and pagination handling
+- [x] Write backend unit tests for scraper parsing logic and pagination handling
 - [x] Seed the `categories` reference data
 
 ### Phase 2 — Diff Engine & Email Notifications (Weeks 3–4)

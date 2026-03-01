@@ -11,6 +11,8 @@
         "lint": "eslint .",
         "test": "vitest run",
         "test:watch": "vitest",
+        "scrape:category": "tsx src/scraper/run.ts",
+        "scrape:cleanup-stale-runs": "tsx src/scraper/cleanup-stale-runs.ts",
         "prisma:generate": "prisma generate",
         "prisma:migrate": "prisma migrate dev",
         "prisma:studio": "prisma studio",
@@ -19,7 +21,9 @@
     "dependencies": {
         "@mabrik/shared": "*",
         "@prisma/client": "^6.7.0",
+        "axios": "^1.13.6",
         "bcrypt": "^6.0.0",
+        "cheerio": "^1.2.0",
         "cookie-parser": "^1.4.7",
         "cors": "^2.8.5",
         "dotenv": "^16.5.0",

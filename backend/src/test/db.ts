@@ -12,6 +12,11 @@ export const useTestDatabase = () => {
                 notification_deliveries,
                 notification_channels,
                 refresh_tokens,
+                product_snapshots,
+                product_categories,
+                products,
+                scrape_runs,
+                categories,
                 user_subscriptions,
                 users
             RESTART IDENTITY CASCADE
