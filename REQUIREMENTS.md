@@ -229,6 +229,8 @@ erDiagram
         string token_hash UK
         timestamp expires_at
         timestamp revoked_at "nullable"
+        string revocation_reason "nullable"
+        uuid replaced_by_token_id FK "nullable"
         timestamp created_at
     }
 
@@ -346,7 +348,7 @@ erDiagram
 Stores registered users. Each user can create multiple subscriptions and notification channels depending on their `role` (free, paid, or admin). The email is unique and doubles as the default notification destination. `last_digest_sent_at` tracks 6-hour digest emails. `paypal_subscription_id` and `subscription_expires_at` track active monthly recurring billing status.
 
 #### `refresh_tokens`
-Stores hashed refresh tokens for persistent login sessions. This enables short-lived access tokens, token rotation, explicit logout, and server-side revocation of refresh sessions.
+Stores hashed refresh tokens for persistent login sessions. This enables short-lived access tokens, token rotation, explicit logout, and server-side revocation of refresh sessions. `revocation_reason` records why a session was revoked, and `replaced_by_token_id` links a rotated token to its replacement for token-lineage tracking.
 
 #### `categories`
 Defines **what** to scrape and **how often**. This maps directly to Mabrik.ee's navigation tree. It supports subcategories via `parent_id`. `next_run_at` is recalculated after every run so the scheduler knows which jobs to fire next. We only scrape a category if it has at least one active subscriber.
@@ -370,7 +372,7 @@ A **point-in-time record** of a product's data during a specific scrape run. Thi
 When the diff engine detects differences between two consecutive scrape runs for a category, it creates one canonical `change_report` for that scrape run with individual `change_items`. Each item records the type of change (`price_increase`, `price_decrease`, `new_product`, `sold_out`, `back_in_stock`) and the before/after values.
 
 #### `notification_channels`
-Extensible notification configuration. On day one, only `email` is active. Future channels (Discord, WhatsApp, Signal, SMS) are added as new rows with their respective `channel_type` and `destination` (webhook URL, phone number, etc.). The `is_default` flag marks the primary channel per user.
+Extensible notification configuration. On day one, only `email` is active. Future channels (Discord, WhatsApp, Signal, SMS) are added as new rows with their respective `channel_type` and `destination` (webhook URL, phone number, etc.). The `is_default` flag marks the primary channel per user. The combination of `user_id`, `channel_type`, and `destination` should be unique to prevent duplicate destinations.
 
 #### `notification_deliveries`
 Stores per-user delivery state for a canonical `change_report`. This allows the system to send immediate notifications for paid users, defer digest delivery for free users, retry failures, and later support multiple channels without duplicating the underlying change payload.
@@ -467,9 +469,9 @@ If a product goes out of stock and disappears from the category page entirely:
 - [x] Initialize monorepo structure (`/backend`, `/frontend`, `/shared`) ✅ *2025-02-25*
 - [x] Set up backend: Express + TypeScript + Prisma
 - [x] Set up PostgreSQL database + Prisma schema + migrations
-- [ ] Implement user registration and login
-- [ ] Implement refresh-token rotation and logout revocation
-- [ ] Build `/api/auth/refresh` and `/api/auth/logout`
+- [x] Implement user registration and login
+- [x] Implement refresh-token rotation and logout revocation
+- [x] Build `/api/auth/refresh` and `/api/auth/logout`
 - [ ] Build basic scraper module:
   - Fetch a single category page
   - Parse products with Cheerio

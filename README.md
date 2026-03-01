@@ -89,6 +89,7 @@ Backend:
 ```bash
 npm run dev --workspace=backend
 npm run build --workspace=backend
+npm run test --workspace=backend
 npm run seed --workspace=backend
 npm run prisma:generate --workspace=backend
 npm run prisma:studio --workspace=backend
@@ -106,6 +107,25 @@ Shared:
 ```bash
 npm run build --workspace=shared
 ```
+
+## Backend Tests
+
+The backend test suite uses Vitest and runs against the local PostgreSQL database.
+
+Before running tests:
+
+```bash
+docker compose up -d db redis
+npx prisma migrate deploy --schema backend/prisma/schema.prisma
+```
+
+Run backend tests:
+
+```bash
+npm run test --workspace=backend
+```
+
+The auth tests reset the auth-related tables before each run, so do not point `DATABASE_URL` at a database you want to preserve.
 
 ## Database Notes
 
@@ -136,12 +156,12 @@ Implemented foundation:
 - monorepo workspace structure
 - backend Prisma integration
 - PostgreSQL schema and initial migration
+- auth endpoints and auth test suite
 - category seed script
 - local Docker setup for Postgres and Redis
 
 Not implemented yet:
 
-- auth endpoints
 - scraper logic
 - diff engine
 - notifications

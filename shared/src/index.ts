@@ -32,6 +32,8 @@ export enum ChannelType {
     SMS = "sms",
 }
 
+export type UserRole = "free" | "paid" | "admin";
+
 // ----- Category Definitions -----
 
 export interface CategoryDef {
@@ -62,7 +64,7 @@ export interface User {
     id: string;
     email: string;
     name: string;
-    role: "free" | "paid" | "admin";
+    role: UserRole;
     lastDigestSentAt?: string;
     paypalSubscriptionId?: string;
     subscriptionExpiresAt?: string;
@@ -189,5 +191,41 @@ export interface RefreshToken {
     tokenHash: string;
     expiresAt: string;
     revokedAt?: string;
+    revocationReason?: string;
+    replacedByTokenId?: string;
     createdAt: string;
+}
+
+export interface AuthUser {
+    id: string;
+    email: string;
+    name: string;
+    role: UserRole;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface RegisterRequest {
+    email: string;
+    password: string;
+    name: string;
+}
+
+export interface LoginRequest {
+    email: string;
+    password: string;
+}
+
+export interface AuthResponse {
+    user: AuthUser;
+}
+
+export interface LogoutResponse {
+    success: true;
+}
+
+export interface ErrorResponse {
+    error: string;
+    message: string;
 }

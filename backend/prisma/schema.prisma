@@ -64,13 +64,17 @@ model User {
 }
 
 model RefreshToken {
-  id        String    @id @default(uuid()) @db.Uuid
-  userId    String    @map("user_id") @db.Uuid
-  tokenHash String    @unique @map("token_hash")
-  expiresAt DateTime  @map("expires_at")
-  revokedAt DateTime? @map("revoked_at")
-  createdAt DateTime  @default(now()) @map("created_at")
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String        @id @default(uuid()) @db.Uuid
+  userId            String        @map("user_id") @db.Uuid
+  tokenHash         String        @unique @map("token_hash")
+  expiresAt         DateTime      @map("expires_at")
+  revokedAt         DateTime?     @map("revoked_at")
+  revocationReason  String?       @map("revocation_reason")
+  replacedByTokenId String?       @unique @map("replaced_by_token_id") @db.Uuid
+  createdAt         DateTime      @default(now()) @map("created_at")
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replacedByToken   RefreshToken? @relation("RefreshTokenRotation", fields: [replacedByTokenId], references: [id], onDelete: SetNull)
+  previousToken     RefreshToken? @relation("RefreshTokenRotation")
 
   @@index([userId])
   @@index([expiresAt])
@@ -231,6 +235,7 @@ model NotificationChannel {
   deliveries  NotificationDelivery[]
 
   @@index([userId])
+  @@unique([userId, channelType, destination])
   @@map("notification_channels")
 }
 

@@ -171,6 +171,8 @@ Core fields:
 - `tokenHash`
 - `expiresAt`
 - `revokedAt`
+- `revocationReason`
+- `replacedByTokenId`
 - `createdAt`
 
 Constraints and indexes:
@@ -180,6 +182,8 @@ Constraints and indexes:
 
 Notes:
 - Store only a hash, not the raw refresh token
+- `replacedByTokenId` supports refresh-token rotation lineage
+- `revocationReason` distinguishes normal logout from security-driven revocation
 
 #### `Category`
 
@@ -364,10 +368,12 @@ Core fields:
 
 Constraints and indexes:
 - Index: `userId`
+- Unique composite: `userId`, `channelType`, `destination`
 
 Notes:
 - Day one uses `EMAIL`
 - Future channels reuse the same model
+- Prevent duplicate identical destinations for the same user and channel type
 
 #### `NotificationDelivery`
 
