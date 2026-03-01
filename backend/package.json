@@ -13,6 +13,9 @@
         "test:watch": "vitest",
         "scrape:category": "tsx src/scraper/run.ts",
         "scrape:cleanup-stale-runs": "tsx src/scraper/cleanup-stale-runs.ts",
+        "diff:run": "tsx src/diff/run.ts",
+        "notify:immediate": "tsx src/notifications/send-immediate.ts",
+        "notify:digest": "tsx src/notifications/send-digest.ts",
         "prisma:generate": "prisma generate",
         "prisma:migrate": "prisma migrate dev",
         "prisma:studio": "prisma studio",
@@ -31,6 +34,8 @@
         "express-rate-limit": "^8.2.1",
         "helmet": "^8.1.0",
         "jsonwebtoken": "^9.0.2",
+        "nodemailer": "^8.0.1",
+        "resend": "^6.9.3",
         "zod": "^4.1.12"
     },
     "devDependencies": {
@@ -40,6 +45,7 @@
         "@types/express": "^5.0.0",
         "@types/jsonwebtoken": "^9.0.10",
         "@types/node": "^24.10.1",
+        "@types/nodemailer": "^7.0.11",
         "@types/supertest": "^7.2.0",
         "prisma": "^6.7.0",
         "supertest": "^7.2.2",

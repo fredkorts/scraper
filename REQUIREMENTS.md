@@ -129,8 +129,8 @@ graph TB
 5. The **Diff Engine** builds a comprehensive summary of changes for that category run:
    - **Price changes**: products whose price differs.
    - **New products**: products discovered for the first time.
-   - **Sold out**: products present in the previous snapshot marked as in-stock, now either absent or marked out-of-stock.
-   - **Back in stock**: products previously marked as out-of-stock, now available again.
+   - **Sold out**: products previously recorded as in stock, now explicitly observed as out of stock in persisted scrape data.
+   - **Back in stock**: products previously recorded as out of stock, now explicitly observed as available again.
 6. If changes are detected, a canonical `change_report` is created for the scrape run, with associated `change_items`.
 7. The Notification Service queries all users subscribed to that category and creates `notification_delivery` records:
    - **Paid Users**: the service immediately sends notifications and marks the related delivery records as sent or failed.
@@ -369,7 +369,7 @@ Maps products to one or more categories. This reflects how WooCommerce products 
 A **point-in-time record** of a product's data during a specific scrape run. This table powers the price history charts. Because we use **state-based snapshots**, a new row is ONLY created here when a product's price or stock status actually changes. By querying all snapshots for a `product_id`, ordered by `scraped_at`, we build the price timeline.
 
 #### `change_reports` & `change_items`
-When the diff engine detects differences between two consecutive scrape runs for a category, it creates one canonical `change_report` for that scrape run with individual `change_items`. Each item records the type of change (`price_increase`, `price_decrease`, `new_product`, `sold_out`, `back_in_stock`) and the before/after values.
+When the diff engine detects differences between two consecutive scrape runs for a category, it creates one canonical `change_report` for that scrape run with individual `change_items`. Each item records the type of change (`price_increase`, `price_decrease`, `new_product`, `sold_out`, `back_in_stock`) and the before/after values. Historical comparisons are derived from persisted data only. `new_product` is identified from `products.first_seen_at` plus the current run's snapshots. `sold_out` and `back_in_stock` require explicit stock transitions in persisted scrape data and are not inferred from category-local absence alone.
 
 #### `notification_channels`
 Extensible notification configuration. On day one, only `email` is active. Future channels (Discord, WhatsApp, Signal, SMS) are added as new rows with their respective `channel_type` and `destination` (webhook URL, phone number, etc.). The `is_default` flag marks the primary channel per user. The combination of `user_id`, `channel_type`, and `destination` should be unique to prevent duplicate destinations.
@@ -378,10 +378,11 @@ Extensible notification configuration. On day one, only `email` is active. Futur
 Stores per-user delivery state for a canonical `change_report`. This allows the system to send immediate notifications for paid users, defer digest delivery for free users, retry failures, and later support multiple channels without duplicating the underlying change payload.
 
 ### 5.4 Edge Case: Sold Out & Restocks
-If a product goes out of stock and disappears from the category page entirely:
-1. The Diff Engine notices the product is missing from the scrape but exists in the DB as `in_stock = true`.
-2. It generates a `sold_out` change event and marks the `products` table record as `in_stock = false`.
-3. If the product is restocked weeks later under the same URL, the scraper identifies it via its `external_url` (the canonical unique key). It does NOT create a duplicate product. Instead, it flips `in_stock` back to `true`, saves a new snapshot, and emits a `back_in_stock` change event.
+If a product goes out of stock:
+1. The scraper persists an explicit stock change for the canonical product, producing a current-run snapshot with `in_stock = false`.
+2. The Diff Engine compares that snapshot against persisted historical data and generates a `sold_out` change event only if the previous known stock state was `true`.
+3. If the product is restocked later under the same URL, the scraper identifies it via its `external_url` (the canonical unique key). It does NOT create a duplicate product. Instead, it flips `in_stock` back to `true`, saves a new snapshot, and the Diff Engine emits a `back_in_stock` change event if the previous known stock state was `false`.
+4. Category-local absence by itself is not treated as proof that the product is globally sold out, because products are canonical and may appear in multiple categories.
 
 ### 5.5 Key Relationships
 
@@ -484,14 +485,14 @@ If a product goes out of stock and disappears from the category page entirely:
 
 > **Goal**: Detect changes and send email alerts.
 
-- [ ] Implement diff engine: compare latest snapshot to previous
-- [ ] Generate canonical `change_reports` and `change_items`, then create `notification_deliveries`
-- [ ] Write backend unit tests for the diff engine logic (detecting price changes, sold out, etc.)
-- [ ] Write backend tests for notification delivery state transitions
-- [ ] Create email templates (HTML) for change summaries
-- [ ] Integrate Nodemailer (dev) / Resend (prod) for email delivery
-- [ ] Implement immediate delivery flow for paid users
-- [ ] Implement 6-hour digest job for free users using pending delivery records
+- [x] Implement diff engine: compare latest snapshot to previous
+- [x] Generate canonical `change_reports` and `change_items`, then create `notification_deliveries`
+- [x] Write backend unit tests for the diff engine logic (detecting price changes, sold out, etc.)
+- [x] Write backend tests for notification delivery state transitions
+- [x] Create email templates (HTML) for change summaries
+- [x] Integrate Nodemailer (dev) / Resend (prod) for email delivery
+- [x] Implement immediate delivery flow for paid users
+- [x] Implement 6-hour digest job for free users using pending delivery records
 - [ ] Set up Bull queue + Redis for job management
 - [ ] Implement `node-cron` scheduler that enqueues jobs based on `categories.next_run_at`
 - [ ] Build the `notification_channels` CRUD API

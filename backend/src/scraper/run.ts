@@ -1,5 +1,6 @@
 import { ScrapeRunStatus } from "@prisma/client";
 import { config } from "../config";
+import { runDiffEngine } from "../diff/run";
 import { prisma } from "../lib/prisma";
 import { buildCategoryUrl, fetchCategoryPage, waitBetweenRequests } from "./fetch";
 import { parseCategoryPage } from "./parse";
@@ -97,6 +98,8 @@ export const scrapeCategory = async (categoryIdOrSlug: string): Promise<ScrapeCa
                 completedAt: new Date(),
             },
         });
+
+        await runDiffEngine(scrapeRun.id);
 
         return {
             scrapeRunId: scrapeRun.id,

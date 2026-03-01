@@ -33,6 +33,8 @@ Required variables:
 - `PORT`
 - `FRONTEND_URL`
 - `DATABASE_URL`
+- `EMAIL_PROVIDER`
+- `EMAIL_FROM`
 - `JWT_SECRET`
 - `JWT_REFRESH_SECRET`
 - `REDIS_URL`
@@ -92,6 +94,9 @@ npm run build --workspace=backend
 npm run test --workspace=backend
 npm run scrape:category --workspace=backend -- lauamangud
 npm run scrape:cleanup-stale-runs --workspace=backend -- 30
+npm run diff:run --workspace=backend -- <scrapeRunId>
+npm run notify:immediate --workspace=backend -- <changeReportId>
+npm run notify:digest --workspace=backend
 npm run seed --workspace=backend
 npm run prisma:generate --workspace=backend
 npm run prisma:studio --workspace=backend
@@ -128,6 +133,56 @@ npm run test --workspace=backend
 ```
 
 The auth tests reset the auth-related tables before each run, so do not point `DATABASE_URL` at a database you want to preserve.
+
+## Local Notification Testing
+
+For local notification testing, you can keep `EMAIL_PROVIDER=smtp` and either:
+
+- point SMTP at a local mail catcher such as MailHog or Mailpit
+- or leave `SMTP_HOST` / `SMTP_PORT` unset and let Nodemailer fall back to `jsonTransport`
+
+Example mail catcher setup:
+
+```bash
+docker run --rm -p 1025:1025 -p 8025:8025 axllent/mailpit
+```
+
+Then use:
+
+```bash
+EMAIL_PROVIDER=smtp
+EMAIL_FROM=no-reply@example.com
+SMTP_HOST=localhost
+SMTP_PORT=1025
+```
+
+Immediate flow:
+
+1. Run a scrape that creates a `change_report`
+2. Copy the `changeReportId`
+3. Trigger the immediate sender:
+
+```bash
+npm run notify:immediate --workspace=backend -- <changeReportId>
+```
+
+Digest flow:
+
+1. Ensure there are pending free-user deliveries in the database
+2. Run the digest sender:
+
+```bash
+npm run notify:digest --workspace=backend
+```
+
+Useful companion commands:
+
+```bash
+npm run scrape:category --workspace=backend -- lauamangud
+npm run diff:run --workspace=backend -- <scrapeRunId>
+```
+
+If you use Mailpit, inspect sent emails at `http://localhost:8025`.
 
 ## Database Notes
 
@@ -169,13 +224,13 @@ Implemented foundation:
 - auth endpoints and auth test suite
 - basic scraper module
 - live scraper verification against a real seeded category
+- diff engine, canonical change reports, and notification deliveries
+- email templates, immediate paid sends, and free-user digest job
 - category seed script
 - local Docker setup for Postgres and Redis
 
 Not implemented yet:
 
-- diff engine
-- notifications
 - payments
 - dashboard application features
 

@@ -4,6 +4,13 @@ const envSchema = z.object({
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
     PORT: z.coerce.number().int().positive().default(3001),
     DATABASE_URL: z.string().url(),
+    EMAIL_PROVIDER: z.enum(["smtp", "resend"]).default("smtp"),
+    EMAIL_FROM: z.string().email().default("no-reply@example.com"),
+    SMTP_HOST: z.string().min(1).optional(),
+    SMTP_PORT: z.coerce.number().int().positive().optional(),
+    SMTP_USER: z.string().min(1).optional(),
+    SMTP_PASS: z.string().min(1).optional(),
+    RESEND_API_KEY: z.string().min(1).optional(),
     JWT_SECRET: z.string().min(32),
     JWT_REFRESH_SECRET: z.string().min(32),
     JWT_ISSUER: z.string().min(1).default("mabrik-backend"),
@@ -22,6 +29,14 @@ const envSchema = z.object({
 }).refine((value) => value.SCRAPER_MAX_DELAY_MS >= value.SCRAPER_MIN_DELAY_MS, {
     message: "SCRAPER_MAX_DELAY_MS must be greater than or equal to SCRAPER_MIN_DELAY_MS",
     path: ["SCRAPER_MAX_DELAY_MS"],
+}).superRefine((value, ctx) => {
+    if (value.EMAIL_PROVIDER === "resend" && !value.RESEND_API_KEY) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "RESEND_API_KEY is required when EMAIL_PROVIDER=resend",
+            path: ["RESEND_API_KEY"],
+        });
+    }
 });
 
 export const config = envSchema.parse(process.env);
