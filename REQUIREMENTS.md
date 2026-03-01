@@ -41,7 +41,7 @@
 - **Image URL** — primary product image
 - **Product URL** — direct link to the product page
 - **Stock status** — in stock / out of stock
-- **Category** — which category/subcategory it belongs to
+- **Categories** — one or more categories/subcategories where the product appears
 
 ---
 
@@ -111,7 +111,7 @@ graph TB
 | **Prisma** | ORM | Type-safe database client auto-generated from schema; great migration tooling; integrates naturally with TypeScript |
 | **Nodemailer / Resend** | Email delivery | Nodemailer for SMTP in development; Resend for production transactional emails with high deliverability |
 | **PayPal APIs** | Payments | Subscriptions API / Webhooks to handle automatic monthly billing upgrades from Free to Paid |
-| **bcrypt + JWT** | Authentication | Industry-standard password hashing and stateless auth tokens |
+| **bcrypt + JWT + DB-backed refresh tokens** | Authentication | Password hashing with short-lived access tokens and revocable refresh sessions stored in PostgreSQL |
 | **Zod** | Validation | Runtime schema validation for API inputs and scraped data integrity |
 | **Vitest** | Testing | Fast, Vite-native unit testing framework for backend logic (diff engine, scraper utils) |
 
@@ -131,10 +131,10 @@ graph TB
    - **New products**: products discovered for the first time.
    - **Sold out**: products present in the previous snapshot marked as in-stock, now either absent or marked out-of-stock.
    - **Back in stock**: products previously marked as out-of-stock, now available again.
-6. If changes are detected, a **change report** is persisted and the **Notification Service** is triggered.
-7. The Notification Service queries all users subscribed to that category:
-   - **Paid Users**: The service immediately compiles an email (or future channel) with a summary of the changes and sends it to each Paid user.
-   - **Free Users**: Changes are recorded but no immediate email is sent. Instead, a separate "Digest Cron" runs every 6 hours, aggregates all changes since the user's `last_digest_sent_at`, and sends a single compiled summary email.
+6. If changes are detected, a canonical `change_report` is created for the scrape run, with associated `change_items`.
+7. The Notification Service queries all users subscribed to that category and creates `notification_delivery` records:
+   - **Paid Users**: the service immediately sends notifications and marks the related delivery records as sent or failed.
+   - **Free Users**: no immediate notification is sent. A separate digest cron aggregates unsent eligible changes since the user's `last_digest_sent_at` and then marks the corresponding delivery records.
 
 ---
 
@@ -192,17 +192,22 @@ Users upgrade from Free to Paid via **PayPal Subscriptions** (Monthly billing). 
 
 ```mermaid
 erDiagram
+    users ||--o{ refresh_tokens : "has many"
     users ||--o{ user_subscriptions : "has many"
     users ||--o{ notification_channels : "has many"
+    users ||--o{ notification_deliveries : "receives"
     categories ||--o{ user_subscriptions : "has many"
     categories ||--o{ scrape_runs : "triggers"
     categories ||--o| categories : "parent of"
+    categories ||--o{ product_categories : "contains"
     scrape_runs ||--o{ product_snapshots : "contains"
     scrape_runs ||--o{ change_reports : "may produce"
     change_reports ||--o{ change_items : "contains"
+    change_reports ||--o{ notification_deliveries : "delivered as"
     products ||--o{ product_snapshots : "referenced by"
     products ||--o{ change_items : "referenced by"
-    products }|--|| categories : "belongs to"
+    products ||--o{ product_categories : "appears in"
+    notification_channels ||--o{ notification_deliveries : "used by"
 
     users {
         uuid id PK
@@ -216,6 +221,15 @@ erDiagram
         boolean is_active
         timestamp created_at
         timestamp updated_at
+    }
+
+    refresh_tokens {
+        uuid id PK
+        uuid user_id FK
+        string token_hash UK
+        timestamp expires_at
+        timestamp revoked_at "nullable"
+        timestamp created_at
     }
 
     categories {
@@ -259,13 +273,19 @@ erDiagram
         string external_url UK "unique product page URL"
         string name
         string image_url
-        uuid category_id FK
         decimal current_price
         decimal original_price "nullable — set when on sale"
         boolean in_stock
         timestamp first_seen_at
         timestamp last_seen_at
         timestamp updated_at
+    }
+
+    product_categories {
+        uuid id PK
+        uuid product_id FK
+        uuid category_id FK
+        timestamp created_at
     }
 
     product_snapshots {
@@ -283,9 +303,7 @@ erDiagram
     change_reports {
         uuid id PK
         uuid scrape_run_id FK
-        uuid user_id FK
         int total_changes
-        boolean notification_sent
         timestamp created_at
     }
 
@@ -309,12 +327,26 @@ erDiagram
         boolean is_active
         timestamp created_at
     }
+
+    notification_deliveries {
+        uuid id PK
+        uuid change_report_id FK
+        uuid user_id FK
+        uuid notification_channel_id FK
+        enum status "pending | sent | failed | skipped"
+        text error_message "nullable"
+        timestamp sent_at "nullable"
+        timestamp created_at
+    }
 ```
 
 ### 5.2 Table Descriptions
 
 #### `users`
 Stores registered users. Each user can create multiple subscriptions and notification channels depending on their `role` (free, paid, or admin). The email is unique and doubles as the default notification destination. `last_digest_sent_at` tracks 6-hour digest emails. `paypal_subscription_id` and `subscription_expires_at` track active monthly recurring billing status.
+
+#### `refresh_tokens`
+Stores hashed refresh tokens for persistent login sessions. This enables short-lived access tokens, token rotation, explicit logout, and server-side revocation of refresh sessions.
 
 #### `categories`
 Defines **what** to scrape and **how often**. This maps directly to Mabrik.ee's navigation tree. It supports subcategories via `parent_id`. `next_run_at` is recalculated after every run so the scheduler knows which jobs to fire next. We only scrape a category if it has at least one active subscriber.
@@ -326,16 +358,22 @@ Maps a user to a category they want to follow. Multiple users can subscribe to t
 Every time a scrape job fires for a category, a `scrape_run` is created to track execution status, timing, and high-level stats.
 
 #### `products`
-A **canonical product registry** — a deduplicated record of every product ever seen. Keyed by `external_url` (the mabrik.ee product page link) to prevent duplicates. Linked to `category_id`. `current_price` and `in_stock` reflect the latest known state.
+A **canonical product registry** — a deduplicated record of every product ever seen. Keyed by `external_url` (the mabrik.ee product page link) to prevent duplicates. Category membership is represented separately so the same product can appear in multiple Mabrik categories without duplication. `current_price` and `in_stock` reflect the latest known state.
+
+#### `product_categories`
+Maps products to one or more categories. This reflects how WooCommerce products can appear in multiple category or sale groupings while still preserving a single canonical product record.
 
 #### `product_snapshots`
 A **point-in-time record** of a product's data during a specific scrape run. This table powers the price history charts. Because we use **state-based snapshots**, a new row is ONLY created here when a product's price or stock status actually changes. By querying all snapshots for a `product_id`, ordered by `scraped_at`, we build the price timeline.
 
 #### `change_reports` & `change_items`
-When the diff engine detects differences between two consecutive scrape runs for a category, it creates a `change_report` with individual `change_items`. Each item records the type of change (`price_increase`, `price_decrease`, `new_product`, `sold_out`, `back_in_stock`) and the before/after values. The Notifier then dispatches alerts to all users subscribed to that category.
+When the diff engine detects differences between two consecutive scrape runs for a category, it creates one canonical `change_report` for that scrape run with individual `change_items`. Each item records the type of change (`price_increase`, `price_decrease`, `new_product`, `sold_out`, `back_in_stock`) and the before/after values.
 
 #### `notification_channels`
 Extensible notification configuration. On day one, only `email` is active. Future channels (Discord, WhatsApp, Signal, SMS) are added as new rows with their respective `channel_type` and `destination` (webhook URL, phone number, etc.). The `is_default` flag marks the primary channel per user.
+
+#### `notification_deliveries`
+Stores per-user delivery state for a canonical `change_report`. This allows the system to send immediate notifications for paid users, defer digest delivery for free users, retry failures, and later support multiple channels without duplicating the underlying change payload.
 
 ### 5.4 Edge Case: Sold Out & Restocks
 If a product goes out of stock and disappears from the category page entirely:
@@ -348,14 +386,19 @@ If a product goes out of stock and disappears from the category page entirely:
 | Relationship | Type | Description |
 |---|---|---|
 | `users` → `user_subscriptions` | 1:N | A user can track multiple categories |
+| `users` → `refresh_tokens` | 1:N | A user can have multiple refresh sessions |
 | `categories` → `user_subscriptions` | 1:N | A category can have many subscribers |
 | `categories` → `scrape_runs` | 1:N | Each category produces many runs over time |
 | `scrape_runs` → `product_snapshots` | 1:N | A run captures a snapshot of every product found |
 | `products` → `product_snapshots` | 1:N | A product appears in many snapshots over time |
-| `categories` → `products` | 1:N | A product belongs to a category |
-| `scrape_runs` → `change_reports` | 1:0..1 | A run may produce at most one change report per user |
+| `products` → `product_categories` | 1:N | A product can belong to multiple categories |
+| `categories` → `product_categories` | 1:N | A category can contain multiple products |
+| `scrape_runs` → `change_reports` | 1:0..1 | A run may produce at most one canonical change report |
 | `change_reports` → `change_items` | 1:N | A report lists all individual changes |
 | `users` → `notification_channels` | 1:N | A user can have multiple notification destinations |
+| `change_reports` → `notification_deliveries` | 1:N | A canonical report can be delivered to many users |
+| `users` → `notification_deliveries` | 1:N | A user can receive many delivery records |
+| `notification_channels` → `notification_deliveries` | 1:N | Delivery attempts are tied to concrete channels |
 
 ---
 
@@ -365,8 +408,9 @@ If a product goes out of stock and disappears from the category page entirely:
 | Method | Endpoint | Description |
 |---|---|---|
 | `POST` | `/api/auth/register` | Register new user |
-| `POST` | `/api/auth/login` | Login, returns JWT |
-| `POST` | `/api/auth/logout` | Invalidate token |
+| `POST` | `/api/auth/login` | Login, issues access token cookie and refresh session |
+| `POST` | `/api/auth/refresh` | Rotate refresh token and issue new access token |
+| `POST` | `/api/auth/logout` | Revoke current refresh session |
 | `GET` | `/api/auth/me` | Get current user profile |
 
 ### Payments (PayPal)
@@ -421,31 +465,36 @@ If a product goes out of stock and disappears from the category page entirely:
 > **Goal**: Project scaffolding, database, auth, and basic scraper.
 
 - [x] Initialize monorepo structure (`/backend`, `/frontend`, `/shared`) ✅ *2025-02-25*
-- [ ] Set up backend: Express + TypeScript + Prisma
-- [ ] Set up PostgreSQL database + Prisma schema + migrations
-- [ ] Implement user registration and login (bcrypt + JWT)
+- [x] Set up backend: Express + TypeScript + Prisma
+- [x] Set up PostgreSQL database + Prisma schema + migrations
+- [ ] Implement user registration and login
+- [ ] Implement refresh-token rotation and logout revocation
+- [ ] Build `/api/auth/refresh` and `/api/auth/logout`
 - [ ] Build basic scraper module:
   - Fetch a single category page
   - Parse products with Cheerio
   - Handle pagination
   - Save to `products` and `product_snapshots`
 - [ ] Write backend unit tests for scraper parsing logic and pagination handling
-- [ ] Seed the `categories` reference data
+- [x] Seed the `categories` reference data
 
 ### Phase 2 — Diff Engine & Email Notifications (Weeks 3–4)
 
 > **Goal**: Detect changes and send email alerts.
 
 - [ ] Implement diff engine: compare latest snapshot to previous
-- [ ] Generate `change_reports` and `change_items`
+- [ ] Generate canonical `change_reports` and `change_items`, then create `notification_deliveries`
 - [ ] Write backend unit tests for the diff engine logic (detecting price changes, sold out, etc.)
+- [ ] Write backend tests for notification delivery state transitions
 - [ ] Create email templates (HTML) for change summaries
 - [ ] Integrate Nodemailer (dev) / Resend (prod) for email delivery
+- [ ] Implement immediate delivery flow for paid users
+- [ ] Implement 6-hour digest job for free users using pending delivery records
 - [ ] Set up Bull queue + Redis for job management
 - [ ] Implement `node-cron` scheduler that enqueues jobs based on `categories.next_run_at`
 - [ ] Build the `notification_channels` CRUD API
 
-### Phase 4 — Payments (PayPal Integration) (Week 5)
+### Phase 3 — Payments (PayPal Integration) (Week 5)
 
 > **Goal**: Implement PayPal subscriptions to gate the premium tier.
 
@@ -455,7 +504,7 @@ If a product goes out of stock and disappears from the category page entirely:
 - [ ] Add user `role` upgrading/downgrading logic based on webhook events
 - [ ] Build the "Upgrade" UI flow in the frontend
 
-### Phase 5 — Dashboard: Core Views (Weeks 6–8)
+### Phase 4 — Dashboard: Core Views (Weeks 6–8)
 
 > **Goal**: Frontend dashboard with auth, scrape history, and product views.
 
@@ -468,7 +517,7 @@ If a product goes out of stock and disappears from the category page entirely:
 - [ ] Set up TanStack Query for all API calls
 - [ ] Write frontend unit tests for core UI components and custom hooks
 
-### Phase 6 — Dashboard: Settings & Configuration (Week 9)
+### Phase 5 — Dashboard: Settings & Configuration (Week 9)
 
 > **Goal**: User settings for scrape interval, categories, and notifications.
 
@@ -479,7 +528,7 @@ If a product goes out of stock and disappears from the category page entirely:
 - [ ] Wire settings to backend CRUD APIs
 - [ ] Manual "scrape now" button with progress indicator
 
-### Phase 7 — Polish & Production Readiness (Weeks 10–11)
+### Phase 6 — Polish & Production Readiness (Weeks 10–11)
 
 > **Goal**: Error handling, rate limiting, monitoring, and deployment.
 
@@ -488,11 +537,11 @@ If a product goes out of stock and disappears from the category page entirely:
 - [ ] Implement error handling and retry logic for failed scrapes
 - [ ] Add logging (Winston or Pino)
 - [ ] Dockerize backend + frontend + PostgreSQL + Redis
-- [ ] Write `docker-compose.yml` for local development
+- [x] Write `docker-compose.yml` for local development
 - [ ] Set up CI/CD pipeline
 - [ ] Deploy to VPS or cloud platform
 
-### Phase 8 — Additional Notification Channels (Future)
+### Phase 7 — Additional Notification Channels (Future)
 
 > **Goal**: Extend notifications beyond email.
 

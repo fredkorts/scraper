@@ -68,6 +68,7 @@ export interface User {
     subscriptionExpiresAt?: string;
     isActive: boolean;
     createdAt: string;
+    updatedAt: string;
 }
 
 export interface Category {
@@ -78,7 +79,7 @@ export interface Category {
     parentId?: string;
     isActive: boolean;
     scrapeIntervalHours: ScrapeInterval;
-    nextRunAt: string;
+    nextRunAt?: string;
     createdAt: string;
     updatedAt: string;
 }
@@ -99,8 +100,9 @@ export interface ScrapeRun {
     newProducts: number;
     priceChanges: number;
     soldOut: number;
+    backInStock: number;
     pagesScraped: number;
-    durationMs: number;
+    durationMs?: number;
     errorMessage?: string;
     startedAt: string;
     completedAt?: string;
@@ -111,12 +113,20 @@ export interface Product {
     externalUrl: string;
     name: string;
     imageUrl: string;
-    categoryId: string;
     currentPrice: number;
     originalPrice?: number;
     inStock: boolean;
     firstSeenAt: string;
     lastSeenAt: string;
+    updatedAt: string;
+    categories?: Category[];
+}
+
+export interface ProductCategory {
+    id: string;
+    productId: string;
+    categoryId: string;
+    createdAt: string;
 }
 
 export interface ProductSnapshot {
@@ -134,9 +144,7 @@ export interface ProductSnapshot {
 export interface ChangeReport {
     id: string;
     scrapeRunId: string;
-    userId: string;
     totalChanges: number;
-    notificationSent: boolean;
     createdAt: string;
 }
 
@@ -159,5 +167,27 @@ export interface NotificationChannel {
     destination: string;
     isDefault: boolean;
     isActive: boolean;
+    createdAt: string;
+}
+
+export type NotificationDeliveryStatus = "pending" | "sent" | "failed" | "skipped";
+
+export interface NotificationDelivery {
+    id: string;
+    changeReportId: string;
+    userId: string;
+    notificationChannelId: string;
+    status: NotificationDeliveryStatus;
+    errorMessage?: string;
+    sentAt?: string;
+    createdAt: string;
+}
+
+export interface RefreshToken {
+    id: string;
+    userId: string;
+    tokenHash: string;
+    expiresAt: string;
+    revokedAt?: string;
     createdAt: string;
 }

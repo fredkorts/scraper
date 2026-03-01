@@ -1,0 +1,255 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  FREE
+  PAID
+  ADMIN
+}
+
+enum ScrapeRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum ChangeType {
+  PRICE_INCREASE
+  PRICE_DECREASE
+  NEW_PRODUCT
+  SOLD_OUT
+  BACK_IN_STOCK
+}
+
+enum NotificationChannelType {
+  EMAIL
+  DISCORD
+  WHATSAPP
+  SIGNAL
+  SMS
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+model User {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  email                 String                 @unique
+  passwordHash          String                 @map("password_hash")
+  name                  String
+  role                  UserRole               @default(FREE)
+  lastDigestSentAt      DateTime?              @map("last_digest_sent_at")
+  paypalSubscriptionId  String?                @map("paypal_subscription_id")
+  subscriptionExpiresAt DateTime?              @map("subscription_expires_at")
+  isActive              Boolean                @default(true) @map("is_active")
+  createdAt             DateTime               @default(now()) @map("created_at")
+  updatedAt             DateTime               @updatedAt @map("updated_at")
+  refreshTokens         RefreshToken[]
+  subscriptions         UserSubscription[]
+  notificationChannels  NotificationChannel[]
+  notificationDeliveries NotificationDelivery[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model Category {
+  id                  String             @id @default(uuid()) @db.Uuid
+  slug                String             @unique
+  nameEt              String             @map("name_et")
+  nameEn              String             @map("name_en")
+  parentId            String?            @map("parent_id") @db.Uuid
+  isActive            Boolean            @default(true) @map("is_active")
+  scrapeIntervalHours Int                @default(12) @map("scrape_interval_hours")
+  nextRunAt           DateTime?          @map("next_run_at")
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
+  parent              Category?          @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children            Category[]         @relation("CategoryHierarchy")
+  subscriptions       UserSubscription[]
+  scrapeRuns          ScrapeRun[]
+  productCategories   ProductCategory[]
+
+  @@index([nextRunAt])
+  @@index([parentId])
+  @@map("categories")
+}
+
+model UserSubscription {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  categoryId String   @map("category_id") @db.Uuid
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, categoryId])
+  @@index([categoryId])
+  @@map("user_subscriptions")
+}
+
+model ScrapeRun {
+  id            String         @id @default(uuid()) @db.Uuid
+  categoryId    String         @map("category_id") @db.Uuid
+  status        ScrapeRunStatus
+  totalProducts Int            @default(0) @map("total_products")
+  newProducts   Int            @default(0) @map("new_products")
+  priceChanges  Int            @default(0) @map("price_changes")
+  soldOut       Int            @default(0) @map("sold_out")
+  backInStock   Int            @default(0) @map("back_in_stock")
+  pagesScraped  Int            @default(0) @map("pages_scraped")
+  durationMs    Int?           @map("duration_ms")
+  errorMessage  String?        @map("error_message")
+  startedAt     DateTime       @default(now()) @map("started_at")
+  completedAt   DateTime?      @map("completed_at")
+  category      Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  productSnapshots ProductSnapshot[]
+  changeReport     ChangeReport?
+
+  @@index([categoryId])
+  @@index([status])
+  @@index([startedAt])
+  @@map("scrape_runs")
+}
+
+model Product {
+  id               String            @id @default(uuid()) @db.Uuid
+  externalUrl      String            @unique @map("external_url")
+  name             String
+  imageUrl         String            @map("image_url")
+  currentPrice     Decimal           @map("current_price") @db.Decimal(10, 2)
+  originalPrice    Decimal?          @map("original_price") @db.Decimal(10, 2)
+  inStock          Boolean           @map("in_stock")
+  firstSeenAt      DateTime          @default(now()) @map("first_seen_at")
+  lastSeenAt       DateTime          @default(now()) @map("last_seen_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  productCategories ProductCategory[]
+  productSnapshots  ProductSnapshot[]
+  changeItems       ChangeItem[]
+
+  @@index([lastSeenAt])
+  @@index([inStock])
+  @@map("products")
+}
+
+model ProductCategory {
+  id         String   @id @default(uuid()) @db.Uuid
+  productId  String   @map("product_id") @db.Uuid
+  categoryId String   @map("category_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@unique([productId, categoryId])
+  @@index([categoryId])
+  @@map("product_categories")
+}
+
+model ProductSnapshot {
+  id            String   @id @default(uuid()) @db.Uuid
+  scrapeRunId   String   @map("scrape_run_id") @db.Uuid
+  productId     String   @map("product_id") @db.Uuid
+  name          String
+  price         Decimal  @db.Decimal(10, 2)
+  originalPrice Decimal? @map("original_price") @db.Decimal(10, 2)
+  inStock       Boolean  @map("in_stock")
+  imageUrl      String   @map("image_url")
+  scrapedAt     DateTime @default(now()) @map("scraped_at")
+  scrapeRun     ScrapeRun @relation(fields: [scrapeRunId], references: [id], onDelete: Restrict)
+  product       Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([scrapeRunId])
+  @@index([productId])
+  @@index([scrapedAt])
+  @@map("product_snapshots")
+}
+
+model ChangeReport {
+  id           String                 @id @default(uuid()) @db.Uuid
+  scrapeRunId  String                 @unique @map("scrape_run_id") @db.Uuid
+  totalChanges Int                    @default(0) @map("total_changes")
+  createdAt    DateTime               @default(now()) @map("created_at")
+  scrapeRun    ScrapeRun              @relation(fields: [scrapeRunId], references: [id], onDelete: Restrict)
+  changeItems  ChangeItem[]
+  deliveries   NotificationDelivery[]
+
+  @@map("change_reports")
+}
+
+model ChangeItem {
+  id             String     @id @default(uuid()) @db.Uuid
+  changeReportId String     @map("change_report_id") @db.Uuid
+  productId      String     @map("product_id") @db.Uuid
+  changeType     ChangeType @map("change_type")
+  oldPrice       Decimal?   @map("old_price") @db.Decimal(10, 2)
+  newPrice       Decimal?   @map("new_price") @db.Decimal(10, 2)
+  oldStockStatus Boolean?   @map("old_stock_status")
+  newStockStatus Boolean?   @map("new_stock_status")
+  changeReport   ChangeReport @relation(fields: [changeReportId], references: [id], onDelete: Restrict)
+  product        Product      @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([changeReportId])
+  @@index([productId])
+  @@index([changeType])
+  @@map("change_items")
+}
+
+model NotificationChannel {
+  id          String                  @id @default(uuid()) @db.Uuid
+  userId      String                  @map("user_id") @db.Uuid
+  channelType NotificationChannelType @map("channel_type")
+  destination String
+  isDefault   Boolean                 @default(false) @map("is_default")
+  isActive    Boolean                 @default(true) @map("is_active")
+  createdAt   DateTime                @default(now()) @map("created_at")
+  user        User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries  NotificationDelivery[]
+
+  @@index([userId])
+  @@map("notification_channels")
+}
+
+model NotificationDelivery {
+  id                    String                     @id @default(uuid()) @db.Uuid
+  changeReportId        String                     @map("change_report_id") @db.Uuid
+  userId                String                     @map("user_id") @db.Uuid
+  notificationChannelId String                     @map("notification_channel_id") @db.Uuid
+  status                NotificationDeliveryStatus @default(PENDING)
+  errorMessage          String?                    @map("error_message")
+  sentAt                DateTime?                  @map("sent_at")
+  createdAt             DateTime                   @default(now()) @map("created_at")
+  changeReport          ChangeReport               @relation(fields: [changeReportId], references: [id], onDelete: Cascade)
+  user                  User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notificationChannel   NotificationChannel        @relation(fields: [notificationChannelId], references: [id], onDelete: Cascade)
+
+  @@unique([changeReportId, userId, notificationChannelId])
+  @@index([changeReportId])
+  @@index([userId])
+  @@index([status])
+  @@map("notification_deliveries")
+}
