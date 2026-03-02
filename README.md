@@ -97,6 +97,8 @@ npm run scrape:cleanup-stale-runs --workspace=backend -- 30
 npm run diff:run --workspace=backend -- <scrapeRunId>
 npm run notify:immediate --workspace=backend -- <changeReportId>
 npm run notify:digest --workspace=backend
+npm run queue:worker --workspace=backend
+npm run queue:scheduler --workspace=backend
 npm run seed --workspace=backend
 npm run prisma:generate --workspace=backend
 npm run prisma:studio --workspace=backend
@@ -130,6 +132,12 @@ Run backend tests:
 
 ```bash
 npm run test --workspace=backend
+```
+
+Run Redis-backed queue/scheduler integration tests as well:
+
+```bash
+RUN_REDIS_TESTS=1 npm run test --workspace=backend
 ```
 
 The auth tests reset the auth-related tables before each run, so do not point `DATABASE_URL` at a database you want to preserve.
@@ -226,6 +234,7 @@ Implemented foundation:
 - live scraper verification against a real seeded category
 - diff engine, canonical change reports, and notification deliveries
 - email templates, immediate paid sends, and free-user digest job
+- BullMQ scrape queue and node-cron scheduler based on `categories.next_run_at`
 - category seed script
 - local Docker setup for Postgres and Redis
 

@@ -9,6 +9,7 @@ import { config } from "./config";
 import { AppError } from "./lib/errors";
 import { prisma } from "./lib/prisma";
 import { authRouter } from "./routes/auth";
+import { notificationsRouter } from "./routes/notifications";
 
 export const createApp = () => {
     const app = express();
@@ -47,6 +48,7 @@ export const createApp = () => {
     app.use("/api/auth", authLimiter);
     app.use("/api/payments", paymentsLimiter);
     app.use("/api/auth", authRouter);
+    app.use("/api/notifications", notificationsRouter);
 
     app.get("/api/health", async (_req, res) => {
         try {

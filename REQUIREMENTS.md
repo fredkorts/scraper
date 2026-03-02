@@ -145,8 +145,9 @@ graph TB
 | **React 18** | UI framework | Component-based, rich ecosystem, your existing strength (from past projects) |
 | **Vite** | Build tool | Instant HMR, fast builds; already scaffolded in this project |
 | **TypeScript** | Language | Shared types with the backend; safer props/state management |
-| **React Router v6** | Routing | Declarative routing for dashboard views |
+| **TanStack Router** | Routing | Type-safe route params/search, clean protected-route patterns, and strong integration with TanStack Query |
 | **TanStack Query** | Data fetching | Automatic caching, background refetching, loading/error states for API calls |
+| **TanStack Table** | Tables | Headless typed table state for sorting, pagination, filtering, and reusable data-grid patterns |
 | **Recharts** | Charts | Lightweight React charting library for price history graphs |
 | **React Hook Form + Zod** | Forms & validation | Performant form handling with schema validation (shared Zod schemas with backend) |
 | **CSS Modules** | Styling | Scoped styles, no naming conflicts, no extra dependencies |
@@ -156,12 +157,13 @@ graph TB
 
 | Page | Description |
 |---|---|
-| **Login / Register** | Auth with email + password |
-| **Dashboard Home** | Latest scrape summary: total products tracked, recent changes at a glance |
-| **Scrape History** | Paginated list of past scrapes with timestamp, category, products found, and changes detected |
-| **Scrape Detail** | Full product list from a specific scrape; diff view highlighting price changes, new items, sold-out items |
-| **Price History** | Per-product price chart over time |
-| **Settings** | Configure scrape interval, notification channels, target categories, and email address |
+| **Landing / Home (Public)** | Public entry page with product value explanation and CTA to login/register |
+| **Login / Register (Public)** | Auth with email + password |
+| **Dashboard Home (Protected)** | High-signal summary for logged-in users: latest run status, recent change counts, and quick actions |
+| **Scrape Runs (Protected)** | Paginated/sortable table of past scrapes with category, status, products found, and changes detected |
+| **Scrape Run Detail (Protected)** | Full product list for a specific run plus diff items (price moves, new products, stock transitions) |
+| **Product Detail / Price History (Protected)** | Per-product detail with historical price chart over time |
+| **Settings (Protected)** | User configuration for categories/subscriptions, notification channels, scrape interval, and account preferences |
 
 ---
 
@@ -493,13 +495,48 @@ If a product goes out of stock:
 - [x] Integrate Nodemailer (dev) / Resend (prod) for email delivery
 - [x] Implement immediate delivery flow for paid users
 - [x] Implement 6-hour digest job for free users using pending delivery records
-- [ ] Set up Bull queue + Redis for job management
-- [ ] Implement `node-cron` scheduler that enqueues jobs based on `categories.next_run_at`
-- [ ] Build the `notification_channels` CRUD API
+- [x] Set up Bull queue + Redis for job management
+- [x] Implement `node-cron` scheduler that enqueues jobs based on `categories.next_run_at`
+- [x] Build the `notification_channels` CRUD API
 
-### Phase 3 — Payments (PayPal Integration) (Week 5)
+### Phase 3 — Frontend Foundation & Routing (Week 5)
 
-> **Goal**: Implement PayPal subscriptions to gate the premium tier.
+> **Goal**: Establish frontend app shell, routing, and auth-protected layout.
+
+- [ ] Scaffold/confirm React + Vite + TypeScript frontend baseline
+- [ ] Set up TanStack Router route tree
+- [ ] Implement public routes: landing, login, register
+- [ ] Implement protected app layout for authenticated users
+- [ ] Set up TanStack Query API layer and shared query utilities
+- [ ] Add shared table primitives using TanStack Table for dashboard lists
+- [ ] Write frontend tests for route guards and auth shell behavior
+
+### Phase 4 — Dashboard: Core Data Views (Weeks 6–8)
+
+> **Goal**: Deliver high-value dashboard views for monitoring runs, changes, and product history.
+
+- [ ] Build protected dashboard home (latest scrape health, recent changes, quick actions)
+- [ ] Build scrape runs list view (paginated/sortable table)
+- [ ] Build scrape run detail view (products + diff items)
+- [ ] Build product detail/price-history view with Recharts
+- [ ] Add route-level data loading/prefetching with TanStack Router + Query
+- [ ] Write frontend unit tests for core dashboard view components/hooks
+
+### Phase 5 — Dashboard: Settings & User Operations (Week 9)
+
+> **Goal**: Let users configure what they track and where they get notified.
+
+- [ ] Build settings views:
+  - Category/subscription management
+  - Notification channel management
+  - Scrape interval selector (6h, 12h, 24h, 48h)
+  - Account basics
+- [ ] Wire settings UI to backend CRUD APIs
+- [ ] Add manual "scrape now" trigger UX with progress indicator
+
+### Phase 6 — Payments (PayPal Integration) (Week 10)
+
+> **Goal**: Implement PayPal subscriptions to gate the premium tier after core dashboard testing is stable.
 
 - [ ] Add `@paypal/checkout-server-sdk`
 - [ ] Implement PayPal subscription creation endpoints
@@ -507,31 +544,7 @@ If a product goes out of stock:
 - [ ] Add user `role` upgrading/downgrading logic based on webhook events
 - [ ] Build the "Upgrade" UI flow in the frontend
 
-### Phase 4 — Dashboard: Core Views (Weeks 6–8)
-
-> **Goal**: Frontend dashboard with auth, scrape history, and product views.
-
-- [ ] Scaffold React + Vite frontend with TypeScript
-- [ ] Implement auth pages (login, register) with React Hook Form
-- [ ] Build dashboard home page (latest scrape stats)
-- [ ] Build scrape history page (paginated table)
-- [ ] Build scrape detail page (product list + diff highlighting)
-- [ ] Build product price history page with Recharts
-- [ ] Set up TanStack Query for all API calls
-- [ ] Write frontend unit tests for core UI components and custom hooks
-
-### Phase 5 — Dashboard: Settings & Configuration (Week 9)
-
-> **Goal**: User settings for scrape interval, categories, and notifications.
-
-- [ ] Build settings page:
-  - Scrape interval selector (dropdown: 6h, 12h, 24h, 48h)
-  - Category multi-select (which categories to track)
-  - Email notification configuration (change destination email)
-- [ ] Wire settings to backend CRUD APIs
-- [ ] Manual "scrape now" button with progress indicator
-
-### Phase 6 — Polish & Production Readiness (Weeks 10–11)
+### Phase 7 — Polish & Production Readiness (Weeks 11–12)
 
 > **Goal**: Error handling, rate limiting, monitoring, and deployment.
 
@@ -544,7 +557,7 @@ If a product goes out of stock:
 - [ ] Set up CI/CD pipeline
 - [ ] Deploy to VPS or cloud platform
 
-### Phase 7 — Additional Notification Channels (Future)
+### Phase 8 — Additional Notification Channels (Future)
 
 > **Goal**: Extend notifications beyond email.
 

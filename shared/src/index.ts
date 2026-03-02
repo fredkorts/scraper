@@ -229,3 +229,26 @@ export interface ErrorResponse {
     error: string;
     message: string;
 }
+
+export type NotificationChannelInputType = "email" | "discord" | "whatsapp" | "signal" | "sms";
+
+export interface NotificationChannelCreateRequest {
+    channelType: NotificationChannelInputType;
+    destination: string;
+    isDefault?: boolean;
+    isActive?: boolean;
+}
+
+export interface NotificationChannelUpdateRequest {
+    destination?: string;
+    isDefault?: boolean;
+    isActive?: boolean;
+}
+
+export interface NotificationChannelResponse {
+    channel: NotificationChannel;
+}
+
+export interface NotificationChannelsResponse {
+    channels: NotificationChannel[];
+}
