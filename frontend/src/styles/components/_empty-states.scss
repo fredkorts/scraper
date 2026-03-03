@@ -1,0 +1,13 @@
+@mixin state-panel {
+    padding: var(--space-lg);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-muted);
+    background: var(--color-surface);
+}
+
+@mixin state-panel-error {
+    @include state-panel;
+    border-color: var(--color-danger);
+    color: var(--color-danger);
+}

@@ -1,9 +1,7 @@
+@use "../styles/layout/containers";
+
 .page {
-    display: grid;
-    gap: var(--space-lg);
-    padding: var(--space-xl) var(--space-lg);
-    max-width: 64rem;
-    margin: 0 auto;
+    @include containers.page-shell(64rem);
 }
 
 .heading {

@@ -1,9 +1,12 @@
+@use "../styles/abstracts/mixins";
+@use "../styles/components/cards";
+@use "../styles/components/empty-states";
+@use "../styles/components/forms";
+@use "../styles/components/status-badges";
+@use "../styles/layout/containers";
+
 .page {
-    display: grid;
-    gap: var(--space-lg);
-    padding: var(--space-xl) var(--space-lg);
-    max-width: 80rem;
-    margin: 0 auto;
+    @include containers.page-shell(80rem);
 }
 
 .pageHeading {
@@ -34,11 +37,7 @@
 }
 
 .card {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-md);
-    padding: var(--space-lg);
+    @include cards.card-surface;
     display: grid;
     gap: var(--space-sm);
 }
@@ -49,7 +48,7 @@
 }
 
 .metric {
-    font-size: 1.75rem;
+    font-size: var(--font-size-xl);
     font-weight: 700;
 }
 
@@ -94,30 +93,23 @@
 }
 
 .statusBadge {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2xs);
-    width: fit-content;
-    padding: 0.2rem 0.55rem;
-    border-radius: 999px;
-    border: 1px solid var(--color-border);
-    background: var(--color-page);
-    font-size: var(--font-size-sm);
-    font-weight: 600;
+    @include status-badges.status-badge-base;
 }
 
 .statusBadge[data-status="failed"] {
-    border-color: var(--color-danger);
-    color: var(--color-danger);
+    @include status-badges.status-badge-tone("danger");
 }
 
 .statusBadge[data-status="completed"] {
-    border-color: var(--color-primary);
-    color: var(--color-primary);
+    @include status-badges.status-badge-tone("success");
 }
 
 .statusBadge[data-status="running"] {
-    border-color: var(--color-text-muted);
+    @include status-badges.status-badge-tone("info");
+}
+
+.statusBadge[data-status="pending"] {
+    @include status-badges.status-badge-tone("neutral");
 }
 
 .filterRow {
@@ -128,14 +120,11 @@
 }
 
 .filterToolbar {
+    @include cards.card-surface(var(--space-md));
     display: flex;
     gap: var(--space-sm);
     flex-wrap: wrap;
     align-items: end;
-    padding: var(--space-md);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    background: var(--color-surface);
 }
 
 .filterGroup {
@@ -144,26 +133,16 @@
 }
 
 .label {
-    font-size: var(--font-size-sm);
-    font-weight: 600;
+    @include forms.field-label;
 }
 
 .select {
+    @include forms.control-base;
     min-width: 10rem;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    padding: var(--space-xs) var(--space-sm);
-    background: var(--color-surface);
-    color: var(--color-text);
 }
 
 .checkboxControl {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-xs);
-    min-height: 2.5rem;
-    font-size: var(--font-size-sm);
-    font-weight: 600;
+    @include forms.checkbox-control;
 }
 
 .tableControls {
@@ -181,18 +160,12 @@
     flex-wrap: wrap;
 }
 
-.emptyState,
-.errorState {
-    padding: var(--space-lg);
-    border: 1px dashed var(--color-border);
-    border-radius: var(--radius-md);
-    color: var(--color-text-muted);
-    background: var(--color-surface);
+.emptyState {
+    @include empty-states.state-panel;
 }
 
 .errorState {
-    border-color: var(--color-danger);
-    color: var(--color-danger);
+    @include empty-states.state-panel-error;
 }
 
 .splitColumns {
@@ -213,11 +186,7 @@
 }
 
 .mediaCard {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-md);
-    padding: var(--space-md);
+    @include cards.card-surface(var(--space-md));
 }
 
 .productImage {
@@ -245,13 +214,9 @@
 }
 
 .chartCard {
+    @include cards.card-surface;
     display: grid;
     gap: var(--space-sm);
-    padding: var(--space-lg);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    background: var(--color-surface);
-    box-shadow: var(--shadow-md);
 }
 
 .chartShell {
@@ -264,7 +229,7 @@
     gap: var(--space-xs);
 }
 
-@media (max-width: 900px) {
+@include mixins.mq-md {
     .splitColumns {
         grid-template-columns: 1fr;
     }

@@ -1,0 +1,31 @@
+@mixin status-badge-base {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    width: fit-content;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+    background: var(--color-page);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+@mixin status-badge-tone($tone) {
+    @if $tone == "danger" {
+        border-color: var(--color-danger);
+        color: var(--color-danger);
+    } @else if $tone == "success" {
+        border-color: var(--color-success);
+        color: var(--color-success);
+    } @else if $tone == "info" {
+        border-color: var(--color-info);
+        color: var(--color-info);
+    } @else if $tone == "warning" {
+        border-color: var(--color-warning);
+        color: var(--color-warning);
+    } @else {
+        border-color: var(--color-text-muted);
+        color: var(--color-text-muted);
+    }
+}

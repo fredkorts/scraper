@@ -1,0 +1,26 @@
+@mixin table-frame {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: auto;
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+}
+
+@mixin table-element {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+@mixin table-head-cell {
+    text-align: left;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    padding: var(--space-sm);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-page);
+}
+
+@mixin table-cell {
+    padding: var(--space-sm);
+    border-bottom: 1px solid var(--color-border-muted);
+}

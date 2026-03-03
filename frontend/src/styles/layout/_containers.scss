@@ -1,0 +1,8 @@
+@use "../abstracts/mixins";
+
+@mixin page-shell($max-width: 80rem) {
+    display: grid;
+    gap: var(--space-lg);
+    padding: var(--space-xl) var(--space-lg);
+    @include mixins.responsive-container($max-width);
+}

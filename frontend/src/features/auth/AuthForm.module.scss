@@ -1,3 +1,5 @@
+@use "../../styles/components/forms";
+
 .form {
     display: grid;
     gap: var(--space-md);
@@ -10,22 +12,15 @@
 }
 
 .label {
-    font-size: var(--font-size-sm);
-    font-weight: 600;
+    @include forms.field-label;
 }
 
 .input {
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    padding: var(--space-xs) var(--space-sm);
-    background: var(--color-surface);
-    color: var(--color-text);
-    font: inherit;
+    @include forms.control-base;
 }
 
 .error {
-    color: var(--color-danger);
-    font-size: var(--font-size-sm);
+    @include forms.field-error;
 }
 
 .actions {

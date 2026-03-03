@@ -3,7 +3,25 @@
     outline-offset: 2px;
 }
 
-@mixin responsive-container {
-    width: min(100% - calc(var(--space-lg) * 2), 72rem);
+@mixin responsive-container($max-width: 72rem) {
+    width: min(100% - calc(var(--space-lg) * 2), #{$max-width});
     margin-inline: auto;
+}
+
+@mixin mq-sm {
+    @media (max-width: 40rem) {
+        @content;
+    }
+}
+
+@mixin mq-md {
+    @media (max-width: 56.25rem) {
+        @content;
+    }
+}
+
+@mixin mq-lg {
+    @media (max-width: 75rem) {
+        @content;
+    }
 }

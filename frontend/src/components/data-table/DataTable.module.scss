@@ -1,29 +1,22 @@
+@use "../../styles/components/empty-states";
+@use "../../styles/components/tables";
+
 .wrapper {
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    background: var(--color-surface);
+    @include tables.table-frame;
 }
 
 .table {
-    width: 100%;
-    border-collapse: collapse;
+    @include tables.table-element;
 }
 
 .headCell {
-    text-align: left;
-    font-size: var(--font-size-sm);
-    color: var(--color-text-muted);
-    padding: var(--space-sm);
-    border-bottom: 1px solid var(--color-border);
+    @include tables.table-head-cell;
 }
 
 .cell {
-    padding: var(--space-sm);
-    border-bottom: 1px solid var(--color-border-muted);
+    @include tables.table-cell;
 }
 
 .empty {
-    padding: var(--space-lg);
-    color: var(--color-text-muted);
+    @include empty-states.state-panel;
 }

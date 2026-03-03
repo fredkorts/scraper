@@ -1,3 +1,5 @@
+@use "../abstracts/mixins";
+
 body {
     font-family: var(--font-family-base);
     font-size: var(--font-size-base);
@@ -12,15 +14,20 @@ h3,
 h4,
 h5,
 h6 {
-    line-height: 1.2;
+    line-height: var(--line-height-tight);
     font-weight: 700;
 }
 
 a {
     color: var(--color-primary);
     text-decoration: none;
+    transition: color var(--transition-fast), text-decoration-color var(--transition-fast);
 }
 
 a:hover {
     text-decoration: underline;
+}
+
+a:focus-visible {
+    @include mixins.focus-ring;
 }
