@@ -1,0 +1,5 @@
+@use "../abstracts/mixins";
+
+.app-container {
+    @include mixins.responsive-container;
+}

@@ -1,0 +1,9 @@
+@mixin focus-ring {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+@mixin responsive-container {
+    width: min(100% - calc(var(--space-lg) * 2), 72rem);
+    margin-inline: auto;
+}

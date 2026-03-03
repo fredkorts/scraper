@@ -1,0 +1,28 @@
+@use "../abstracts/mixins";
+
+button,
+.button {
+    border: 1px solid transparent;
+    background: var(--color-primary);
+    color: var(--color-primary-contrast);
+    border-radius: var(--radius-sm);
+    padding: var(--space-xs) var(--space-md);
+    cursor: pointer;
+    transition: background-color var(--transition-fast), opacity var(--transition-fast);
+}
+
+button:hover,
+.button:hover {
+    opacity: 0.92;
+}
+
+button:focus-visible,
+.button:focus-visible {
+    @include mixins.focus-ring;
+}
+
+button:disabled,
+.button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
