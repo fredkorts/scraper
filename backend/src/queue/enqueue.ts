@@ -25,6 +25,7 @@ interface EnqueueScrapeCategoryInput {
     categoryId: string;
     trigger: ScrapeJobTrigger;
     requestedAt?: Date;
+    requestId?: string;
     jobOptions?: JobsOptions;
 }
 
@@ -62,6 +63,7 @@ export const enqueueScrapeCategoryJob = async (
                 categoryId: input.categoryId,
                 trigger: input.trigger,
                 requestedAt: requestedAt.toISOString(),
+                requestId: input.requestId,
             },
             {
                 ...DEFAULT_SCRAPE_JOB_OPTIONS,

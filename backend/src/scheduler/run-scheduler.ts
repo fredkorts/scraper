@@ -1,6 +1,8 @@
 import "dotenv/config";
 import cron from "node-cron";
 import { config } from "../config";
+import { isMainModule } from "../lib/is-main-module";
+import { logger } from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { createScrapeQueue } from "../queue/queues";
 import { enqueueDueCategories } from "./enqueue-due-categories";
@@ -13,27 +15,20 @@ const runScheduler = async (): Promise<void> => {
 
     const tick = async () => {
         if (isTickRunning) {
-            console.log("[scheduler] skipping tick because previous tick is still running");
+            logger.warn("scheduler_tick_skipped_previous_running");
             return;
         }
 
         isTickRunning = true;
         try {
             const result = await enqueueDueCategories({ queue });
-            console.log(
-                JSON.stringify(
-                    {
-                        scope: "scheduler",
-                        event: "tick",
-                        ...result,
-                        timestamp: new Date().toISOString(),
-                    },
-                    null,
-                    2,
-                ),
-            );
+            logger.info("scheduler_tick_completed", {
+                ...result,
+            });
         } catch (error) {
-            console.error("[scheduler] tick failed", error);
+            logger.error("scheduler_tick_failed", {
+                error,
+            });
         } finally {
             isTickRunning = false;
         }
@@ -44,7 +39,9 @@ const runScheduler = async (): Promise<void> => {
     });
 
     const shutdown = async (signal: NodeJS.Signals) => {
-        console.log(`[scheduler] received ${signal}, shutting down`);
+        logger.info("scheduler_shutdown_signal_received", {
+            signal,
+        });
         task.stop();
         await queue.close();
         await prisma.$disconnect();
@@ -59,12 +56,18 @@ const runScheduler = async (): Promise<void> => {
         void shutdown("SIGTERM");
     });
 
-    console.log(`[scheduler] started with cron expression: ${config.SCHEDULER_CRON}`);
+    logger.info("scheduler_started", {
+        cron: config.SCHEDULER_CRON,
+    });
     await tick();
 };
 
-runScheduler().catch(async (error) => {
-    console.error("[scheduler] startup failed", error);
-    await prisma.$disconnect();
-    process.exit(1);
-});
+if (isMainModule(import.meta.url)) {
+    runScheduler().catch(async (error) => {
+        logger.error("scheduler_startup_failed", {
+            error,
+        });
+        await prisma.$disconnect();
+        process.exit(1);
+    });
+}

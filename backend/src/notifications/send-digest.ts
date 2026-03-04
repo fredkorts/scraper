@@ -1,4 +1,6 @@
 import { NotificationChannelType, UserRole } from "@prisma/client";
+import { isMainModule } from "../lib/is-main-module";
+import { logger } from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { getDigestRecipientPayloads, markDeliverySkipped, markDigestDeliveriesSent } from "./helpers";
 import { renderDigestEmail } from "./templates";
@@ -67,15 +69,19 @@ export const sendPendingDigests = async (
     };
 };
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
     prisma
         .$connect()
         .then(async () => {
             const result = await sendPendingDigests();
-            console.log(JSON.stringify(result, null, 2));
+            logger.info("digest_notifications_cli_completed", {
+                result,
+            });
         })
         .catch((error) => {
-            console.error(error);
+            logger.error("digest_notifications_cli_failed", {
+                error,
+            });
             process.exitCode = 1;
         })
         .finally(async () => {

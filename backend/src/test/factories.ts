@@ -1,4 +1,5 @@
 import bcrypt from "bcrypt";
+import { UserRole } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { config } from "../config";
 import { generateRefreshToken, hashToken } from "../lib/hash";
@@ -8,6 +9,7 @@ interface UserFactoryOptions {
     password?: string;
     name?: string;
     isActive?: boolean;
+    role?: UserRole;
 }
 
 export const createUser = async (options: UserFactoryOptions = {}) => {
@@ -22,6 +24,7 @@ export const createUser = async (options: UserFactoryOptions = {}) => {
             passwordHash,
             name,
             isActive: options.isActive ?? true,
+            role: options.role ?? UserRole.FREE,
         },
     });
 

@@ -1,5 +1,11 @@
+import { config as loadEnv } from "dotenv";
+import { fileURLToPath } from "node:url";
 import { PrismaClient } from "@prisma/client";
 import { DEFAULT_SCRAPE_INTERVAL, MABRIK_CATEGORIES } from "@mabrik/shared";
+
+loadEnv({
+    path: fileURLToPath(new URL("../.env", import.meta.url)),
+});
 
 const prisma = new PrismaClient();
 

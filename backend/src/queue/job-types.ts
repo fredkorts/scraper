@@ -7,6 +7,7 @@ export interface ScrapeCategoryJobData {
     categoryId: string;
     trigger: ScrapeJobTrigger;
     requestedAt: string;
+    requestId?: string;
 }
 
 export type ScrapeCategoryJobStatus = "completed" | "skipped";

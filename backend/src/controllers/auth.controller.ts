@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { loginSchema, registerSchema } from "../schemas/auth";
-import { getCurrentUser, login, logout, refreshSession, register } from "../services/auth.service";
+import { updateProfileSchema } from "../schemas/settings";
+import { getCurrentUser, login, logout, refreshSession, register, updateCurrentUser } from "../services/auth.service";
 import { clearAuthCookies, setAuthCookies, authCookieNames } from "../lib/cookies";
 
 export const registerHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -54,6 +55,16 @@ export const logoutHandler = async (req: Request, res: Response, next: NextFunct
 export const meHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const result = await getCurrentUser(req.auth!.userId);
+        res.status(200).json(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const updateProfileHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const input = updateProfileSchema.parse(req.body);
+        const result = await updateCurrentUser(req.auth!.userId, input);
         res.status(200).json(result);
     } catch (error) {
         next(error);

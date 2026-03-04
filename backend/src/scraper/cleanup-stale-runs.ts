@@ -1,4 +1,6 @@
 import { ScrapeRunStatus } from "@prisma/client";
+import { isMainModule } from "../lib/is-main-module";
+import { logger } from "../lib/logger";
 import { prisma } from "../lib/prisma";
 
 const DEFAULT_STALE_MINUTES = 30;
@@ -41,17 +43,10 @@ const main = async (): Promise<void> => {
     });
 
     if (staleRuns.length === 0) {
-        console.log(
-            JSON.stringify(
-                {
-                    updatedCount: 0,
-                    staleMinutes,
-                    message: "No stale scrape runs found",
-                },
-                null,
-                2,
-            ),
-        );
+        logger.info("cleanup_stale_runs_noop", {
+            updatedCount: 0,
+            staleMinutes,
+        });
         return;
     }
 
@@ -69,25 +64,23 @@ const main = async (): Promise<void> => {
         },
     });
 
-    console.log(
-        JSON.stringify(
-            {
-                updatedCount: staleRuns.length,
-                staleMinutes,
-                completedAt: completedAt.toISOString(),
-                runIds: staleRuns.map((run) => run.id),
-            },
-            null,
-            2,
-        ),
-    );
+    logger.info("cleanup_stale_runs_completed", {
+        updatedCount: staleRuns.length,
+        staleMinutes,
+        completedAt: completedAt.toISOString(),
+        runIds: staleRuns.map((run) => run.id),
+    });
 };
 
-main()
-    .catch((error) => {
-        console.error(error);
-        process.exitCode = 1;
-    })
-    .finally(async () => {
-        await prisma.$disconnect();
-    });
+if (isMainModule(import.meta.url)) {
+    main()
+        .catch((error) => {
+            logger.error("cleanup_stale_runs_failed", {
+                error,
+            });
+            process.exitCode = 1;
+        })
+        .finally(async () => {
+            await prisma.$disconnect();
+        });
+}

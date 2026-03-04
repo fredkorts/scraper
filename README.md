@@ -33,11 +33,24 @@ Required variables:
 - `PORT`
 - `FRONTEND_URL`
 - `DATABASE_URL`
+- `TEST_DATABASE_URL`
 - `EMAIL_PROVIDER`
 - `EMAIL_FROM`
 - `JWT_SECRET`
 - `JWT_REFRESH_SECRET`
 - `REDIS_URL`
+
+Phase 7 hardening variables (recommended):
+
+- `LOG_LEVEL` (`debug|info|warn|error`)
+- `TRUST_PROXY_HOPS` (set >0 behind reverse proxies)
+- `RATE_LIMIT_REDIS_ENABLED` (`true` in production with Redis-backed limiter state)
+- `SCRAPER_ADAPTIVE_DELAY_MAX_MS`
+- `SCRAPER_ADAPTIVE_PENALTY_MS`
+- `SCRAPER_RETRY_BUDGET_MS`
+- `SCRAPER_ROBOTS_FETCH_TIMEOUT_MS`
+- `SCRAPER_ROBOTS_CACHE_TTL_MS`
+- `SCRAPER_ROBOTS_STRICT`
 
 ## Local Setup
 
@@ -100,6 +113,8 @@ npm run notify:digest --workspace=backend
 npm run queue:worker --workspace=backend
 npm run queue:scheduler --workspace=backend
 npm run seed --workspace=backend
+npm run categories:refresh --workspace=backend
+npm run categories:refresh --workspace=backend -- --apply
 npm run prisma:generate --workspace=backend
 npm run prisma:studio --workspace=backend
 ```
@@ -119,13 +134,17 @@ npm run build --workspace=shared
 
 ## Backend Tests
 
-The backend test suite uses Vitest and runs against the local PostgreSQL database.
+The backend test suite uses Vitest.
+
+- pure unit tests can run without PostgreSQL
+- DB-backed tests use a dedicated test database via `TEST_DATABASE_URL`
 
 Before running tests:
 
 ```bash
 docker compose up -d db redis
 npx prisma migrate deploy --schema backend/prisma/schema.prisma
+npm run test:db:migrate --workspace=backend
 ```
 
 Run backend tests:
@@ -140,7 +159,18 @@ Run Redis-backed queue/scheduler integration tests as well:
 RUN_REDIS_TESTS=1 npm run test --workspace=backend
 ```
 
-The auth tests reset the auth-related tables before each run, so do not point `DATABASE_URL` at a database you want to preserve.
+Important:
+
+- DB-backed backend tests truncate tables before each run
+- they now target `TEST_DATABASE_URL`, not the development database
+- do not point `TEST_DATABASE_URL` at any database you want to preserve
+- the recommended local test DB is `mabrik_scraper_test`
+
+If the test database does not exist yet, create it once inside the local Postgres container:
+
+```bash
+docker exec -it mabrik-postgres psql -U mabrik -d postgres -c "CREATE DATABASE mabrik_scraper_test;"
+```
 
 ## Local Notification Testing
 

@@ -32,4 +32,8 @@ export const notificationChannelsResponseSchema = z.object({
     channels: z.array(notificationChannelSchema),
 });
 
+export const notificationChannelResponseSchema = z.object({
+    channel: notificationChannelSchema,
+});
+
 export type AuthUserSchema = z.infer<typeof authUserSchema>;

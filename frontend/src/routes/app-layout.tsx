@@ -2,6 +2,7 @@ import { Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { useMeQuery } from "../features/auth/queries";
 import { useLogoutMutation } from "../features/auth/mutations";
 import { defaultDashboardHomeSearch, defaultRunsListSearch } from "../features/runs/search";
+import { defaultSettingsSearch } from "../features/settings/search";
 import styles from "./app-layout.module.scss";
 
 export const AppLayout = () => {
@@ -25,7 +26,9 @@ export const AppLayout = () => {
                     <Link search={defaultRunsListSearch} to="/app/runs">
                         Runs
                     </Link>
-                    <Link to="/app/settings">Settings</Link>
+                    <Link search={defaultSettingsSearch} to="/app/settings">
+                        Settings
+                    </Link>
                 </nav>
                 <div className={styles.actions}>
                     <span>{session.data?.name ?? "User"}</span>

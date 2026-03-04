@@ -33,7 +33,13 @@ describe("scrape views", () => {
                             categoryId: "22222222-2222-4222-8222-222222222222",
                             categoryName: "Board Games",
                             startedAt: new Date().toISOString(),
-                            errorMessage: "Timeout",
+                            failure: {
+                                summary: "The scrape timed out while loading page 31.",
+                                code: "upstream_timeout",
+                                phase: "fetch",
+                                pageNumber: 31,
+                                isRetryable: true,
+                            },
                         },
                     ],
                     recentChangeSummary: {
@@ -51,7 +57,7 @@ describe("scrape views", () => {
         expect(screen.getByLabelText("Category")).toHaveValue("22222222-2222-4222-8222-222222222222");
         expect(screen.getAllByText("Board Games").length).toBeGreaterThan(0);
         expect(screen.getByRole("link", { name: "Open run detail" })).toBeInTheDocument();
-        expect(screen.getByText("Timeout")).toBeInTheDocument();
+        expect(screen.getByText("The scrape timed out while loading page 31.")).toBeInTheDocument();
     });
 
     it("renders runs list from URL-backed query state", async () => {
@@ -72,7 +78,13 @@ describe("scrape views", () => {
                             durationMs: 4200,
                             startedAt: new Date().toISOString(),
                             completedAt: new Date().toISOString(),
-                            errorMessage: "HTTP 500",
+                            failure: {
+                                summary: "The scrape received HTTP 500 while loading page 4.",
+                                code: "http_error",
+                                phase: "fetch",
+                                pageNumber: 4,
+                                isRetryable: true,
+                            },
                         },
                     ],
                     page: 2,
@@ -87,9 +99,10 @@ describe("scrape views", () => {
         expect(screen.getByText("Miniatures")).toBeInTheDocument();
         expect(screen.getByText("11 total runs")).toBeInTheDocument();
         expect(screen.getByRole("link", { name: "Open detail" })).toBeInTheDocument();
+        expect(screen.getByText("The scrape received HTTP 500 while loading page 4.")).toBeInTheDocument();
     });
 
-    it("renders run detail with diff items and product snapshots", async () => {
+    it("renders run detail with readable failure metadata for non-admin users", async () => {
         await renderRouterApp({
             initialEntry: "/app/runs/11111111-1111-4111-8111-111111111111",
             session: mockUser,
@@ -108,7 +121,15 @@ describe("scrape views", () => {
                         backInStock: 0,
                         pagesScraped: 1,
                         durationMs: 5000,
-                        errorMessage: "Request timeout",
+                        failure: {
+                            summary: "The scrape timed out while loading page 31.",
+                            code: "upstream_timeout",
+                            phase: "fetch",
+                            pageUrl: "https://mabrik.ee/tootekategooria/lauamangud/page/31/",
+                            pageNumber: 31,
+                            isRetryable: true,
+                            technicalMessage: "timeout of 45000ms exceeded",
+                        },
                         startedAt: new Date().toISOString(),
                         completedAt: new Date().toISOString(),
                     },
@@ -159,11 +180,57 @@ describe("scrape views", () => {
         await waitFor(() => {
             expect(screen.getByRole("heading", { name: "Card Games" })).toBeInTheDocument();
         });
-        expect(screen.getByText("Request timeout")).toBeInTheDocument();
+        expect(screen.getByText("The scrape timed out while loading page 31.")).toBeInTheDocument();
+        expect(screen.getByText("Fetch")).toBeInTheDocument();
+        expect(screen.getByText("31")).toBeInTheDocument();
+        expect(screen.getByText("Yes")).toBeInTheDocument();
+        expect(screen.queryByText("timeout of 45000ms exceeded")).not.toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "Diff Items" })).toBeInTheDocument();
         expect(screen.getAllByText("Test Product").length).toBeGreaterThan(0);
         expect(screen.getByRole("link", { name: "Open product" })).toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "Product Snapshots" })).toBeInTheDocument();
+    });
+
+    it("renders technical failure details for admin users only", async () => {
+        await renderRouterApp({
+            initialEntry: "/app/runs/11111111-1111-4111-8111-111111111111",
+            session: {
+                ...mockUser,
+                role: "admin",
+            },
+            apiResponses: {
+                runDetail: {
+                    run: {
+                        id: "11111111-1111-4111-8111-111111111111",
+                        categoryId: "22222222-2222-4222-8222-222222222222",
+                        categoryName: "Card Games",
+                        status: "failed",
+                        totalProducts: 14,
+                        totalChanges: 0,
+                        newProducts: 0,
+                        priceChanges: 0,
+                        soldOut: 0,
+                        backInStock: 0,
+                        pagesScraped: 1,
+                        durationMs: 5000,
+                        failure: {
+                            summary: "The scrape timed out while loading page 31.",
+                            code: "upstream_timeout",
+                            phase: "fetch",
+                            pageUrl: "https://mabrik.ee/tootekategooria/lauamangud/page/31/",
+                            pageNumber: 31,
+                            isRetryable: true,
+                            technicalMessage: "timeout of 45000ms exceeded",
+                        },
+                        startedAt: new Date().toISOString(),
+                        completedAt: new Date().toISOString(),
+                    },
+                },
+            },
+        });
+
+        expect(await screen.findByText("Technical details")).toBeInTheDocument();
+        expect(screen.getByText("timeout of 45000ms exceeded")).toBeInTheDocument();
     });
 
     it("renders product detail and history views", async () => {
@@ -340,6 +407,74 @@ describe("scrape views", () => {
         expect(router.state.location.search).toMatchObject({
             stockFilter: "out_of_stock",
             showStockOverlay: false,
+        });
+    });
+
+    it("clamps out-of-range runs pages to the last valid page", async () => {
+        const { router } = await renderRouterApp({
+            initialEntry: "/app/runs?page=9&pageSize=10",
+            session: mockUser,
+            apiResponses: {
+                runsList: {
+                    items: [
+                        {
+                            id: "11111111-1111-4111-8111-111111111111",
+                            categoryId: "22222222-2222-4222-8222-222222222222",
+                            categoryName: "Miniatures",
+                            status: "completed",
+                            totalProducts: 18,
+                            totalChanges: 1,
+                            pagesScraped: 2,
+                            durationMs: 4200,
+                            startedAt: new Date().toISOString(),
+                            completedAt: new Date().toISOString(),
+                        },
+                    ],
+                    page: 9,
+                    pageSize: 10,
+                    totalItems: 19,
+                    totalPages: 2,
+                },
+            },
+        });
+
+        expect(await screen.findByRole("heading", { name: "Scrape Runs" })).toBeInTheDocument();
+        await waitFor(() => {
+            expect(router.state.location.search).toMatchObject({
+                page: 2,
+            });
+        });
+    });
+
+    it("clamps out-of-range run-detail section pages to valid values", async () => {
+        const { router } = await renderRouterApp({
+            initialEntry:
+                "/app/runs/11111111-1111-4111-8111-111111111111?changesPage=7&changesPageSize=10&productsPage=8&productsPageSize=10",
+            session: mockUser,
+            apiResponses: {
+                runChanges: {
+                    items: [],
+                    page: 7,
+                    pageSize: 10,
+                    totalItems: 0,
+                    totalPages: 0,
+                },
+                runProducts: {
+                    items: [],
+                    page: 8,
+                    pageSize: 10,
+                    totalItems: 0,
+                    totalPages: 0,
+                },
+            },
+        });
+
+        expect(await screen.findByRole("heading", { name: "Board Games" })).toBeInTheDocument();
+        await waitFor(() => {
+            expect(router.state.location.search).toMatchObject({
+                changesPage: 1,
+                productsPage: 1,
+            });
         });
     });
 });

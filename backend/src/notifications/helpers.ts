@@ -7,7 +7,6 @@ import type {
     DigestRecipientPayload,
     ImmediateDeliveryPayload,
     ReportChangeItem,
-    ReportEmailPayload,
 } from "./types";
 
 const buildReportChangeItems = (

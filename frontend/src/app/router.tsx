@@ -23,6 +23,12 @@ import {
     parseRunDetailSearch,
     parseRunsListSearch,
 } from "../features/runs/search";
+import {
+    notificationChannelsQueryOptions,
+    settingsAdminCategoriesQueryOptions,
+    subscriptionsQueryOptions,
+} from "../features/settings/queries";
+import { parseSettingsSearch } from "../features/settings/search";
 import { AppLayout } from "../routes/app-layout";
 import { DashboardHomePage } from "../routes/dashboard-home-page";
 import { LandingPage } from "../routes/landing-page";
@@ -158,6 +164,16 @@ const appProductDetailRoute = createRoute({
 const appSettingsRoute = createRoute({
     getParentRoute: () => appRoute,
     path: "/settings",
+    validateSearch: (search) => parseSettingsSearch(search),
+    loaderDeps: ({ search }) => search,
+    loader: async ({ context }) => {
+        await Promise.all([
+            context.queryClient.ensureQueryData(subscriptionsQueryOptions()),
+            context.queryClient.ensureQueryData(notificationChannelsQueryOptions()),
+            context.queryClient.ensureQueryData(categoriesQueryOptions("all")),
+            context.queryClient.ensureQueryData(settingsAdminCategoriesQueryOptions()),
+        ]);
+    },
     component: SettingsPage,
 });
 

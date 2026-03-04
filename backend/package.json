@@ -11,6 +11,8 @@
         "lint": "eslint .",
         "test": "vitest run",
         "test:watch": "vitest",
+        "test:db:migrate": "tsx src/test/migrate-test-db.ts",
+        "categories:refresh": "tsx src/categories/refresh.ts",
         "scrape:category": "tsx src/scraper/run.ts",
         "scrape:cleanup-stale-runs": "tsx src/scraper/cleanup-stale-runs.ts",
         "diff:run": "tsx src/diff/run.ts",

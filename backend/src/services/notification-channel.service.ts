@@ -231,7 +231,7 @@ export const updateNotificationChannel = async (
                     : existing.destination;
 
             let isActive = input.isActive ?? existing.isActive;
-            let isDefault = input.isDefault ?? existing.isDefault;
+            const isDefault = input.isDefault ?? existing.isDefault;
 
             if (isDefault && !isActive) {
                 isActive = true;

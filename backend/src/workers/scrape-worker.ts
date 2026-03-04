@@ -1,5 +1,7 @@
 import "dotenv/config";
 import { Worker, type Job } from "bullmq";
+import { isMainModule } from "../lib/is-main-module";
+import { logger } from "../lib/logger";
 import type { ScrapeCategoryResult } from "../scraper/types";
 import { config } from "../config";
 import { prisma } from "../lib/prisma";
@@ -10,6 +12,7 @@ import {
     type ScrapeCategoryJobData,
     type ScrapeCategoryJobResult,
 } from "../queue/job-types";
+import { isScrapeExecutionError } from "../scraper/execution-error";
 import { scrapeCategory } from "../scraper/run";
 
 type ScrapeCategoryHandler = (categoryId: string) => Promise<ScrapeCategoryResult>;
@@ -55,6 +58,31 @@ const getConfiguredAttempts = (job: Job<ScrapeCategoryJobData>): number => {
     return 1;
 };
 
+const getRetryBudgetElapsedMs = (job: Job<ScrapeCategoryJobData>): number => {
+    const requestedAt = Date.parse(job.data.requestedAt);
+
+    if (!Number.isFinite(requestedAt)) {
+        return 0;
+    }
+
+    return Math.max(0, Date.now() - requestedAt);
+};
+
+const hasRetryBudgetExceeded = (job: Job<ScrapeCategoryJobData>): boolean =>
+    getRetryBudgetElapsedMs(job) >= config.SCRAPER_RETRY_BUDGET_MS;
+
+const markRetryBudgetExhausted = async (scrapeRunId: string): Promise<void> => {
+    await prisma.scrapeRun.update({
+        where: { id: scrapeRunId },
+        data: {
+            errorMessage: "The scrape retry budget was exhausted before the run could succeed.",
+            failureCode: "retry_budget_exhausted",
+            failureSummary: "The scrape retry budget was exhausted before the run could succeed.",
+            failureIsRetryable: false,
+        },
+    });
+};
+
 export const updateCategoryNextRunAt = async (
     categoryId: string,
     now: Date = new Date(),
@@ -92,7 +120,7 @@ const processScrapeCategoryJob =
             throw new Error(`Category not found for scrape job: ${job.data.categoryId}`);
         }
 
-        if (!category.isActive || category.subscriptions.length === 0) {
+        if (!category.isActive || (job.data.trigger !== "manual" && category.subscriptions.length === 0)) {
             const nextRunAt = await updateCategoryNextRunAt(category.id);
             return {
                 status: "skipped",
@@ -113,13 +141,29 @@ const processScrapeCategoryJob =
         } catch (error) {
             const attempts = getConfiguredAttempts(job);
             const isFinalAttempt = job.attemptsMade + 1 >= attempts;
+            const retryBudgetExceeded = hasRetryBudgetExceeded(job);
+            const isNonRetryableScrapeFailure =
+                isScrapeExecutionError(error) && error.failure.isRetryable === false;
+            const shouldDiscard = retryBudgetExceeded || isNonRetryableScrapeFailure;
 
-            if (isFinalAttempt) {
+            if (retryBudgetExceeded && isScrapeExecutionError(error)) {
+                await markRetryBudgetExhausted(error.scrapeRunId);
+            }
+
+            if (shouldDiscard) {
+                await job.discard();
+            }
+
+            if (isFinalAttempt || shouldDiscard) {
                 const nextRunAt = await updateCategoryNextRunAt(category.id);
                 if (nextRunAt) {
-                    console.log(
-                        `[worker] advanced next_run_at after final failure for ${job.data.categoryId} to ${nextRunAt.toISOString()}`,
-                    );
+                    logger.info("worker_advanced_next_run_after_failure", {
+                        jobId: job.id,
+                        categoryId: job.data.categoryId,
+                        nextRunAt: nextRunAt.toISOString(),
+                        retryBudgetExceeded,
+                        isNonRetryableScrapeFailure,
+                    });
                 }
             }
 
@@ -138,23 +182,37 @@ export const createScrapeWorker = (options: CreateScrapeWorkerOptions = {}) => {
     );
 
     worker.on("completed", (job, result) => {
-        console.log(
-            `[worker] completed job ${job.id} for category ${job.data.categoryId}: ${result.status}`,
-        );
+        logger.info("worker_job_completed", {
+            jobId: job.id,
+            categoryId: job.data.categoryId,
+            trigger: job.data.trigger,
+            requestId: job.data.requestId,
+            status: result.status,
+            nextRunAt: result.nextRunAt,
+            scrapeRunId: result.scrapeRunId,
+        });
     });
 
     worker.on("failed", (job, error) => {
         if (!job) {
-            console.error("[worker] failed event received without job context", error);
+            logger.error("worker_failed_without_job_context", {
+                error,
+            });
             return;
         }
 
         const attempts = getConfiguredAttempts(job);
 
-        console.error(
-            `[worker] failed job ${job.id} for category ${job.data.categoryId} (attempt ${job.attemptsMade}/${attempts})`,
+        logger.error("worker_job_failed", {
+            jobId: job.id,
+            categoryId: job.data.categoryId,
+            trigger: job.data.trigger,
+            requestId: job.data.requestId,
+            attemptsMade: job.attemptsMade + 1,
+            configuredAttempts: attempts,
+            retryBudgetElapsedMs: getRetryBudgetElapsedMs(job),
             error,
-        );
+        });
     });
 
     return worker;
@@ -165,10 +223,15 @@ const runWorker = async (): Promise<void> => {
 
     const worker = createScrapeWorker();
     await worker.waitUntilReady();
-    console.log(`[worker] started queue ${SCRAPE_QUEUE_NAME}`);
+    logger.info("worker_started", {
+        queueName: SCRAPE_QUEUE_NAME,
+        concurrency: config.SCRAPE_WORKER_CONCURRENCY,
+    });
 
     const shutdown = async (signal: NodeJS.Signals) => {
-        console.log(`[worker] received ${signal}, shutting down`);
+        logger.info("worker_shutdown_signal_received", {
+            signal,
+        });
         await worker.close();
         await prisma.$disconnect();
         process.exit(0);
@@ -183,9 +246,11 @@ const runWorker = async (): Promise<void> => {
     });
 };
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
     runWorker().catch(async (error) => {
-        console.error("[worker] startup failed", error);
+        logger.error("worker_startup_failed", {
+            error,
+        });
         await prisma.$disconnect();
         process.exit(1);
     });

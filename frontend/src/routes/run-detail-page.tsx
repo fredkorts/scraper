@@ -1,9 +1,18 @@
 import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { DataTable } from "../components/data-table/DataTable";
+import { PaginationControls } from "../components/pagination/PaginationControls";
+import { useMeQuery } from "../features/auth/queries";
 import { defaultProductHistoryControls } from "../features/products/history-controls";
-import { formatDateTime, formatDuration, formatPrice, formatStatusLabel } from "../features/runs/formatters";
+import {
+    formatDateTime,
+    formatDuration,
+    formatFailurePhaseLabel,
+    formatPrice,
+    formatRetryableLabel,
+    formatStatusLabel,
+} from "../features/runs/formatters";
 import { useRunChangesQuery, useRunDetailQuery, useRunProductsQuery } from "../features/runs/queries";
 import { defaultRunsListSearch } from "../features/runs/search";
 import type { RunChangesData, RunProductsData } from "../features/runs/schemas";
@@ -15,6 +24,7 @@ const changeColumnHelper = createColumnHelper<RunChangesData["items"][number]>()
 export const RunDetailPage = () => {
     const headingRef = useRef<HTMLHeadingElement>(null);
     const navigate = useNavigate({ from: "/app/runs/$runId" });
+    const session = useMeQuery();
     const { runId } = useParams({ from: "/app/runs/$runId" });
     const search = useSearch({ from: "/app/runs/$runId" });
     const detailQuery = useRunDetailQuery(runId);
@@ -33,14 +43,52 @@ export const RunDetailPage = () => {
         headingRef.current?.focus();
     }, [runId]);
 
-    const setSearch = (updates: Partial<typeof search>) =>
-        navigate({
-            to: ".",
-            search: (prev) => ({
-                ...prev,
-                ...updates,
+    const setSearch = useCallback(
+        (updates: Partial<typeof search>, options?: { replace?: boolean }) =>
+            navigate({
+                to: ".",
+                replace: options?.replace,
+                search: (prev) => ({
+                    ...prev,
+                    ...updates,
+                }),
             }),
-        });
+        [navigate],
+    );
+
+    useEffect(() => {
+        if (!changesQuery.data) {
+            return;
+        }
+
+        const { totalPages } = changesQuery.data;
+
+        if (totalPages === 0 && search.changesPage !== 1) {
+            setSearch({ changesPage: 1 }, { replace: true });
+            return;
+        }
+
+        if (totalPages > 0 && search.changesPage > totalPages) {
+            setSearch({ changesPage: totalPages }, { replace: true });
+        }
+    }, [changesQuery.data, search.changesPage, setSearch]);
+
+    useEffect(() => {
+        if (!productsQuery.data) {
+            return;
+        }
+
+        const { totalPages } = productsQuery.data;
+
+        if (totalPages === 0 && search.productsPage !== 1) {
+            setSearch({ productsPage: 1 }, { replace: true });
+            return;
+        }
+
+        if (totalPages > 0 && search.productsPage > totalPages) {
+            setSearch({ productsPage: totalPages }, { replace: true });
+        }
+    }, [productsQuery.data, search.productsPage, setSearch]);
 
     const productColumns = [
         productColumnHelper.accessor("name", {
@@ -164,6 +212,7 @@ export const RunDetailPage = () => {
     }
 
     const { run } = detailQuery.data;
+    const isAdmin = session.data?.role === "admin";
 
     return (
         <section className={styles.page}>
@@ -205,10 +254,57 @@ export const RunDetailPage = () => {
                 </article>
             </div>
 
-            {run.errorMessage ? (
-                <div aria-label="Run error" className={styles.errorState} role="alert">
-                    {run.errorMessage}
-                </div>
+            {run.failure ? (
+                <section aria-labelledby="failure-heading" className={styles.failurePanel}>
+                    <div className={styles.sectionHeader}>
+                        <h2 className={styles.sectionTitle} id="failure-heading">
+                            Failure Detail
+                        </h2>
+                        <span className={styles.statusBadge} data-status="failed">
+                            Failed
+                        </span>
+                    </div>
+                    <div className={styles.errorState} role="alert">
+                        {run.failure.summary}
+                    </div>
+                    <dl className={styles.failureMeta}>
+                        <div>
+                            <dt className={styles.eyebrow}>Phase</dt>
+                            <dd>{formatFailurePhaseLabel(run.failure.phase)}</dd>
+                        </div>
+                        <div>
+                            <dt className={styles.eyebrow}>Page</dt>
+                            <dd>{run.failure.pageNumber ?? "-"}</dd>
+                        </div>
+                        <div>
+                            <dt className={styles.eyebrow}>Retryable</dt>
+                            <dd>{formatRetryableLabel(run.failure.isRetryable)}</dd>
+                        </div>
+                        <div>
+                            <dt className={styles.eyebrow}>URL</dt>
+                            <dd>
+                                {run.failure.pageUrl ? (
+                                    <a
+                                        className={styles.productLink}
+                                        href={run.failure.pageUrl}
+                                        rel="noreferrer"
+                                        target="_blank"
+                                    >
+                                        {run.failure.pageUrl}
+                                    </a>
+                                ) : (
+                                    "-"
+                                )}
+                            </dd>
+                        </div>
+                    </dl>
+                    {isAdmin && run.failure.technicalMessage ? (
+                        <div className={styles.technicalPanel}>
+                            <span className={styles.eyebrow}>Technical details</span>
+                            <code>{run.failure.technicalMessage}</code>
+                        </div>
+                    ) : null}
+                </section>
             ) : null}
 
             <div className={styles.summaryGrid}>
@@ -273,23 +369,15 @@ export const RunDetailPage = () => {
                         ) : (
                             <DataTable columns={changeColumns} data={changesQuery.data.items} />
                         )}
-                        <div className={styles.pagination}>
-                            <button
-                                type="button"
-                                onClick={() => setSearch({ changesPage: Math.max(1, search.changesPage - 1) })}
-                                disabled={search.changesPage <= 1}
-                            >
-                                Previous changes page
-                            </button>
-                            <span>Page {search.changesPage}</span>
-                            <button
-                                type="button"
-                                onClick={() => setSearch({ changesPage: search.changesPage + 1 })}
-                                disabled={!changesQuery.data.totalPages || search.changesPage >= changesQuery.data.totalPages}
-                            >
-                                Next changes page
-                            </button>
-                        </div>
+                        <PaginationControls
+                            page={search.changesPage}
+                            pageSize={search.changesPageSize}
+                            totalPages={changesQuery.data.totalPages}
+                            totalItems={changesQuery.data.totalItems}
+                            ariaLabel="Run changes pagination"
+                            isLoading={changesQuery.isFetching}
+                            onPageChange={(nextPage) => setSearch({ changesPage: nextPage })}
+                        />
                     </>
                 ) : (
                     <p className={styles.emptyState}>Loading diff items...</p>
@@ -336,23 +424,15 @@ export const RunDetailPage = () => {
                         ) : (
                             <DataTable columns={productColumns} data={productsQuery.data.items} />
                         )}
-                        <div className={styles.pagination}>
-                            <button
-                                type="button"
-                                onClick={() => setSearch({ productsPage: Math.max(1, search.productsPage - 1) })}
-                                disabled={search.productsPage <= 1}
-                            >
-                                Previous products page
-                            </button>
-                            <span>Page {search.productsPage}</span>
-                            <button
-                                type="button"
-                                onClick={() => setSearch({ productsPage: search.productsPage + 1 })}
-                                disabled={!productsQuery.data.totalPages || search.productsPage >= productsQuery.data.totalPages}
-                            >
-                                Next products page
-                            </button>
-                        </div>
+                        <PaginationControls
+                            page={search.productsPage}
+                            pageSize={search.productsPageSize}
+                            totalPages={productsQuery.data.totalPages}
+                            totalItems={productsQuery.data.totalItems}
+                            ariaLabel="Run products pagination"
+                            isLoading={productsQuery.isFetching}
+                            onPageChange={(nextPage) => setSearch({ productsPage: nextPage })}
+                        />
                     </>
                 ) : (
                     <p className={styles.emptyState}>Loading product snapshots...</p>

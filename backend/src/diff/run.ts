@@ -1,4 +1,6 @@
 import { ChangeType } from "@prisma/client";
+import { isMainModule } from "../lib/is-main-module";
+import { logger } from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { sendImmediateNotifications } from "../notifications/send-immediate";
 import { buildDiffContext } from "./build-baseline";
@@ -62,17 +64,27 @@ export const runDiffEngine = async (scrapeRunId: string): Promise<DiffRunResult>
     };
 };
 
-const cliScrapeRunId = process.argv[2];
-
-if (cliScrapeRunId) {
+if (isMainModule(import.meta.url)) {
     prisma
         .$connect()
         .then(async () => {
+            const cliScrapeRunId = process.argv[2];
+
+            if (!cliScrapeRunId) {
+                throw new Error("Expected scrapeRunId as the first argument");
+            }
+
             const result = await runDiffEngine(cliScrapeRunId);
-            console.log(JSON.stringify(result, null, 2));
+            logger.info("diff_cli_completed", {
+                scrapeRunId: cliScrapeRunId,
+                result,
+            });
         })
         .catch((error) => {
-            console.error(error);
+            logger.error("diff_cli_failed", {
+                scrapeRunId: process.argv[2],
+                error,
+            });
             process.exitCode = 1;
         })
         .finally(async () => {

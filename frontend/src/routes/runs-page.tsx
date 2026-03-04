@@ -1,7 +1,9 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { DataTable } from "../components/data-table/DataTable";
+import { PaginationControls } from "../components/pagination/PaginationControls";
+import { buildCategoryOptions } from "../features/categories/options";
 import { useCategoriesQuery } from "../features/categories/queries";
 import { formatDateTime, formatDuration, formatStatusLabel } from "../features/runs/formatters";
 import { useRunsListQuery } from "../features/runs/queries";
@@ -17,19 +19,41 @@ export const RunsPage = () => {
     const search = useSearch({ from: "/app/runs" });
     const categoriesQuery = useCategoriesQuery();
     const runsQuery = useRunsListQuery(search);
+    const categoryOptions = categoriesQuery.data ? buildCategoryOptions(categoriesQuery.data.categories) : [];
 
     useEffect(() => {
         headingRef.current?.focus();
     }, []);
 
-    const setSearch = (updates: Partial<typeof search>) =>
-        navigate({
-            to: ".",
-            search: (prev) => ({
-                ...prev,
-                ...updates,
+    const setSearch = useCallback(
+        (updates: Partial<typeof search>, options?: { replace?: boolean }) =>
+            navigate({
+                to: ".",
+                replace: options?.replace,
+                search: (prev) => ({
+                    ...prev,
+                    ...updates,
+                }),
             }),
-        });
+        [navigate],
+    );
+
+    useEffect(() => {
+        if (!runsQuery.data) {
+            return;
+        }
+
+        const { totalPages } = runsQuery.data;
+
+        if (totalPages === 0 && search.page !== 1) {
+            setSearch({ page: 1 }, { replace: true });
+            return;
+        }
+
+        if (totalPages > 0 && search.page > totalPages) {
+            setSearch({ page: totalPages }, { replace: true });
+        }
+    }, [runsQuery.data, search.page, setSearch]);
 
     const toggleSort = (sortBy: typeof search.sortBy) => {
         setSearch({
@@ -63,6 +87,11 @@ export const RunsPage = () => {
                     {formatStatusLabel(info.getValue())}
                 </span>
             ),
+        }),
+        columnHelper.display({
+            id: "failure",
+            header: "Failure",
+            cell: (info) => info.row.original.failure?.summary ?? "-",
         }),
         columnHelper.accessor("totalProducts", {
             header: () => (
@@ -154,9 +183,9 @@ export const RunsPage = () => {
                         }
                     >
                         <option value="">All tracked categories</option>
-                        {categoriesQuery.data?.categories.map((category) => (
+                        {categoryOptions.map((category) => (
                             <option key={category.id} value={category.id}>
-                                {category.nameEt}
+                                {category.label}
                             </option>
                         ))}
                     </select>
@@ -191,9 +220,6 @@ export const RunsPage = () => {
             ) : runsQuery.data ? (
                 <div className={styles.section}>
                     <div className={styles.tableControls}>
-                        <span className={styles.subtle}>
-                            Showing page {runsQuery.data.page} of {Math.max(runsQuery.data.totalPages, 1)}
-                        </span>
                         <span className={styles.subtle}>{runsQuery.data.totalItems} total runs</span>
                     </div>
 
@@ -203,23 +229,15 @@ export const RunsPage = () => {
                         <DataTable data={runsQuery.data.items} columns={columns} />
                     )}
 
-                    <div className={styles.pagination}>
-                        <button
-                            type="button"
-                            onClick={() => setSearch({ page: Math.max(1, search.page - 1) })}
-                            disabled={search.page <= 1}
-                        >
-                            Previous page
-                        </button>
-                        <span>Page {search.page}</span>
-                        <button
-                            type="button"
-                            onClick={() => setSearch({ page: search.page + 1 })}
-                            disabled={!runsQuery.data.totalPages || search.page >= runsQuery.data.totalPages}
-                        >
-                            Next page
-                        </button>
-                    </div>
+                    <PaginationControls
+                        page={search.page}
+                        pageSize={search.pageSize}
+                        totalPages={runsQuery.data.totalPages}
+                        totalItems={runsQuery.data.totalItems}
+                        ariaLabel="Runs pagination"
+                        isLoading={runsQuery.isFetching}
+                        onPageChange={(nextPage) => setSearch({ page: nextPage })}
+                    />
                 </div>
             ) : (
                 <p className={styles.emptyState}>Loading runs...</p>

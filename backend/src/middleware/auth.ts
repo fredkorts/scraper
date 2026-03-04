@@ -34,3 +34,17 @@ export const requireAuth = (req: Request, _res: Response, next: NextFunction): v
         next(new AppError(401, "unauthorized", "Invalid or expired access token"));
     }
 };
+
+export const requireAdmin = (req: Request, _res: Response, next: NextFunction): void => {
+    if (!req.auth) {
+        next(new AppError(401, "unauthorized", "Authentication required"));
+        return;
+    }
+
+    if (req.auth.role !== "admin") {
+        next(new AppError(403, "forbidden", "Admin access required"));
+        return;
+    }
+
+    next();
+};

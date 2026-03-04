@@ -100,6 +100,28 @@ describe("auth routes", () => {
         expect(response.body.user.email).toBe(user.email);
     });
 
+    it("updates the current user's display name", async () => {
+        const app = createApp();
+        const { user } = await createUser({
+            email: "profile-update@example.com",
+        });
+        const accessToken = signAccessToken({
+            sub: user.id,
+            email: user.email,
+            role: "free",
+        });
+
+        const response = await request(app)
+            .patch("/api/auth/me")
+            .set("Cookie", `${authCookieNames.accessToken}=${accessToken}`)
+            .send({
+                name: "Updated Profile Name",
+            });
+
+        expect(response.status).toBe(200);
+        expect(response.body.user.name).toBe("Updated Profile Name");
+    });
+
     it("rotates refresh tokens on /refresh", async () => {
         const app = createApp();
         const { user } = await createUser({

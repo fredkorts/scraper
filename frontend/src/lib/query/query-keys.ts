@@ -7,7 +7,7 @@ export const queryKeys = {
         filteredHome: (params?: Record<string, unknown>) => ["dashboard", "home", params ?? {}] as const,
     },
     categories: {
-        list: () => ["categories", "list"] as const,
+        list: (scope: "tracked" | "all" = "tracked") => ["categories", "list", scope] as const,
     },
     runs: {
         list: (params?: Record<string, unknown>) => ["runs", "list", params ?? {}] as const,
@@ -24,5 +24,9 @@ export const queryKeys = {
     },
     notifications: {
         channels: () => ["notifications", "channels"] as const,
+    },
+    settings: {
+        subscriptions: () => ["settings", "subscriptions"] as const,
+        adminCategories: () => ["settings", "admin-categories"] as const,
     },
 };

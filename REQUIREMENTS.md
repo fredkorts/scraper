@@ -150,7 +150,7 @@ graph TB
 | **TanStack Table** | Tables | Headless typed table state for sorting, pagination, filtering, and reusable data-grid patterns |
 | **Recharts** | Charts | Lightweight React charting library for price history graphs |
 | **React Hook Form + Zod** | Forms & validation | Performant form handling with schema validation (shared Zod schemas with backend) |
-| **CSS Modules** | Styling | Scoped styles, no naming conflicts, no extra dependencies |
+| **CSS Modules + SCSS** | Styling | Scoped component styles plus a token-driven global SCSS foundation for maintainable design consistency |
 | **Vitest + RTL** | Testing | Unit and component testing using Vitest and React Testing Library |
 
 #### Dashboard Pages
@@ -163,7 +163,7 @@ graph TB
 | **Scrape Runs (Protected)** | Paginated/sortable table of past scrapes with category, status, products found, and changes detected |
 | **Scrape Run Detail (Protected)** | Full product list for a specific run plus diff items (price moves, new products, stock transitions) |
 | **Product Detail / Price History (Protected)** | Per-product detail with historical price chart over time |
-| **Settings (Protected)** | User configuration for categories/subscriptions, notification channels, scrape interval, and account preferences |
+| **Settings (Protected)** | User configuration for account basics, tracked categories/subscriptions, notification channels, read-only plan summary, and admin-only system controls |
 
 ---
 
@@ -501,38 +501,94 @@ If a product goes out of stock:
 
 ### Phase 3 — Frontend Foundation & Routing (Week 5)
 
-> **Goal**: Establish frontend app shell, routing, and auth-protected layout.
+> **Goal**: Establish frontend app shell, routing, auth-protected layout, and shared data-layer foundation.
 
-- [ ] Scaffold/confirm React + Vite + TypeScript frontend baseline
-- [ ] Set up TanStack Router route tree
-- [ ] Implement public routes: landing, login, register
-- [ ] Implement protected app layout for authenticated users
-- [ ] Set up TanStack Query API layer and shared query utilities
-- [ ] Add shared table primitives using TanStack Table for dashboard lists
-- [ ] Write frontend tests for route guards and auth shell behavior
+- [x] Scaffold/confirm React + Vite + TypeScript frontend baseline
+- [x] Set up TanStack Router route tree
+- [x] Implement public routes: landing, login, register
+- [x] Implement protected app layout for authenticated users
+- [x] Implement frontend data-flow foundation (`FRONTEND_DATA_FLOW.md`): API client, query-key factory, TanStack Query client defaults, and mutation invalidation conventions
+- [x] Add shared table primitives using TanStack Table for dashboard lists
+- [x] Add Sass support and global style entrypoint for token/base layers
+- [x] Write frontend tests for route guards and auth shell behavior
 
 ### Phase 4 — Dashboard: Core Data Views (Weeks 6–8)
 
 > **Goal**: Deliver high-value dashboard views for monitoring runs, changes, and product history.
+>
+> **Phase 4 first milestone**: apply the established data-flow foundation to dashboard routes with route-level prefetch/loaders.
 
-- [ ] Build protected dashboard home (latest scrape health, recent changes, quick actions)
-- [ ] Build scrape runs list view (paginated/sortable table)
-- [ ] Build scrape run detail view (products + diff items)
-- [ ] Build product detail/price-history view with Recharts
-- [ ] Add route-level data loading/prefetching with TanStack Router + Query
-- [ ] Write frontend unit tests for core dashboard view components/hooks
+- [x] Build protected dashboard home (latest scrape health, recent changes, quick actions)
+- [x] Build scrape runs list view (paginated/sortable table)
+- [x] Build scrape run detail view (products + diff items)
+- [x] Build product detail/price-history view with Recharts
+- [x] Code-split the product detail/price-history route so chart code loads on demand
+- [x] Add URL-backed product-history controls (range, category, stock, original-price, stock overlay)
+- [x] Apply route-level data loading/prefetching with TanStack Router + Query for runs, run detail, and product history views
+- [x] Write frontend unit tests for core dashboard view components/hooks
+
+#### Phase 4 Styling Architecture (SCSS + CSS Modules)
+
+Status:
+
+- Implemented and tracked in `STYLING_ARCHITECTURE_IMPLEMENTATION.md`
+- Existing Phase 4 route/component styles were cleaned up to consume shared tokens and shared SCSS primitives
+- Shared primitives now cover forms, tables, status badges, empty/error states, and responsive page containers
+
+We continue using **CSS Modules** for component-level styles, and establish a shared SCSS foundation for tokens and global layers.
+
+Style foundation root:
+
+- `frontend/src/styles/abstracts/`
+- `frontend/src/styles/base/`
+- `frontend/src/styles/components/`
+- `frontend/src/styles/layout/`
+
+`abstracts/`:
+
+- `_variables.scss` defines design tokens with CSS custom properties (`:root`)
+- token groups: colors, spacing scale, typography, transitions, shadows
+- dark mode overrides via `@media (prefers-color-scheme: dark)`
+- `_mixins.scss` for reusable media/query and utility mixins
+- `_functions.scss` for shared Sass helpers
+
+`base/`:
+
+- `_reset.scss` for browser normalization
+- `_typography.scss` for default type hierarchy and text rhythm
+
+`components/`:
+
+- reusable global component primitives (`_buttons.scss`, `_cards.scss`, etc.)
+- primitives consume tokens only; no hardcoded color/spacing values
+
+`layout/`:
+
+- structural layout rules (app shell, containers, grid, spacing scaffolds)
+
+Token examples (required naming intent):
+
+- colors: `--color-primary`, `--color-surface`, `--color-text`, `--color-border`
+- spacing: `--space-unit`, `--space-xs`, `--space-sm`, `--space-md`, `--space-lg`
+- typography: `--font-size-base`, `--font-size-sm`, `--font-size-lg`, `--line-height-base`
+- motion/depth: `--transition-fast`, `--transition-base`, `--shadow-sm`, `--shadow-md`
+
+Implementation rule:
+
+- Component `*.module.scss` files must consume shared tokens via `var(...)` and avoid hardcoded magic values.
 
 ### Phase 5 — Dashboard: Settings & User Operations (Week 9)
 
 > **Goal**: Let users configure what they track and where they get notified.
 
-- [ ] Build settings views:
-  - Category/subscription management
-  - Notification channel management
-  - Scrape interval selector (6h, 12h, 24h, 48h)
-  - Account basics
-- [ ] Wire settings UI to backend CRUD APIs
-- [ ] Add manual "scrape now" trigger UX with progress indicator
+- [x] Build settings views:
+  - [x] Account basics
+  - [x] Category/subscription management
+  - [x] Notification channel management
+  - [x] Read-only plan / role summary
+  - [x] Admin-only category scrape interval management (6h, 12h, 24h, 48h)
+- [x] Wire settings UI to backend CRUD APIs
+- [x] Add admin-only manual "scrape now" trigger UX with progress indicator
 
 ### Phase 6 — Payments (PayPal Integration) (Week 10)
 
@@ -548,10 +604,10 @@ If a product goes out of stock:
 
 > **Goal**: Error handling, rate limiting, monitoring, and deployment.
 
-- [ ] Add rate limiting to API endpoints
-- [ ] Add scraper politeness features (respect `robots.txt`, adaptive delays)
-- [ ] Implement error handling and retry logic for failed scrapes
-- [ ] Add logging (Winston or Pino)
+- [x] Add rate limiting to API endpoints
+- [x] Add scraper politeness features (respect `robots.txt`, adaptive delays)
+- [x] Implement error handling and retry logic for failed scrapes
+- [x] Add structured logging foundation
 - [ ] Dockerize backend + frontend + PostgreSQL + Redis
 - [x] Write `docker-compose.yml` for local development
 - [ ] Set up CI/CD pipeline

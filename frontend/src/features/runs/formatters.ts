@@ -43,3 +43,19 @@ export const formatStatusLabel = (status: string): string =>
         .split("_")
         .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
         .join(" ");
+
+export const formatFailurePhaseLabel = (phase?: string): string => {
+    if (!phase) {
+        return "-";
+    }
+
+    return formatStatusLabel(phase);
+};
+
+export const formatRetryableLabel = (isRetryable?: boolean): string => {
+    if (isRetryable === undefined) {
+        return "-";
+    }
+
+    return isRetryable ? "Yes" : "No";
+};

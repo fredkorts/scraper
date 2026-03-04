@@ -64,6 +64,7 @@ export const enqueueDueCategories = async (
                     categoryId: category.id,
                     trigger: "scheduler",
                     requestedAt: now,
+                    requestId: `scheduler:${now.toISOString()}`,
                 });
 
                 if (enqueueResult.status === "enqueued") {

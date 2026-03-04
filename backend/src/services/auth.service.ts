@@ -1,6 +1,13 @@
 import bcrypt from "bcrypt";
 import { Prisma, UserRole as PrismaUserRole, type NotificationChannelType, type User } from "@prisma/client";
-import type { AuthResponse, AuthUser, LoginRequest, LogoutResponse, RegisterRequest, UserRole } from "@mabrik/shared";
+import type {
+    AuthResponse,
+    AuthUser,
+    LoginRequest,
+    LogoutResponse,
+    RegisterRequest,
+    UserRole,
+} from "@mabrik/shared";
 import { prisma } from "../lib/prisma";
 import { AppError } from "../lib/errors";
 import { generateRefreshToken, hashToken } from "../lib/hash";
@@ -232,5 +239,26 @@ export const getCurrentUser = async (userId: string): Promise<AuthResponse> => {
 
     return {
         user: sanitizeUser(user),
+    };
+};
+
+export const updateCurrentUser = async (userId: string, input: { name: string }): Promise<AuthResponse> => {
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+    });
+
+    if (!user) {
+        throw new AppError(401, "unauthorized", "User not found");
+    }
+
+    const updated = await prisma.user.update({
+        where: { id: userId },
+        data: {
+            name: input.name,
+        },
+    });
+
+    return {
+        user: sanitizeUser(updated),
     };
 };

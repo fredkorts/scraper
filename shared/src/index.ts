@@ -79,6 +79,9 @@ export interface Category {
     nameEt: string;
     nameEn: string;
     parentId?: string;
+    depth?: number;
+    pathNameEt?: string;
+    pathNameEn?: string;
     isActive: boolean;
     scrapeIntervalHours: ScrapeInterval;
     nextRunAt?: string;
@@ -105,9 +108,18 @@ export interface ScrapeRun {
     backInStock: number;
     pagesScraped: number;
     durationMs?: number;
-    errorMessage?: string;
+    failure?: ScrapeRunFailure;
     startedAt: string;
     completedAt?: string;
+}
+
+export interface ScrapeRunFailure {
+    summary: string;
+    code?: string;
+    phase?: string;
+    pageUrl?: string;
+    pageNumber?: number;
+    isRetryable?: boolean;
 }
 
 export interface Product {
@@ -221,6 +233,14 @@ export interface AuthResponse {
     user: AuthUser;
 }
 
+export interface UpdateProfileRequest {
+    name: string;
+}
+
+export interface UpdateProfileResponse {
+    user: AuthUser;
+}
+
 export interface LogoutResponse {
     success: true;
 }
@@ -228,6 +248,212 @@ export interface LogoutResponse {
 export interface ErrorResponse {
     error: string;
     message: string;
+}
+
+export interface DashboardHomeRunSummary {
+    id: string;
+    categoryId: string;
+    categoryName: string;
+    status: ScrapeStatus;
+    startedAt: string;
+    completedAt?: string;
+    totalChanges: number;
+    totalProducts: number;
+}
+
+export interface DashboardHomeFailure {
+    id: string;
+    categoryId: string;
+    categoryName: string;
+    startedAt: string;
+    failure?: ScrapeRunFailure;
+}
+
+export interface DashboardChangeSummary {
+    priceIncrease: number;
+    priceDecrease: number;
+    newProduct: number;
+    soldOut: number;
+    backInStock: number;
+}
+
+export interface DashboardHomeResponse {
+    latestRuns: DashboardHomeRunSummary[];
+    recentFailures: DashboardHomeFailure[];
+    recentChangeSummary: DashboardChangeSummary;
+}
+
+export interface CategoriesResponse {
+    categories: Array<
+        Category & {
+            depth: number;
+            pathNameEt: string;
+            pathNameEn: string;
+        }
+    >;
+}
+
+export interface SubscriptionListItem {
+    id: string;
+    category: {
+        id: string;
+        slug: string;
+        nameEt: string;
+        nameEn: string;
+    };
+    createdAt: string;
+    isActive: boolean;
+}
+
+export interface SubscriptionsResponse {
+    items: SubscriptionListItem[];
+    limit: number | null;
+    used: number;
+    remaining: number | null;
+}
+
+export interface PaginatedResponse<TItem> {
+    items: TItem[];
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+}
+
+export interface RunsListItem {
+    id: string;
+    categoryId: string;
+    categoryName: string;
+    status: ScrapeStatus;
+    totalProducts: number;
+    totalChanges: number;
+    pagesScraped: number;
+    durationMs?: number;
+    startedAt: string;
+    completedAt?: string;
+    failure?: ScrapeRunFailure;
+}
+
+export interface RunsListResponse extends PaginatedResponse<RunsListItem> {}
+
+export interface RunDetail {
+    id: string;
+    categoryId: string;
+    categoryName: string;
+    status: ScrapeStatus;
+    totalProducts: number;
+    totalChanges: number;
+    newProducts: number;
+    priceChanges: number;
+    soldOut: number;
+    backInStock: number;
+    pagesScraped: number;
+    durationMs?: number;
+    failure?: ScrapeRunFailure;
+    startedAt: string;
+    completedAt?: string;
+}
+
+export interface RunDetailResponse {
+    run: RunDetail;
+}
+
+export interface RunProductSnapshot {
+    id: string;
+    scrapeRunId: string;
+    productId: string;
+    name: string;
+    price: number;
+    originalPrice?: number;
+    inStock: boolean;
+    imageUrl: string;
+    externalUrl: string;
+    scrapedAt: string;
+}
+
+export interface RunProductsResponse extends PaginatedResponse<RunProductSnapshot> {}
+
+export interface RunChangeItem {
+    id: string;
+    changeType: ChangeType;
+    oldPrice?: number;
+    newPrice?: number;
+    oldStockStatus?: boolean;
+    newStockStatus?: boolean;
+    product: {
+        id: string;
+        name: string;
+        imageUrl: string;
+        externalUrl: string;
+    };
+}
+
+export interface RunChangesResponse extends PaginatedResponse<RunChangeItem> {}
+
+export interface UpdateCategorySettingsRequest {
+    scrapeIntervalHours: ScrapeInterval;
+}
+
+export interface TriggerRunRequest {
+    categoryId: string;
+}
+
+export interface TriggerRunResponse {
+    accepted: true;
+    categoryId: string;
+    mode: "queued" | "direct";
+    scrapeRunId?: string;
+    jobId?: string;
+}
+
+export interface ProductDetailCategory {
+    id: string;
+    slug: string;
+    nameEt: string;
+    nameEn: string;
+}
+
+export interface ProductDetailRecentRun {
+    id: string;
+    categoryId: string;
+    categoryName: string;
+    status: ScrapeStatus;
+    startedAt: string;
+    completedAt?: string;
+}
+
+export interface ProductDetail {
+    id: string;
+    name: string;
+    imageUrl: string;
+    externalUrl: string;
+    currentPrice: number;
+    originalPrice?: number;
+    inStock: boolean;
+    firstSeenAt: string;
+    lastSeenAt: string;
+    historyPointCount: number;
+    categories: ProductDetailCategory[];
+    recentRuns: ProductDetailRecentRun[];
+}
+
+export interface ProductDetailResponse {
+    product: ProductDetail;
+}
+
+export interface ProductHistoryPoint {
+    id: string;
+    scrapeRunId: string;
+    categoryId: string;
+    categoryName: string;
+    price: number;
+    originalPrice?: number;
+    inStock: boolean;
+    scrapedAt: string;
+}
+
+export interface ProductHistoryResponse {
+    items: ProductHistoryPoint[];
 }
 
 export type NotificationChannelInputType = "email" | "discord" | "whatsapp" | "signal" | "sms";

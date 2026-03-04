@@ -1,4 +1,6 @@
 import { NotificationChannelType, UserRole } from "@prisma/client";
+import { isMainModule } from "../lib/is-main-module";
+import { logger } from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import {
     getImmediateDeliveryPayloads,
@@ -66,17 +68,27 @@ export const sendImmediateNotifications = async (
     };
 };
 
-const cliChangeReportId = process.argv[2];
-
-if (cliChangeReportId) {
+if (isMainModule(import.meta.url)) {
     prisma
         .$connect()
         .then(async () => {
+            const cliChangeReportId = process.argv[2];
+
+            if (!cliChangeReportId) {
+                throw new Error("Expected changeReportId as the first argument");
+            }
+
             const result = await sendImmediateNotifications(cliChangeReportId);
-            console.log(JSON.stringify(result, null, 2));
+            logger.info("immediate_notifications_cli_completed", {
+                changeReportId: cliChangeReportId,
+                result,
+            });
         })
         .catch((error) => {
-            console.error(error);
+            logger.error("immediate_notifications_cli_failed", {
+                changeReportId: process.argv[2],
+                error,
+            });
             process.exitCode = 1;
         })
         .finally(async () => {

@@ -6,14 +6,15 @@ import {
     updateNotificationChannelHandler,
 } from "../controllers/notification-channel.controller";
 import { requireAuth } from "../middleware/auth";
+import { authenticatedMutationLimiter, highCostReadLimiter } from "../middleware/rate-limit";
 
 const notificationsRouter = Router();
 
 notificationsRouter.use(requireAuth);
 
-notificationsRouter.get("/channels", listNotificationChannelsHandler);
-notificationsRouter.post("/channels", createNotificationChannelHandler);
-notificationsRouter.patch("/channels/:id", updateNotificationChannelHandler);
-notificationsRouter.delete("/channels/:id", deleteNotificationChannelHandler);
+notificationsRouter.get("/channels", highCostReadLimiter, listNotificationChannelsHandler);
+notificationsRouter.post("/channels", authenticatedMutationLimiter, createNotificationChannelHandler);
+notificationsRouter.patch("/channels/:id", authenticatedMutationLimiter, updateNotificationChannelHandler);
+notificationsRouter.delete("/channels/:id", authenticatedMutationLimiter, deleteNotificationChannelHandler);
 
 export { notificationsRouter };

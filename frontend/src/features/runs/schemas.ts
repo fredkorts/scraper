@@ -2,6 +2,17 @@ import { z } from "zod";
 
 const scrapeStatusSchema = z.enum(["pending", "running", "completed", "failed"]);
 const changeTypeSchema = z.enum(["price_increase", "price_decrease", "new_product", "sold_out", "back_in_stock"]);
+const runFailureSchema = z.object({
+    summary: z.string(),
+    code: z.string().optional(),
+    phase: z.string().optional(),
+    pageUrl: z.string().url().optional(),
+    pageNumber: z.number().int().positive().optional(),
+    isRetryable: z.boolean().optional(),
+});
+const runDetailFailureSchema = runFailureSchema.extend({
+    technicalMessage: z.string().optional(),
+});
 
 export const dashboardHomeResponseSchema = z.object({
     latestRuns: z.array(
@@ -22,7 +33,7 @@ export const dashboardHomeResponseSchema = z.object({
             categoryId: z.string().uuid(),
             categoryName: z.string(),
             startedAt: z.string(),
-            errorMessage: z.string().optional(),
+            failure: runFailureSchema.optional(),
         }),
     ),
     recentChangeSummary: z.object({
@@ -47,7 +58,7 @@ export const runsListResponseSchema = z.object({
             durationMs: z.number().optional(),
             startedAt: z.string(),
             completedAt: z.string().optional(),
-            errorMessage: z.string().optional(),
+            failure: runFailureSchema.optional(),
         }),
     ),
     page: z.number(),
@@ -70,7 +81,7 @@ export const runDetailResponseSchema = z.object({
         backInStock: z.number(),
         pagesScraped: z.number(),
         durationMs: z.number().optional(),
-        errorMessage: z.string().optional(),
+        failure: runDetailFailureSchema.optional(),
         startedAt: z.string(),
         completedAt: z.string().optional(),
     }),

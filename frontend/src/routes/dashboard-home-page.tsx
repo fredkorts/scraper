@@ -1,5 +1,6 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
+import { buildCategoryOptions, getCategoryLabelById } from "../features/categories/options";
 import { useCategoriesQuery } from "../features/categories/queries";
 import { formatDateTime, formatStatusLabel } from "../features/runs/formatters";
 import { useDashboardHomeQuery } from "../features/runs/queries";
@@ -20,8 +21,10 @@ export const DashboardHomePage = () => {
         headingRef.current?.focus();
     }, []);
 
-    const selectedCategoryName =
-        categoriesQuery.data?.categories.find((category) => category.id === search.categoryId)?.nameEt;
+    const categoryOptions = categoriesQuery.data ? buildCategoryOptions(categoriesQuery.data.categories) : [];
+    const selectedCategoryName = categoriesQuery.data
+        ? getCategoryLabelById(categoriesQuery.data.categories, search.categoryId)
+        : undefined;
 
     if (dashboardQuery.isError) {
         return (
@@ -79,9 +82,9 @@ export const DashboardHomePage = () => {
                         }
                     >
                         <option value="">All tracked categories</option>
-                        {categoriesQuery.data?.categories.map((category) => (
+                        {categoryOptions.map((category) => (
                             <option key={category.id} value={category.id}>
-                                {category.nameEt}
+                                {category.label}
                             </option>
                         ))}
                     </select>
@@ -179,7 +182,9 @@ export const DashboardHomePage = () => {
                                     <div className={styles.metaRow}>
                                         <span>{formatDateTime(run.startedAt)}</span>
                                     </div>
-                                    <p className={styles.subtle}>{run.errorMessage ?? "Run failed without an error message."}</p>
+                                    <p className={styles.subtle}>
+                                        {run.failure?.summary ?? "Run failed without a readable failure summary."}
+                                    </p>
                                     <Link
                                         params={{ runId: run.id }}
                                         search={defaultRunDetailSectionSearch}
