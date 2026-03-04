@@ -25,7 +25,6 @@ import {
 } from "../features/runs/search";
 import {
     notificationChannelsQueryOptions,
-    settingsAdminCategoriesQueryOptions,
     subscriptionsQueryOptions,
 } from "../features/settings/queries";
 import { parseSettingsSearch } from "../features/settings/search";
@@ -171,7 +170,6 @@ const appSettingsRoute = createRoute({
             context.queryClient.ensureQueryData(subscriptionsQueryOptions()),
             context.queryClient.ensureQueryData(notificationChannelsQueryOptions()),
             context.queryClient.ensureQueryData(categoriesQueryOptions("all")),
-            context.queryClient.ensureQueryData(settingsAdminCategoriesQueryOptions()),
         ]);
     },
     component: SettingsPage,

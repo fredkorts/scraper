@@ -27,6 +27,5 @@ export const queryKeys = {
     },
     settings: {
         subscriptions: () => ["settings", "subscriptions"] as const,
-        adminCategories: () => ["settings", "admin-categories"] as const,
     },
 };

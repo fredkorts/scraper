@@ -53,7 +53,6 @@ export const PaginationControls = ({
             setCompactMode(event.matches);
         };
 
-        setCompactMode(mediaQueryList.matches);
         mediaQueryList.addEventListener("change", onChange);
 
         return () => {

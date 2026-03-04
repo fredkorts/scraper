@@ -19,5 +19,3 @@ export const categoriesResponseSchema = z.object({
         }),
     ),
 });
-
-export type CategoriesData = z.infer<typeof categoriesResponseSchema>;

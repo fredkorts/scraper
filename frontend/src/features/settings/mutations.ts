@@ -104,10 +104,7 @@ export const useUpdateCategorySettingsMutation = () => {
         mutationFn: ({ id, payload }: { id: string; payload: UpdateCategorySettingsRequest }) =>
             apiPatch(apiEndpoints.categories.settings(id), payload, updateCategorySettingsResponseSchema),
         onSuccess: async () => {
-            await Promise.all([
-                queryClient.invalidateQueries({ queryKey: queryKeys.categories.list() }),
-                queryClient.invalidateQueries({ queryKey: queryKeys.settings.adminCategories() }),
-            ]);
+            await queryClient.invalidateQueries({ queryKey: ["categories", "list"] });
         },
     });
 };

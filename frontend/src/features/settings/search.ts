@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { settingsTabSchema, type SettingsTab } from "./schemas";
+import { settingsTabSchema } from "./schemas";
+import type { SettingsTab } from "./types/settings-schema.types";
 
 const settingsSearchSchema = z.object({
     tab: settingsTabSchema.optional(),

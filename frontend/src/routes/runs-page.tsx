@@ -1,17 +1,14 @@
-import { Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
-import { useCallback, useEffect, useRef } from "react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
 import { DataTable } from "../components/data-table/DataTable";
 import { PaginationControls } from "../components/pagination/PaginationControls";
 import { buildCategoryOptions } from "../features/categories/options";
 import { useCategoriesQuery } from "../features/categories/queries";
-import { formatDateTime, formatDuration, formatStatusLabel } from "../features/runs/formatters";
+import { useRunsTableColumns } from "../features/runs/hooks/use-runs-table-columns";
 import { useRunsListQuery } from "../features/runs/queries";
-import { defaultRunDetailSectionSearch } from "../features/runs/search";
-import type { RunsListData } from "../features/runs/schemas";
+import { useClampedPage } from "../shared/hooks/use-clamped-page";
+import { useRouteSearchUpdater } from "../shared/hooks/use-route-search-updater";
 import styles from "./scrape-views.module.scss";
-
-const columnHelper = createColumnHelper<RunsListData["items"][number]>();
 
 export const RunsPage = () => {
     const headingRef = useRef<HTMLHeadingElement>(null);
@@ -20,40 +17,17 @@ export const RunsPage = () => {
     const categoriesQuery = useCategoriesQuery();
     const runsQuery = useRunsListQuery(search);
     const categoryOptions = categoriesQuery.data ? buildCategoryOptions(categoriesQuery.data.categories) : [];
+    const setSearch = useRouteSearchUpdater(navigate);
 
     useEffect(() => {
         headingRef.current?.focus();
     }, []);
 
-    const setSearch = useCallback(
-        (updates: Partial<typeof search>, options?: { replace?: boolean }) =>
-            navigate({
-                to: ".",
-                replace: options?.replace,
-                search: (prev) => ({
-                    ...prev,
-                    ...updates,
-                }),
-            }),
-        [navigate],
-    );
-
-    useEffect(() => {
-        if (!runsQuery.data) {
-            return;
-        }
-
-        const { totalPages } = runsQuery.data;
-
-        if (totalPages === 0 && search.page !== 1) {
-            setSearch({ page: 1 }, { replace: true });
-            return;
-        }
-
-        if (totalPages > 0 && search.page > totalPages) {
-            setSearch({ page: totalPages }, { replace: true });
-        }
-    }, [runsQuery.data, search.page, setSearch]);
+    useClampedPage({
+        currentPage: search.page,
+        totalPages: runsQuery.data?.totalPages,
+        onPageChange: (page, options) => setSearch({ page }, options),
+    });
 
     const toggleSort = (sortBy: typeof search.sortBy) => {
         setSearch({
@@ -63,74 +37,12 @@ export const RunsPage = () => {
         });
     };
 
-    const columns = [
-        columnHelper.accessor("startedAt", {
-            header: () => (
-                <button type="button" onClick={() => toggleSort("startedAt")}>
-                    Started
-                </button>
-            ),
-            cell: (info) => formatDateTime(info.getValue()),
-        }),
-        columnHelper.accessor("categoryName", {
-            header: "Category",
-            cell: (info) => info.getValue(),
-        }),
-        columnHelper.accessor("status", {
-            header: () => (
-                <button type="button" onClick={() => toggleSort("status")}>
-                    Status
-                </button>
-            ),
-            cell: (info) => (
-                <span className={styles.statusBadge} data-status={info.getValue()}>
-                    {formatStatusLabel(info.getValue())}
-                </span>
-            ),
-        }),
-        columnHelper.display({
-            id: "failure",
-            header: "Failure",
-            cell: (info) => info.row.original.failure?.summary ?? "-",
-        }),
-        columnHelper.accessor("totalProducts", {
-            header: () => (
-                <button type="button" onClick={() => toggleSort("totalProducts")}>
-                    Products
-                </button>
-            ),
-            cell: (info) => info.getValue(),
-        }),
-        columnHelper.accessor("totalChanges", {
-            header: () => (
-                <button type="button" onClick={() => toggleSort("totalChanges")}>
-                    Changes
-                </button>
-            ),
-            cell: (info) => info.getValue(),
-        }),
-        columnHelper.accessor("durationMs", {
-            header: () => (
-                <button type="button" onClick={() => toggleSort("durationMs")}>
-                    Duration
-                </button>
-            ),
-            cell: (info) => formatDuration(info.getValue()),
-        }),
-        columnHelper.display({
-            id: "actions",
-            header: "Actions",
-            cell: (info) => (
-                <Link
-                    params={{ runId: info.row.original.id }}
-                    search={defaultRunDetailSectionSearch}
-                    to="/app/runs/$runId"
-                >
-                    Open detail
-                </Link>
-            ),
-        }),
-    ] satisfies Array<ColumnDef<RunsListData["items"][number], unknown>>;
+    const columns = useRunsTableColumns({
+        sortBy: search.sortBy,
+        sortOrder: search.sortOrder,
+        onToggleSort: toggleSort,
+        statusBadgeClassName: styles.statusBadge,
+    });
 
     return (
         <section className={styles.page}>

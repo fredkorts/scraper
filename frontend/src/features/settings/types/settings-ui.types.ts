@@ -1,0 +1,77 @@
+import type { ScrapeInterval, UserRole } from "@mabrik/shared";
+import type { FormEventHandler } from "react";
+import type { UseFormReturn } from "react-hook-form";
+import type { CategoryOption } from "../../categories/types/category-option";
+import type {
+    ChannelData,
+    SettingsTab,
+    SubscriptionsData,
+    UpdateProfileRequestData,
+    TriggerRunResponseData,
+} from "./settings-schema.types";
+
+export interface SettingsSummaryProps {
+    email: string;
+    name: string;
+    role: UserRole;
+    subscriptions: SubscriptionsData;
+}
+
+export interface SettingsTabsProps {
+    activeTab: SettingsTab;
+    visibleTabs: SettingsTab[];
+    onSetTab: (tab: SettingsTab) => void;
+}
+
+export interface SettingsAccountTabProps {
+    form: UseFormReturn<UpdateProfileRequestData>;
+    email: string;
+    isActive: boolean;
+    isSaving: boolean;
+    role: UserRole;
+    onSubmitProfile: FormEventHandler<HTMLFormElement>;
+}
+
+export interface SettingsTrackingTabProps {
+    availableCategoryOptions: CategoryOption[];
+    categoryLabelById: Map<string, string>;
+    role: UserRole;
+    selectedCategoryId: string;
+    subscriptions: SubscriptionsData;
+    trackingError: string | null;
+    isCreatePending: boolean;
+    isDeletePending: boolean;
+    onSelectCategory: (categoryId: string) => void;
+    onTrackCategory: () => void;
+    onUntrackCategory: (subscriptionId: string) => void;
+}
+
+export interface SettingsNotificationsTabProps {
+    channels: ChannelData[];
+    newChannelEmail: string;
+    role: UserRole;
+    isCreatePending: boolean;
+    onSetNewChannelEmail: (value: string) => void;
+    onCreateChannel: () => void;
+    onToggleChannelDefault: (channelId: string, isDefault: boolean) => void;
+    onToggleChannelActive: (channelId: string, isActive: boolean) => void;
+    onRemoveChannel: (channelId: string) => void;
+}
+
+export interface SettingsPlanTabProps {
+    role: UserRole;
+    subscriptions: SubscriptionsData;
+}
+
+export interface SettingsAdminTabProps {
+    categoryOptions: CategoryOption[];
+    selectedCategoryId: string;
+    selectedScrapeInterval: ScrapeInterval;
+    triggerRunResult?: TriggerRunResponseData;
+    isSavingInterval: boolean;
+    isTriggeringRun: boolean;
+    onSelectCategory: (categoryId: string) => void;
+    onSelectScrapeInterval: (scrapeInterval: ScrapeInterval) => void;
+    onSaveScrapeInterval: () => void;
+    onTriggerRun: () => void;
+}

@@ -1,25 +1,21 @@
 import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
-import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { DataTable } from "../components/data-table/DataTable";
 import { PaginationControls } from "../components/pagination/PaginationControls";
 import { useMeQuery } from "../features/auth/queries";
-import { defaultProductHistoryControls } from "../features/products/history-controls";
 import {
     formatDateTime,
     formatDuration,
     formatFailurePhaseLabel,
-    formatPrice,
     formatRetryableLabel,
     formatStatusLabel,
 } from "../features/runs/formatters";
+import { useRunDetailColumns } from "../features/runs/hooks/use-run-detail-columns";
 import { useRunChangesQuery, useRunDetailQuery, useRunProductsQuery } from "../features/runs/queries";
 import { defaultRunsListSearch } from "../features/runs/search";
-import type { RunChangesData, RunProductsData } from "../features/runs/schemas";
+import { useClampedPage } from "../shared/hooks/use-clamped-page";
+import { useRouteSearchUpdater } from "../shared/hooks/use-route-search-updater";
 import styles from "./scrape-views.module.scss";
-
-const productColumnHelper = createColumnHelper<RunProductsData["items"][number]>();
-const changeColumnHelper = createColumnHelper<RunChangesData["items"][number]>();
 
 export const RunDetailPage = () => {
     const headingRef = useRef<HTMLHeadingElement>(null);
@@ -38,154 +34,27 @@ export const RunDetailPage = () => {
         pageSize: search.changesPageSize,
         changeType: search.changeType,
     });
+    const setSearch = useRouteSearchUpdater(navigate);
 
     useEffect(() => {
         headingRef.current?.focus();
     }, [runId]);
 
-    const setSearch = useCallback(
-        (updates: Partial<typeof search>, options?: { replace?: boolean }) =>
-            navigate({
-                to: ".",
-                replace: options?.replace,
-                search: (prev) => ({
-                    ...prev,
-                    ...updates,
-                }),
-            }),
-        [navigate],
-    );
+    useClampedPage({
+        currentPage: search.changesPage,
+        totalPages: changesQuery.data?.totalPages,
+        onPageChange: (page, options) => setSearch({ changesPage: page }, options),
+    });
 
-    useEffect(() => {
-        if (!changesQuery.data) {
-            return;
-        }
+    useClampedPage({
+        currentPage: search.productsPage,
+        totalPages: productsQuery.data?.totalPages,
+        onPageChange: (page, options) => setSearch({ productsPage: page }, options),
+    });
 
-        const { totalPages } = changesQuery.data;
-
-        if (totalPages === 0 && search.changesPage !== 1) {
-            setSearch({ changesPage: 1 }, { replace: true });
-            return;
-        }
-
-        if (totalPages > 0 && search.changesPage > totalPages) {
-            setSearch({ changesPage: totalPages }, { replace: true });
-        }
-    }, [changesQuery.data, search.changesPage, setSearch]);
-
-    useEffect(() => {
-        if (!productsQuery.data) {
-            return;
-        }
-
-        const { totalPages } = productsQuery.data;
-
-        if (totalPages === 0 && search.productsPage !== 1) {
-            setSearch({ productsPage: 1 }, { replace: true });
-            return;
-        }
-
-        if (totalPages > 0 && search.productsPage > totalPages) {
-            setSearch({ productsPage: totalPages }, { replace: true });
-        }
-    }, [productsQuery.data, search.productsPage, setSearch]);
-
-    const productColumns = [
-        productColumnHelper.accessor("name", {
-            header: "Product",
-            cell: (info) => (
-                <Link
-                    params={{ productId: info.row.original.productId }}
-                    search={defaultProductHistoryControls}
-                    to="/app/products/$productId"
-                >
-                    {info.getValue()}
-                </Link>
-            ),
-        }),
-        productColumnHelper.accessor("price", {
-            header: "Current price",
-            cell: (info) => formatPrice(info.getValue()),
-        }),
-        productColumnHelper.accessor("originalPrice", {
-            header: "Original price",
-            cell: (info) => formatPrice(info.getValue()),
-        }),
-        productColumnHelper.accessor("inStock", {
-            header: "Stock",
-            cell: (info) => (info.getValue() ? "In stock" : "Out of stock"),
-        }),
-        productColumnHelper.display({
-            id: "dashboardLink",
-            header: "Dashboard",
-            cell: (info) => (
-                <Link
-                    params={{ productId: info.row.original.productId }}
-                    search={defaultProductHistoryControls}
-                    to="/app/products/$productId"
-                >
-                    Open product
-                </Link>
-            ),
-        }),
-        productColumnHelper.display({
-            id: "externalUrl",
-            header: "Link",
-            cell: (info) => (
-                <a className={styles.productLink} href={info.row.original.externalUrl} rel="noreferrer" target="_blank">
-                    View product
-                </a>
-            ),
-        }),
-    ] satisfies Array<ColumnDef<RunProductsData["items"][number], unknown>>;
-
-    const changeColumns = [
-        changeColumnHelper.accessor("changeType", {
-            header: "Change",
-            cell: (info) => formatStatusLabel(info.getValue()),
-        }),
-        changeColumnHelper.display({
-            id: "productName",
-            header: "Product",
-            cell: (info) => (
-                <Link
-                    params={{ productId: info.row.original.product.id }}
-                    search={defaultProductHistoryControls}
-                    to="/app/products/$productId"
-                >
-                    {info.row.original.product.name}
-                </Link>
-            ),
-        }),
-        changeColumnHelper.display({
-            id: "details",
-            header: "Details",
-            cell: (info) => {
-                const item = info.row.original;
-
-                if (item.oldPrice !== undefined || item.newPrice !== undefined) {
-                    return `${formatPrice(item.oldPrice)} -> ${formatPrice(item.newPrice)}`;
-                }
-
-                if (item.oldStockStatus !== undefined || item.newStockStatus !== undefined) {
-                    return `${item.oldStockStatus ? "In stock" : "Out of stock"} -> ${
-                        item.newStockStatus ? "In stock" : "Out of stock"
-                    }`;
-                }
-
-                return "State change recorded";
-            },
-        }),
-        changeColumnHelper.display({
-            id: "productLink",
-            header: "Link",
-            cell: (info) => (
-                <a className={styles.productLink} href={info.row.original.product.externalUrl} rel="noreferrer" target="_blank">
-                    View product
-                </a>
-            ),
-        }),
-    ] satisfies Array<ColumnDef<RunChangesData["items"][number], unknown>>;
+    const { productColumns, changeColumns } = useRunDetailColumns({
+        productLinkClassName: styles.productLink,
+    });
 
     if (detailQuery.isError) {
         return (

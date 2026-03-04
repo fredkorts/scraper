@@ -1,5 +1,4 @@
 import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
-import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { useEffect, useMemo, useRef } from "react";
 import {
     CartesianGrid,
@@ -12,17 +11,13 @@ import {
     YAxis,
 } from "recharts";
 import { DataTable } from "../components/data-table/DataTable";
-import {
-    filterProductHistoryItems,
-    summarizeProductHistory,
-} from "../features/products/history-controls";
+import { useProductHistoryColumns } from "../features/products/hooks/use-product-history-columns";
+import { useProductHistoryViewModel } from "../features/products/hooks/use-product-history-view-model";
 import { useProductDetailQuery, useProductHistoryQuery } from "../features/products/queries";
-import type { ProductHistoryData } from "../features/products/schemas";
 import { formatDateTime, formatPrice, formatStatusLabel } from "../features/runs/formatters";
 import { defaultRunDetailSectionSearch, defaultRunsListSearch } from "../features/runs/search";
+import { useRouteSearchUpdater } from "../shared/hooks/use-route-search-updater";
 import styles from "./scrape-views.module.scss";
-
-const historyColumnHelper = createColumnHelper<ProductHistoryData["items"][number]>();
 
 export const ProductDetailPage = () => {
     const headingRef = useRef<HTMLHeadingElement>(null);
@@ -31,92 +26,22 @@ export const ProductDetailPage = () => {
     const search = useSearch({ from: "/app/products/$productId" });
     const detailQuery = useProductDetailQuery(productId);
     const historyQuery = useProductHistoryQuery(productId);
+    const setSearch = useRouteSearchUpdater(navigate);
 
     useEffect(() => {
         headingRef.current?.focus();
     }, [productId]);
 
     const allHistoryItems = useMemo(() => historyQuery.data?.items ?? [], [historyQuery.data]);
-    const filteredHistoryItems = useMemo(
-        () => filterProductHistoryItems(allHistoryItems, search),
-        [allHistoryItems, search],
-    );
-    const historySummary = useMemo(() => summarizeProductHistory(filteredHistoryItems), [filteredHistoryItems]);
-
-    const chartData = useMemo(
-        () =>
-            filteredHistoryItems.map((item) => ({
-                id: item.id,
-                categoryName: item.categoryName,
-                fullDate: formatDateTime(item.scrapedAt),
-                label: new Date(item.scrapedAt).toLocaleDateString(),
-                price: item.price,
-                originalPrice: item.originalPrice,
-                stockLabel: item.inStock ? "In stock" : "Out of stock",
-                stockValue: item.inStock ? 1 : 0,
-            })),
-        [filteredHistoryItems],
-    );
-
-    const availableCategoryOptions = useMemo(() => {
-        const seen = new Map<string, string>();
-
-        for (const item of allHistoryItems) {
-            if (!seen.has(item.categoryId)) {
-                seen.set(item.categoryId, item.categoryName);
-            }
-        }
-
-        return [...seen.entries()].map(([id, name]) => ({ id, name }));
-    }, [allHistoryItems]);
-
-    const hasOriginalPriceData = filteredHistoryItems.some((item) => item.originalPrice !== undefined);
-    const showOriginalPriceLine = search.showOriginalPrice && hasOriginalPriceData;
-
-    const setSearch = (updates: Partial<typeof search>) =>
-        navigate({
-            to: ".",
-            search: (prev) => ({
-                ...prev,
-                ...updates,
-            }),
-        });
-
-    const historyColumns = [
-        historyColumnHelper.accessor("scrapedAt", {
-            header: "Snapshot date",
-            cell: (info) => formatDateTime(info.getValue()),
-        }),
-        historyColumnHelper.accessor("categoryName", {
-            header: "Category",
-            cell: (info) => info.getValue(),
-        }),
-        historyColumnHelper.accessor("price", {
-            header: "Price",
-            cell: (info) => formatPrice(info.getValue()),
-        }),
-        historyColumnHelper.accessor("originalPrice", {
-            header: "Original price",
-            cell: (info) => formatPrice(info.getValue()),
-        }),
-        historyColumnHelper.accessor("inStock", {
-            header: "Stock",
-            cell: (info) => (info.getValue() ? "In stock" : "Out of stock"),
-        }),
-        historyColumnHelper.display({
-            id: "runLink",
-            header: "Run",
-            cell: (info) => (
-                <Link
-                    params={{ runId: info.row.original.scrapeRunId }}
-                    search={defaultRunDetailSectionSearch}
-                    to="/app/runs/$runId"
-                >
-                    Open run
-                </Link>
-            ),
-        }),
-    ] satisfies Array<ColumnDef<ProductHistoryData["items"][number], unknown>>;
+    const {
+        filteredHistoryItems,
+        historySummary,
+        chartData,
+        availableCategoryOptions,
+        hasOriginalPriceData,
+        showOriginalPriceLine,
+    } = useProductHistoryViewModel(allHistoryItems, search);
+    const historyColumns = useProductHistoryColumns();
 
     if (detailQuery.isError) {
         return (

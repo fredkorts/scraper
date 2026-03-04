@@ -1,11 +1,5 @@
-import type { CategoriesData } from "./schemas";
-
-export interface CategoryOption {
-    id: string;
-    label: string;
-    slug: string;
-    depth: number;
-}
+import type { CategoriesData } from "./types/categories-data";
+import type { CategoryOption } from "./types/category-option";
 
 export const getCategoryDisplayLabel = (category: CategoriesData["categories"][number]): string =>
     category.pathNameEt || category.nameEt;

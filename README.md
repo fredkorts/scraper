@@ -126,6 +126,25 @@ npm run dev --workspace=frontend
 npm run build --workspace=frontend
 ```
 
+## Frontend Architecture Conventions
+
+The frontend now follows a feature-first structure with separation by responsibility:
+
+- `routes/*`: route composition and page assembly only
+- `features/<feature>/components/*`: presentational UI sections
+- `features/<feature>/hooks/*`: domain orchestration and derived view-model logic
+- `features/<feature>/constants/*`: feature-scoped constants/labels
+- `features/<feature>/types/*`: feature-scoped TypeScript types
+- `shared/hooks/*`: reusable cross-feature hooks
+- `shared/constants/*`: reusable cross-feature constants
+- `shared/utils/*`: reusable cross-feature utilities
+
+Rules of thumb:
+
+- avoid putting complex business logic directly in route components
+- extract repeated route-search/pagination behavior into shared hooks
+- keep user-facing error messages normalized via shared utilities
+
 Shared:
 
 ```bash

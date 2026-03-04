@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { authUserSchema, notificationChannelSchema, notificationChannelsResponseSchema } from "../../lib/api/schemas";
+import { authUserSchema, notificationChannelsResponseSchema } from "../../lib/api/schemas";
 
 export const settingsTabSchema = z.enum(["account", "tracking", "notifications", "plan", "admin"]);
 
@@ -66,12 +66,3 @@ export const settingsSummarySchema = z.object({
     subscriptions: subscriptionsResponseSchema,
     channels: notificationChannelsResponseSchema.shape.channels,
 });
-
-export type SettingsTab = z.infer<typeof settingsTabSchema>;
-export type SubscriptionsData = z.infer<typeof subscriptionsResponseSchema>;
-export type NotificationChannelsData = z.infer<typeof notificationChannelsResponseSchema>;
-export type UpdateProfileRequestData = z.infer<typeof updateProfileRequestSchema>;
-export type UpdateProfileResponseData = z.infer<typeof updateProfileResponseSchema>;
-export type TriggerRunResponseData = z.infer<typeof triggerRunResponseSchema>;
-export type CategorySettingsResponseData = z.infer<typeof updateCategorySettingsResponseSchema>;
-export type ChannelData = z.infer<typeof notificationChannelSchema>;

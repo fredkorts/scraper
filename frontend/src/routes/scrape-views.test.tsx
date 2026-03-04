@@ -14,6 +14,24 @@ describe("scrape views", () => {
             initialEntry: "/app?categoryId=22222222-2222-4222-8222-222222222222",
             session: mockUser,
             apiResponses: {
+                subscriptions: {
+                    items: [
+                        {
+                            id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                            category: {
+                                id: "22222222-2222-4222-8222-222222222222",
+                                slug: "lauamangud",
+                                nameEt: "Lauamangud",
+                                nameEn: "Board Games",
+                            },
+                            createdAt: new Date().toISOString(),
+                            isActive: true,
+                        },
+                    ],
+                    limit: 3,
+                    used: 1,
+                    remaining: 2,
+                },
                 dashboardHome: {
                     latestRuns: [
                         {
@@ -54,7 +72,9 @@ describe("scrape views", () => {
         });
 
         expect(await screen.findByRole("heading", { name: "Dashboard Home" })).toBeInTheDocument();
-        expect(screen.getByLabelText("Category")).toHaveValue("22222222-2222-4222-8222-222222222222");
+        await waitFor(() => {
+            expect(screen.getByLabelText("Category")).toHaveValue("22222222-2222-4222-8222-222222222222");
+        });
         expect(screen.getAllByText("Board Games").length).toBeGreaterThan(0);
         expect(screen.getByRole("link", { name: "Open run detail" })).toBeInTheDocument();
         expect(screen.getByText("The scrape timed out while loading page 31.")).toBeInTheDocument();

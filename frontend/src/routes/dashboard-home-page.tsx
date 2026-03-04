@@ -1,5 +1,5 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { buildCategoryOptions, getCategoryLabelById } from "../features/categories/options";
 import { useCategoriesQuery } from "../features/categories/queries";
 import { formatDateTime, formatStatusLabel } from "../features/runs/formatters";
@@ -8,6 +8,7 @@ import {
     defaultRunDetailSectionSearch,
     defaultRunsListSearch,
 } from "../features/runs/search";
+import { useSubscriptionsQuery } from "../features/settings/queries";
 import styles from "./scrape-views.module.scss";
 
 export const DashboardHomePage = () => {
@@ -15,15 +16,28 @@ export const DashboardHomePage = () => {
     const navigate = useNavigate({ from: "/app/" });
     const search = useSearch({ from: "/app/" });
     const categoriesQuery = useCategoriesQuery();
+    const subscriptionsQuery = useSubscriptionsQuery();
     const dashboardQuery = useDashboardHomeQuery(search);
 
     useEffect(() => {
         headingRef.current?.focus();
     }, []);
 
-    const categoryOptions = categoriesQuery.data ? buildCategoryOptions(categoriesQuery.data.categories) : [];
+    const trackedCategoryIds = useMemo(
+        () =>
+            new Set(
+                (subscriptionsQuery.data?.items ?? [])
+                    .filter((subscription) => subscription.isActive)
+                    .map((subscription) => subscription.category.id),
+            ),
+        [subscriptionsQuery.data],
+    );
+    const trackedCategories = categoriesQuery.data
+        ? categoriesQuery.data.categories.filter((category) => trackedCategoryIds.has(category.id))
+        : [];
+    const categoryOptions = buildCategoryOptions(trackedCategories);
     const selectedCategoryName = categoriesQuery.data
-        ? getCategoryLabelById(categoriesQuery.data.categories, search.categoryId)
+        ? getCategoryLabelById(trackedCategories, search.categoryId)
         : undefined;
 
     if (dashboardQuery.isError) {
