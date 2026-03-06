@@ -1,0 +1,44 @@
+@use "../../styles/abstracts/mixins";
+
+.button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--color-text-muted);
+    font: inherit;
+    font-size: inherit;
+    cursor: pointer;
+}
+
+.button:hover {
+    color: var(--color-text);
+    opacity: 1;
+}
+
+.button:focus-visible {
+    @include mixins.focus-ring;
+    border-radius: var(--radius-xs);
+}
+
+.buttonActive {
+    color: var(--color-text);
+}
+
+.iconStack {
+    display: inline-flex;
+    flex-direction: column;
+    line-height: 0.75;
+}
+
+.icon {
+    font-size: 0.65rem;
+    opacity: 0.45;
+}
+
+.iconActive {
+    opacity: 1;
+}

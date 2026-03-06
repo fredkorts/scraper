@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
+import { SortHeader } from "../../../components/sort-header/SortHeader";
 import { defaultRunDetailSectionSearch } from "../search";
 import { formatDateTime, formatDuration, formatStatusLabel } from "../formatters";
 import type { RunsListData } from "../schemas";
@@ -25,9 +26,12 @@ export const useRunsTableColumns = ({
             [
                 runsColumnHelper.accessor("startedAt", {
                     header: () => (
-                        <button type="button" onClick={() => onToggleSort("startedAt")}>
-                            Started {sortBy === "startedAt" ? `(${sortOrder})` : ""}
-                        </button>
+                        <SortHeader
+                            isActive={sortBy === "startedAt"}
+                            label="Started"
+                            onToggle={() => onToggleSort("startedAt")}
+                            order={sortOrder}
+                        />
                     ),
                     cell: (info) => formatDateTime(info.getValue()),
                 }),
@@ -37,9 +41,12 @@ export const useRunsTableColumns = ({
                 }),
                 runsColumnHelper.accessor("status", {
                     header: () => (
-                        <button type="button" onClick={() => onToggleSort("status")}>
-                            Status {sortBy === "status" ? `(${sortOrder})` : ""}
-                        </button>
+                        <SortHeader
+                            isActive={sortBy === "status"}
+                            label="Status"
+                            onToggle={() => onToggleSort("status")}
+                            order={sortOrder}
+                        />
                     ),
                     cell: (info) => (
                         <span className={statusBadgeClassName} data-status={info.getValue()}>
@@ -54,25 +61,34 @@ export const useRunsTableColumns = ({
                 }),
                 runsColumnHelper.accessor("totalProducts", {
                     header: () => (
-                        <button type="button" onClick={() => onToggleSort("totalProducts")}>
-                            Products {sortBy === "totalProducts" ? `(${sortOrder})` : ""}
-                        </button>
+                        <SortHeader
+                            isActive={sortBy === "totalProducts"}
+                            label="Products"
+                            onToggle={() => onToggleSort("totalProducts")}
+                            order={sortOrder}
+                        />
                     ),
                     cell: (info) => info.getValue(),
                 }),
                 runsColumnHelper.accessor("totalChanges", {
                     header: () => (
-                        <button type="button" onClick={() => onToggleSort("totalChanges")}>
-                            Changes {sortBy === "totalChanges" ? `(${sortOrder})` : ""}
-                        </button>
+                        <SortHeader
+                            isActive={sortBy === "totalChanges"}
+                            label="Changes"
+                            onToggle={() => onToggleSort("totalChanges")}
+                            order={sortOrder}
+                        />
                     ),
                     cell: (info) => info.getValue(),
                 }),
                 runsColumnHelper.accessor("durationMs", {
                     header: () => (
-                        <button type="button" onClick={() => onToggleSort("durationMs")}>
-                            Duration {sortBy === "durationMs" ? `(${sortOrder})` : ""}
-                        </button>
+                        <SortHeader
+                            isActive={sortBy === "durationMs"}
+                            label="Duration"
+                            onToggle={() => onToggleSort("durationMs")}
+                            order={sortOrder}
+                        />
                     ),
                     cell: (info) => formatDuration(info.getValue()),
                 }),
