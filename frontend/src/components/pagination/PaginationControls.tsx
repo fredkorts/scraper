@@ -1,9 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { Button, Pagination } from "antd";
 import type { PaginationControlsProps } from "./types/pagination-controls.types";
-import { buildPageWindow } from "./page-window";
 import styles from "./PaginationControls.module.scss";
-
-const COMPACT_BREAKPOINT = "(max-width: 40rem)";
 
 const getRange = (page: number, pageSize: number, totalItems: number): { start: number; end: number } | undefined => {
     if (totalItems <= 0) {
@@ -28,39 +25,6 @@ export const PaginationControls = ({
     const safeTotalPages = totalPages > 0 ? totalPages : 1;
     const safePage = Math.min(Math.max(page, 1), safeTotalPages);
     const range = getRange(safePage, pageSize, totalItems);
-    const [compactMode, setCompactMode] = useState<boolean>(() =>
-        typeof window !== "undefined" && typeof window.matchMedia === "function"
-            ? window.matchMedia(COMPACT_BREAKPOINT).matches
-            : false,
-    );
-
-    useEffect(() => {
-        if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-            return;
-        }
-
-        const mediaQueryList = window.matchMedia(COMPACT_BREAKPOINT);
-        const onChange = (event: MediaQueryListEvent) => {
-            setCompactMode(event.matches);
-        };
-
-        mediaQueryList.addEventListener("change", onChange);
-
-        return () => {
-            mediaQueryList.removeEventListener("change", onChange);
-        };
-    }, []);
-
-    const pageWindow = useMemo(
-        () =>
-            buildPageWindow({
-                page: safePage,
-                totalPages,
-                siblingCount: compactMode ? 0 : 1,
-                boundaryCount: 1,
-            }),
-        [compactMode, safePage, totalPages],
-    );
 
     const summaryText =
         range === undefined
@@ -78,58 +42,34 @@ export const PaginationControls = ({
     return (
         <div className={styles.wrapper} data-loading={isLoading}>
             <nav aria-label={ariaLabel} className={styles.controls}>
-                <button
-                    type="button"
+                <Button
+                    htmlType="button"
                     aria-label="Go to first page"
                     disabled={isLoading || safePage <= 1}
                     onClick={() => onPageChange(1)}
                 >
                     First page
-                </button>
-                <button
-                    type="button"
-                    aria-label="Go to previous page"
-                    disabled={isLoading || safePage <= 1}
-                    onClick={() => onPageChange(Math.max(1, safePage - 1))}
-                >
-                    Previous page
-                </button>
+                </Button>
 
-                {pageWindow.map((item) =>
-                    item.kind === "ellipsis" ? (
-                        <span key={item.id} aria-hidden="true" className={styles.ellipsis}>
-                            ...
-                        </span>
-                    ) : (
-                        <button
-                            key={item.page}
-                            type="button"
-                            aria-current={item.page === safePage ? "page" : undefined}
-                            aria-label={`Go to page ${item.page}`}
-                            disabled={isLoading || item.page === safePage}
-                            onClick={() => onPageChange(item.page)}
-                        >
-                            {item.page}
-                        </button>
-                    ),
-                )}
+                <Pagination
+                    className={styles.antPagination}
+                    current={safePage}
+                    disabled={isLoading}
+                    pageSize={pageSize}
+                    responsive
+                    showSizeChanger={false}
+                    total={totalItems}
+                    onChange={(nextPage) => onPageChange(nextPage)}
+                />
 
-                <button
-                    type="button"
-                    aria-label="Go to next page"
-                    disabled={isLoading || safePage >= safeTotalPages}
-                    onClick={() => onPageChange(Math.min(safeTotalPages, safePage + 1))}
-                >
-                    Next page
-                </button>
-                <button
-                    type="button"
+                <Button
+                    htmlType="button"
                     aria-label="Go to last page"
                     disabled={isLoading || safePage >= safeTotalPages}
                     onClick={() => onPageChange(safeTotalPages)}
                 >
                     Last page
-                </button>
+                </Button>
             </nav>
 
             <div className={styles.summary}>

@@ -12,14 +12,13 @@
     flex-wrap: wrap;
 }
 
+.antPagination {
+    margin: 0;
+}
+
 .summary {
     color: var(--color-text-muted);
     font-size: var(--font-size-sm);
-}
-
-.ellipsis {
-    color: var(--color-text-muted);
-    padding-inline: var(--space-2xs);
 }
 
 @include mixins.mq-sm {

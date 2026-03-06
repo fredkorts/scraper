@@ -32,12 +32,10 @@ describe("PaginationControls", () => {
         );
 
         expect(screen.getByRole("button", { name: "Go to first page" })).toBeDisabled();
-        expect(screen.getByRole("button", { name: "Go to previous page" })).toBeDisabled();
-        expect(screen.getByRole("button", { name: "Go to next page" })).toBeEnabled();
         expect(screen.getByRole("button", { name: "Go to last page" })).toBeEnabled();
     });
 
-    it("sets aria-current on the active page button", () => {
+    it("renders the active page in Ant pagination", () => {
         render(
             <PaginationControls
                 page={3}
@@ -49,10 +47,10 @@ describe("PaginationControls", () => {
             />,
         );
 
-        expect(screen.getByRole("button", { name: "Go to page 3" })).toHaveAttribute("aria-current", "page");
+        expect(document.querySelector(".ant-pagination-item-active")?.textContent).toContain("3");
     });
 
-    it("emits page changes when controls are clicked", async () => {
+    it("emits page changes when custom and Ant controls are clicked", async () => {
         const user = userEvent.setup();
         const onPageChange = vi.fn();
 
@@ -68,16 +66,12 @@ describe("PaginationControls", () => {
         );
 
         await user.click(screen.getByRole("button", { name: "Go to first page" }));
-        await user.click(screen.getByRole("button", { name: "Go to previous page" }));
-        await user.click(screen.getByRole("button", { name: "Go to page 4" }));
-        await user.click(screen.getByRole("button", { name: "Go to next page" }));
+        await user.click(screen.getByText("4"));
         await user.click(screen.getByRole("button", { name: "Go to last page" }));
 
         expect(onPageChange).toHaveBeenNthCalledWith(1, 1);
-        expect(onPageChange).toHaveBeenNthCalledWith(2, 2);
-        expect(onPageChange).toHaveBeenNthCalledWith(3, 4);
-        expect(onPageChange).toHaveBeenNthCalledWith(4, 4);
-        expect(onPageChange).toHaveBeenNthCalledWith(5, 10);
+        expect(onPageChange).toHaveBeenNthCalledWith(2, 4);
+        expect(onPageChange).toHaveBeenNthCalledWith(3, 10);
     });
 
     it("disables all controls while loading", () => {
@@ -94,8 +88,7 @@ describe("PaginationControls", () => {
         );
 
         expect(screen.getByRole("button", { name: "Go to first page" })).toBeDisabled();
-        expect(screen.getByRole("button", { name: "Go to previous page" })).toBeDisabled();
-        expect(screen.getByRole("button", { name: "Go to next page" })).toBeDisabled();
         expect(screen.getByRole("button", { name: "Go to last page" })).toBeDisabled();
+        expect(document.querySelector(".ant-pagination-disabled")).toBeInTheDocument();
     });
 });
