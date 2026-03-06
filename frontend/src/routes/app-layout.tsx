@@ -3,16 +3,29 @@ import { useMeQuery } from "../features/auth/queries";
 import { useLogoutMutation } from "../features/auth/mutations";
 import { defaultDashboardHomeSearch, defaultRunsListSearch } from "../features/runs/search";
 import { defaultSettingsSearch } from "../features/settings/search";
+import { NOTIFICATION_MESSAGES } from "../shared/constants/notification-messages";
+import { useAppNotification } from "../shared/hooks/use-app-notification";
+import { normalizeUserError } from "../shared/utils/normalize-user-error";
 import styles from "./app-layout.module.scss";
 
 export const AppLayout = () => {
     const navigate = useNavigate();
     const logoutMutation = useLogoutMutation();
     const session = useMeQuery();
+    const { notify } = useAppNotification();
 
     const onLogout = async () => {
-        await logoutMutation.mutateAsync();
-        await navigate({ to: "/login" });
+        try {
+            await logoutMutation.mutateAsync();
+            await navigate({ to: "/login" });
+        } catch (error) {
+            notify({
+                variant: "error",
+                message: NOTIFICATION_MESSAGES.session.logoutFailed.message,
+                description: normalizeUserError(error, "Failed to sign out"),
+                key: "session:logout",
+            });
+        }
     };
 
     return (

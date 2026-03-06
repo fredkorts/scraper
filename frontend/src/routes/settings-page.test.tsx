@@ -33,6 +33,7 @@ describe("settings page", () => {
 
         await waitFor(() => {
             expect(screen.getByDisplayValue("Updated User")).toBeInTheDocument();
+            expect(screen.getByText("Profile updated")).toBeInTheDocument();
         });
     });
 

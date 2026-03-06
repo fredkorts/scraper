@@ -6,6 +6,9 @@ import { useMeQuery } from "../../auth/queries";
 import { useUpdateProfileMutation } from "../mutations";
 import { updateProfileRequestSchema } from "../schemas";
 import type { UpdateProfileRequestData } from "../types/settings-schema.types";
+import { NOTIFICATION_MESSAGES } from "../../../shared/constants/notification-messages";
+import { useAppNotification } from "../../../shared/hooks/use-app-notification";
+import { normalizeUserError } from "../../../shared/utils/normalize-user-error";
 
 export interface UseSettingsAccountResult {
     session: ReturnType<typeof useMeQuery>;
@@ -17,6 +20,7 @@ export interface UseSettingsAccountResult {
 export const useSettingsAccount = (): UseSettingsAccountResult => {
     const session = useMeQuery();
     const updateProfileMutation = useUpdateProfileMutation();
+    const { notify } = useAppNotification();
 
     const profileForm = useForm<UpdateProfileRequestData>({
         resolver: zodResolver(updateProfileRequestSchema),
@@ -34,7 +38,22 @@ export const useSettingsAccount = (): UseSettingsAccountResult => {
     }, [profileForm, session.data?.name]);
 
     const onSubmitProfile = profileForm.handleSubmit(async (values) => {
-        await updateProfileMutation.mutateAsync(values);
+        try {
+            await updateProfileMutation.mutateAsync(values);
+            notify({
+                variant: "success",
+                message: NOTIFICATION_MESSAGES.settings.accountSaved.message,
+                description: NOTIFICATION_MESSAGES.settings.accountSaved.description,
+                key: "settings:account:update",
+            });
+        } catch (error) {
+            notify({
+                variant: "error",
+                message: NOTIFICATION_MESSAGES.settings.accountSaveFailed.message,
+                description: normalizeUserError(error, "Failed to update profile"),
+                key: "settings:account:update",
+            });
+        }
     });
 
     return {

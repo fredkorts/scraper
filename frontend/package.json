@@ -12,11 +12,13 @@
         "preview": "vite preview"
     },
     "dependencies": {
+        "@ant-design/icons": "^6.1.0",
         "@hookform/resolvers": "^5.2.2",
         "@mabrik/shared": "*",
         "@tanstack/react-query": "^5.90.21",
         "@tanstack/react-router": "^1.163.3",
         "@tanstack/react-table": "^8.21.3",
+        "antd": "^6.3.1",
         "react": "^19.2.0",
         "react-dom": "^19.2.0",
         "react-hook-form": "^7.71.2",

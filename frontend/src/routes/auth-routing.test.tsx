@@ -51,4 +51,15 @@ describe("auth routing", () => {
         await user.tab();
         expect(screen.getByLabelText("Password")).toHaveFocus();
     });
+
+    it("shows notification feedback when logout fails", async () => {
+        const user = userEvent.setup();
+        await renderRouterApp({ initialEntry: "/app", session: mockUser, logoutShouldFail: true });
+
+        await user.click(await screen.findByRole("button", { name: "Log out" }));
+
+        await waitFor(() => {
+            expect(screen.getByText("Sign out failed")).toBeInTheDocument();
+        });
+    });
 });

@@ -3,6 +3,9 @@ import { useMemo, useState } from "react";
 import { buildCategoryOptions } from "../../categories/options";
 import { useCategoriesQuery } from "../../categories/queries";
 import { useTriggerRunMutation, useUpdateCategorySettingsMutation } from "../mutations";
+import { NOTIFICATION_MESSAGES } from "../../../shared/constants/notification-messages";
+import { useAppNotification } from "../../../shared/hooks/use-app-notification";
+import { normalizeUserError } from "../../../shared/utils/normalize-user-error";
 
 export interface UseSettingsAdminResult {
     categoriesQuery: ReturnType<typeof useCategoriesQuery>;
@@ -22,6 +25,7 @@ export const useSettingsAdmin = (): UseSettingsAdminResult => {
     const categoriesQuery = useCategoriesQuery("all");
     const updateCategorySettingsMutation = useUpdateCategorySettingsMutation();
     const triggerRunMutation = useTriggerRunMutation();
+    const { notify } = useAppNotification();
     const [selectedCategoryId, setSelectedCategoryId] = useState("");
     const [selectedScrapeInterval, setSelectedScrapeInterval] = useState<ScrapeInterval | null>(null);
 
@@ -50,12 +54,27 @@ export const useSettingsAdmin = (): UseSettingsAdminResult => {
             return;
         }
 
-        await updateCategorySettingsMutation.mutateAsync({
-            id: effectiveCategoryId,
-            payload: {
-                scrapeIntervalHours: effectiveScrapeInterval,
-            },
-        });
+        try {
+            await updateCategorySettingsMutation.mutateAsync({
+                id: effectiveCategoryId,
+                payload: {
+                    scrapeIntervalHours: effectiveScrapeInterval,
+                },
+            });
+            notify({
+                variant: "success",
+                message: NOTIFICATION_MESSAGES.settings.intervalSaved.message,
+                description: `Interval updated to every ${effectiveScrapeInterval} hours.`,
+                key: "settings:admin:interval",
+            });
+        } catch (error) {
+            notify({
+                variant: "error",
+                message: NOTIFICATION_MESSAGES.settings.intervalSaveFailed.message,
+                description: normalizeUserError(error, "Failed to save scrape interval"),
+                key: "settings:admin:interval",
+            });
+        }
     };
 
     const onTriggerRun = async () => {
@@ -63,7 +82,25 @@ export const useSettingsAdmin = (): UseSettingsAdminResult => {
             return;
         }
 
-        await triggerRunMutation.mutateAsync({ categoryId: effectiveCategoryId });
+        try {
+            const result = await triggerRunMutation.mutateAsync({ categoryId: effectiveCategoryId });
+            notify({
+                variant: "info",
+                message: NOTIFICATION_MESSAGES.settings.runTriggered.message,
+                description:
+                    result.mode === "queued"
+                        ? `Run request queued as job ${result.jobId ?? "pending"}.`
+                        : `Run started with id ${result.scrapeRunId ?? "pending"}.`,
+                key: "settings:admin:trigger-run",
+            });
+        } catch (error) {
+            notify({
+                variant: "error",
+                message: NOTIFICATION_MESSAGES.settings.runTriggerFailed.message,
+                description: normalizeUserError(error, "Failed to trigger scrape"),
+                key: "settings:admin:trigger-run",
+            });
+        }
     };
 
     return {

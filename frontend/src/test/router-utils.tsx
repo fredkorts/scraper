@@ -5,6 +5,7 @@ import { act, render } from "@testing-library/react";
 import { createAppRouter } from "../app/router";
 import { queryKeys } from "../lib/query/query-keys";
 import { createAppQueryClient } from "../lib/query/query-client";
+import { AppNotificationProvider } from "../shared/notifications/notification-provider";
 
 export const mockUser: AuthUser = {
     id: "11111111-1111-4111-8111-111111111111",
@@ -19,6 +20,7 @@ export const mockUser: AuthUser = {
 interface RenderRouterOptions {
     initialEntry?: string;
     session?: AuthUser | null;
+    logoutShouldFail?: boolean;
     apiResponses?: Partial<{
         categories: unknown;
         dashboardHome: unknown;
@@ -182,6 +184,7 @@ const defaultApiResponses = {
 export const renderRouterApp = async ({
     initialEntry = "/",
     session = null,
+    logoutShouldFail = false,
     apiResponses = {},
 }: RenderRouterOptions = {}) => {
     const queryClient = createAppQueryClient();
@@ -383,6 +386,17 @@ export const renderRouterApp = async ({
             return jsonResponse({ user: updatedUser });
         }
 
+        if (url.includes("/api/auth/logout") && method === "POST") {
+            if (logoutShouldFail) {
+                return new Response(JSON.stringify({ error: "server_error", message: "Logout failed" }), {
+                    status: 500,
+                    headers: { "Content-Type": "application/json" },
+                });
+            }
+
+            return jsonResponse({ success: true });
+        }
+
         return new Response(JSON.stringify({ error: "not_found", message: "Not found" }), {
             status: 404,
             headers: { "Content-Type": "application/json" },
@@ -394,7 +408,9 @@ export const renderRouterApp = async ({
     await act(async () => {
         renderedReturn = render(
             <QueryClientProvider client={queryClient}>
-                <RouterProvider router={router} />
+                <AppNotificationProvider>
+                    <RouterProvider router={router} />
+                </AppNotificationProvider>
             </QueryClientProvider>,
         );
 
