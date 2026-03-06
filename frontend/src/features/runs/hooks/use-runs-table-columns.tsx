@@ -5,15 +5,9 @@ import { SortHeader } from "../../../components/sort-header/SortHeader";
 import { defaultRunDetailSectionSearch } from "../search";
 import { formatDateTime, formatDuration, formatStatusLabel } from "../formatters";
 import type { RunsListData } from "../schemas";
+import type { UseRunsTableColumnsOptions } from "../types/use-runs-table-columns.types";
 
 const runsColumnHelper = createColumnHelper<RunsListData["items"][number]>();
-
-interface UseRunsTableColumnsOptions {
-    sortBy: "startedAt" | "status" | "totalChanges" | "totalProducts" | "durationMs";
-    sortOrder: "asc" | "desc";
-    onToggleSort: (sortBy: "startedAt" | "status" | "totalChanges" | "totalProducts" | "durationMs") => void;
-    statusBadgeClassName: string;
-}
 
 export const useRunsTableColumns = ({
     sortBy,

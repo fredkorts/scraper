@@ -1,9 +1,10 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
-import { DataTable } from "../components/data-table/DataTable";
-import { PaginationControls } from "../components/pagination/PaginationControls";
-import { buildCategoryOptions } from "../features/categories/options";
+import { buildCategoryTreeData } from "../features/categories/options";
 import { useCategoriesQuery } from "../features/categories/queries";
+import { RunsFilters } from "../features/runs/components/list/runs-filters";
+import runListStyles from "../features/runs/components/list/run-list-sections.module.scss";
+import { RunsTableSection } from "../features/runs/components/list/runs-table-section";
 import { useRunsTableColumns } from "../features/runs/hooks/use-runs-table-columns";
 import { useRunsListQuery } from "../features/runs/queries";
 import { useClampedPage } from "../shared/hooks/use-clamped-page";
@@ -16,7 +17,7 @@ export const RunsPage = () => {
     const search = useSearch({ from: "/app/runs" });
     const categoriesQuery = useCategoriesQuery();
     const runsQuery = useRunsListQuery(search);
-    const categoryOptions = categoriesQuery.data ? buildCategoryOptions(categoriesQuery.data.categories) : [];
+    const categoryTreeData = categoriesQuery.data ? buildCategoryTreeData(categoriesQuery.data.categories) : [];
     const setSearch = useRouteSearchUpdater(navigate);
 
     useEffect(() => {
@@ -41,7 +42,7 @@ export const RunsPage = () => {
         sortBy: search.sortBy,
         sortOrder: search.sortOrder,
         onToggleSort: toggleSort,
-        statusBadgeClassName: styles.statusBadge,
+        statusBadgeClassName: runListStyles.statusBadge,
     });
 
     return (
@@ -55,105 +56,31 @@ export const RunsPage = () => {
                 </p>
             </div>
 
-            <div className={styles.filterRow}>
-                <div className={styles.filterGroup}>
-                    <label className={styles.label} htmlFor="status-filter">
-                        Status
-                    </label>
-                    <select
-                        className={styles.select}
-                        id="status-filter"
-                        value={search.status ?? ""}
-                        onChange={(event) =>
-                            setSearch({
-                                status: event.target.value ? (event.target.value as typeof search.status) : undefined,
-                                page: 1,
-                            })
-                        }
-                    >
-                        <option value="">All statuses</option>
-                        <option value="pending">Pending</option>
-                        <option value="running">Running</option>
-                        <option value="completed">Completed</option>
-                        <option value="failed">Failed</option>
-                    </select>
-                </div>
+            <RunsFilters
+                categoryId={search.categoryId}
+                categoryTreeData={categoryTreeData}
+                pageSize={search.pageSize}
+                status={search.status}
+                onCategoryChange={(value) => setSearch({ categoryId: value, page: 1 })}
+                onPageSizeChange={(value) => setSearch({ pageSize: Number(value), page: 1 })}
+                onStatusChange={(value) =>
+                    setSearch({
+                        status: value ? (value as typeof search.status) : undefined,
+                        page: 1,
+                    })
+                }
+            />
 
-                <div className={styles.filterGroup}>
-                    <label className={styles.label} htmlFor="category-filter">
-                        Category
-                    </label>
-                    <select
-                        className={styles.select}
-                        id="category-filter"
-                        value={search.categoryId ?? ""}
-                        onChange={(event) =>
-                            setSearch({
-                                categoryId: event.target.value || undefined,
-                                page: 1,
-                            })
-                        }
-                    >
-                        <option value="">All tracked categories</option>
-                        {categoryOptions.map((category) => (
-                            <option key={category.id} value={category.id}>
-                                {category.label}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                <div className={styles.filterGroup}>
-                    <label className={styles.label} htmlFor="page-size">
-                        Page size
-                    </label>
-                    <select
-                        className={styles.select}
-                        id="page-size"
-                        value={String(search.pageSize)}
-                        onChange={(event) =>
-                            setSearch({
-                                pageSize: Number(event.target.value),
-                                page: 1,
-                            })
-                        }
-                    >
-                        <option value="10">10</option>
-                        <option value="25">25</option>
-                        <option value="50">50</option>
-                    </select>
-                </div>
-            </div>
-
-            {runsQuery.isError ? (
-                <p className={styles.errorState} role="alert">
-                    {runsQuery.error.message}
-                </p>
-            ) : runsQuery.data ? (
-                <div className={styles.section}>
-                    <div className={styles.tableControls}>
-                        <span className={styles.subtle}>{runsQuery.data.totalItems} total runs</span>
-                    </div>
-
-                    {runsQuery.data.items.length === 0 ? (
-                        <p className={styles.emptyState}>No runs matched the current filters.</p>
-                    ) : (
-                        <DataTable data={runsQuery.data.items} columns={columns} />
-                    )}
-
-                    <PaginationControls
-                        page={search.page}
-                        pageSize={search.pageSize}
-                        totalPages={runsQuery.data.totalPages}
-                        totalItems={runsQuery.data.totalItems}
-                        ariaLabel="Runs pagination"
-                        isLoading={runsQuery.isFetching}
-                        onPageChange={(nextPage) => setSearch({ page: nextPage })}
-                    />
-                </div>
-            ) : (
-                <p className={styles.emptyState}>Loading runs...</p>
-            )}
+            <RunsTableSection
+                columns={columns}
+                data={runsQuery.data}
+                errorMessage={runsQuery.isError ? runsQuery.error.message : undefined}
+                isFetching={runsQuery.isFetching}
+                isLoading={runsQuery.isPending}
+                page={search.page}
+                pageSize={search.pageSize}
+                onPageChange={(nextPage) => setSearch({ page: nextPage })}
+            />
         </section>
     );
 };

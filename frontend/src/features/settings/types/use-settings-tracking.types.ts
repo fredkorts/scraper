@@ -1,0 +1,21 @@
+import type { CategoryTreeNode } from "../../categories/types/category-tree-node";
+import type { useCategoriesQuery } from "../../categories/queries";
+import type { useSubscriptionsQuery } from "../queries";
+import type { CategoryOption } from "../../categories/types/category-option";
+
+export interface UseSettingsTrackingResult {
+    categoriesQuery: ReturnType<typeof useCategoriesQuery>;
+    subscriptionsQuery: ReturnType<typeof useSubscriptionsQuery>;
+    categoryOptions: CategoryOption[];
+    availableCategoryOptions: CategoryOption[];
+    availableCategoryTreeData: CategoryTreeNode[];
+    categoryLabelById: Map<string, string>;
+    selectedCategoryId: string;
+    effectiveSelectedCategoryId: string;
+    trackingError: string | null;
+    isCreatePending: boolean;
+    isDeletePending: boolean;
+    setSelectedCategoryId: (categoryId: string) => void;
+    onTrackCategory: () => Promise<void>;
+    onUntrackCategory: (subscriptionId: string) => Promise<void>;
+}

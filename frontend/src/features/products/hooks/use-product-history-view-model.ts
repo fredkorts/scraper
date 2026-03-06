@@ -4,7 +4,8 @@ import {
     filterProductHistoryItems,
     summarizeProductHistory,
 } from "../history-controls";
-import { formatDateTime } from "../../runs/formatters";
+import { STOCK_STATUS_LABELS } from "../../../shared/constants/stock.constants";
+import { formatDateTime } from "../../../shared/formatters/display";
 import type { ProductHistoryData } from "../schemas";
 
 export const useProductHistoryViewModel = (
@@ -29,7 +30,7 @@ export const useProductHistoryViewModel = (
                 label: new Date(item.scrapedAt).toLocaleDateString(),
                 price: item.price,
                 originalPrice: item.originalPrice,
-                stockLabel: item.inStock ? "In stock" : "Out of stock",
+                stockLabel: item.inStock ? STOCK_STATUS_LABELS.inStock : STOCK_STATUS_LABELS.outOfStock,
                 stockValue: item.inStock ? 1 : 0,
             })),
         [filteredHistoryItems],

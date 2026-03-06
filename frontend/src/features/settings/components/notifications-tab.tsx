@@ -1,6 +1,6 @@
 import { getSettingsPanelId, getSettingsTabId } from "../constants/settings-tab-a11y.constants";
 import type { SettingsNotificationsTabProps } from "../types/settings-ui.types";
-import styles from "../../../routes/settings-page.module.scss";
+import styles from "./settings-shared.module.scss";
 
 export const SettingsNotificationsTab = ({
     channels,

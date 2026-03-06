@@ -2,7 +2,7 @@ import type { KeyboardEvent } from "react";
 import { SETTINGS_TAB_LABELS } from "../constants/settings.constants";
 import { getSettingsPanelId, getSettingsTabId } from "../constants/settings-tab-a11y.constants";
 import type { SettingsTabsProps } from "../types/settings-ui.types";
-import styles from "../../../routes/settings-page.module.scss";
+import styles from "./settings-shared.module.scss";
 
 export const SettingsTabs = ({ activeTab, visibleTabs, onSetTab }: SettingsTabsProps) => {
     const currentIndex = visibleTabs.indexOf(activeTab);

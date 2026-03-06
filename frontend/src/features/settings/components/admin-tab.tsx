@@ -1,12 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import { SCRAPE_INTERVALS } from "@mabrik/shared";
+import { AppSelect } from "../../../components/app-select/AppSelect";
+import { CategoryTreeSelect } from "../../../features/categories/components/category-tree-select";
 import { defaultRunDetailSectionSearch } from "../../runs/search";
 import { getSettingsPanelId, getSettingsTabId } from "../constants/settings-tab-a11y.constants";
 import type { SettingsAdminTabProps } from "../types/settings-ui.types";
-import styles from "../../../routes/settings-page.module.scss";
+import styles from "./settings-shared.module.scss";
 
 export const SettingsAdminTab = ({
-    categoryOptions,
+    categoryTreeData,
     selectedCategoryId,
     selectedScrapeInterval,
     triggerRunResult,
@@ -28,31 +30,32 @@ export const SettingsAdminTab = ({
             <div className={styles.inlineForm}>
                 <label className={styles.field}>
                     <span className={styles.label}>Category</span>
-                    <select
+                    <CategoryTreeSelect
+                        ariaLabel="Category"
                         className={styles.select}
-                        value={selectedCategoryId}
-                        onChange={(event) => onSelectCategory(event.target.value)}
-                    >
-                        {categoryOptions.map((category) => (
-                            <option key={category.id} value={category.id}>
-                                {category.label}
-                            </option>
-                        ))}
-                    </select>
+                        treeData={categoryTreeData}
+                        value={selectedCategoryId || undefined}
+                        onChange={(value) => onSelectCategory(value ?? "")}
+                    />
                 </label>
                 <label className={styles.field}>
                     <span className={styles.label}>Scrape interval</span>
-                    <select
+                    <AppSelect
+                        ariaLabel="Scrape interval"
                         className={styles.select}
+                        options={SCRAPE_INTERVALS.map((interval) => ({
+                            label: `${interval} hours`,
+                            value: String(interval),
+                        }))}
                         value={String(selectedScrapeInterval)}
-                        onChange={(event) => onSelectScrapeInterval(Number(event.target.value) as (typeof SCRAPE_INTERVALS)[number])}
-                    >
-                        {SCRAPE_INTERVALS.map((interval) => (
-                            <option key={interval} value={interval}>
-                                {interval} hours
-                            </option>
-                        ))}
-                    </select>
+                        onChange={(value) => {
+                            if (!value) {
+                                return;
+                            }
+
+                            onSelectScrapeInterval(Number(value) as (typeof SCRAPE_INTERVALS)[number]);
+                        }}
+                    />
                 </label>
                 <button
                     type="button"

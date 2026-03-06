@@ -1,12 +1,6 @@
 import { CaretDownFilled, CaretUpFilled } from "@ant-design/icons";
+import type { SortHeaderProps } from "./types/sort-header.types";
 import styles from "./SortHeader.module.scss";
-
-export interface SortHeaderProps {
-    label: string;
-    isActive: boolean;
-    order: "asc" | "desc";
-    onToggle: () => void;
-}
 
 export const SortHeader = ({ label, isActive, order, onToggle }: SortHeaderProps) => {
     const activeOrderLabel = order === "asc" ? "ascending" : "descending";

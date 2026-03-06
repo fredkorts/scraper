@@ -77,6 +77,7 @@ export const SettingsPage = () => {
             {activeTab === "tracking" ? (
                 <SettingsTrackingTab
                     availableCategoryOptions={tracking.availableCategoryOptions}
+                    availableCategoryTreeData={tracking.availableCategoryTreeData}
                     categoryLabelById={tracking.categoryLabelById}
                     role={role}
                     selectedCategoryId={tracking.effectiveSelectedCategoryId}
@@ -110,7 +111,7 @@ export const SettingsPage = () => {
 
             {activeTab === "admin" && isAdmin ? (
                 <SettingsAdminTab
-                    categoryOptions={admin.categoryOptions}
+                    categoryTreeData={admin.categoryTreeData}
                     selectedCategoryId={admin.selectedCategoryId}
                     selectedScrapeInterval={admin.selectedScrapeInterval}
                     triggerRunResult={admin.triggerRunResult}

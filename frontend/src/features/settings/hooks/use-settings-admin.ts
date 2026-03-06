@@ -1,25 +1,12 @@
 import { SCRAPE_INTERVALS, type ScrapeInterval } from "@mabrik/shared";
 import { useMemo, useState } from "react";
-import { buildCategoryOptions } from "../../categories/options";
+import { buildCategoryOptions, buildCategoryTreeData } from "../../categories/options";
 import { useCategoriesQuery } from "../../categories/queries";
+import type { UseSettingsAdminResult } from "../types/use-settings-admin.types";
 import { useTriggerRunMutation, useUpdateCategorySettingsMutation } from "../mutations";
 import { NOTIFICATION_MESSAGES } from "../../../shared/constants/notification-messages";
 import { useAppNotification } from "../../../shared/hooks/use-app-notification";
 import { normalizeUserError } from "../../../shared/utils/normalize-user-error";
-
-export interface UseSettingsAdminResult {
-    categoriesQuery: ReturnType<typeof useCategoriesQuery>;
-    categoryOptions: ReturnType<typeof buildCategoryOptions>;
-    selectedCategoryId: string;
-    selectedScrapeInterval: ScrapeInterval;
-    triggerRunResult: ReturnType<typeof useTriggerRunMutation>["data"];
-    isSavingInterval: boolean;
-    isTriggeringRun: boolean;
-    setSelectedCategoryId: (categoryId: string) => void;
-    setSelectedScrapeInterval: (scrapeInterval: ScrapeInterval) => void;
-    onSaveScrapeInterval: () => Promise<void>;
-    onTriggerRun: () => Promise<void>;
-}
 
 export const useSettingsAdmin = (): UseSettingsAdminResult => {
     const categoriesQuery = useCategoriesQuery("all");
@@ -31,6 +18,10 @@ export const useSettingsAdmin = (): UseSettingsAdminResult => {
 
     const categoryOptions = useMemo(
         () => buildCategoryOptions(categoriesQuery.data?.categories ?? []),
+        [categoriesQuery.data?.categories],
+    );
+    const categoryTreeData = useMemo(
+        () => buildCategoryTreeData(categoriesQuery.data?.categories ?? []),
         [categoriesQuery.data?.categories],
     );
     const effectiveCategoryId = selectedCategoryId || categoryOptions[0]?.id || "";
@@ -105,7 +96,7 @@ export const useSettingsAdmin = (): UseSettingsAdminResult => {
 
     return {
         categoriesQuery,
-        categoryOptions,
+        categoryTreeData,
         selectedCategoryId: effectiveCategoryId,
         selectedScrapeInterval: effectiveScrapeInterval,
         triggerRunResult: triggerRunMutation.data,

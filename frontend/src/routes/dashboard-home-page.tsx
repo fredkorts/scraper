@@ -1,13 +1,14 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef } from "react";
-import { buildCategoryOptions, getCategoryLabelById } from "../features/categories/options";
+import { CategoryTreeSelect } from "../features/categories/components/category-tree-select";
+import { buildCategoryTreeData, getCategoryLabelById } from "../features/categories/options";
 import { useCategoriesQuery } from "../features/categories/queries";
+import { DashboardRunListPanel } from "../features/runs/components/dashboard/dashboard-run-list-panel";
+import { DashboardSummaryGrid } from "../features/runs/components/dashboard/dashboard-summary-grid";
+import dashboardStyles from "../features/runs/components/dashboard/dashboard-sections.module.scss";
 import { formatDateTime, formatStatusLabel } from "../features/runs/formatters";
 import { useDashboardHomeQuery } from "../features/runs/queries";
-import {
-    defaultRunDetailSectionSearch,
-    defaultRunsListSearch,
-} from "../features/runs/search";
+import { defaultRunsListSearch } from "../features/runs/search";
 import { useSubscriptionsQuery } from "../features/settings/queries";
 import styles from "./scrape-views.module.scss";
 
@@ -35,7 +36,7 @@ export const DashboardHomePage = () => {
     const trackedCategories = categoriesQuery.data
         ? categoriesQuery.data.categories.filter((category) => trackedCategoryIds.has(category.id))
         : [];
-    const categoryOptions = buildCategoryOptions(trackedCategories);
+    const categoryTreeData = buildCategoryTreeData(trackedCategories);
     const selectedCategoryName = categoriesQuery.data
         ? getCategoryLabelById(trackedCategories, search.categoryId)
         : undefined;
@@ -65,7 +66,31 @@ export const DashboardHomePage = () => {
     }
 
     const { latestRuns, recentFailures, recentChangeSummary } = dashboardQuery.data;
-
+    const latestRunsPreview = latestRuns.slice(0, 5).map((run) => ({
+        id: run.id,
+        categoryName: run.categoryName,
+        startedAt: run.startedAt,
+        statusLabel: formatStatusLabel(run.status),
+        statusTone: run.status,
+        secondaryMeta: [
+            formatDateTime(run.startedAt),
+            `${run.totalChanges} changes`,
+            `${run.totalProducts} products`,
+        ],
+        runId: run.id,
+        actionLabel: "Open run detail",
+    }));
+    const recentFailuresPreview = recentFailures.slice(0, 5).map((run) => ({
+        id: run.id,
+        categoryName: run.categoryName,
+        startedAt: run.startedAt,
+        statusLabel: "Failed",
+        statusTone: "failed" as const,
+        secondaryMeta: [formatDateTime(run.startedAt)],
+        description: run.failure?.summary ?? "Run failed without a readable failure summary.",
+        runId: run.id,
+        actionLabel: "Inspect failed run",
+    }));
     return (
         <section className={styles.page}>
             <div className={styles.stack}>
@@ -82,59 +107,34 @@ export const DashboardHomePage = () => {
                     <label className={styles.label} htmlFor="dashboard-category-filter">
                         Category
                     </label>
-                    <select
+                    <CategoryTreeSelect
+                        allowClear
+                        ariaLabel="Category"
                         className={styles.select}
                         id="dashboard-category-filter"
-                        value={search.categoryId ?? ""}
-                        onChange={(event) =>
+                        treeData={categoryTreeData}
+                        placeholder="All tracked categories"
+                        value={search.categoryId}
+                        onChange={(value) =>
                             navigate({
                                 to: ".",
                                 search: {
-                                    categoryId: event.target.value || undefined,
+                                    categoryId: value || undefined,
                                 },
                             })
                         }
-                    >
-                        <option value="">All tracked categories</option>
-                        {categoryOptions.map((category) => (
-                            <option key={category.id} value={category.id}>
-                                {category.label}
-                            </option>
-                        ))}
-                    </select>
+                    />
                 </div>
                 {selectedCategoryName ? <span className={styles.subtle}>Filtered to {selectedCategoryName}</span> : null}
             </div>
-
-            <div className={styles.summaryGrid}>
-                <article className={styles.card}>
-                    <span className={styles.eyebrow}>Price decreases</span>
-                    <span className={styles.metric}>{recentChangeSummary.priceDecrease}</span>
-                    <span className={styles.subtle}>Last 7 days</span>
-                </article>
-                <article className={styles.card}>
-                    <span className={styles.eyebrow}>New products</span>
-                    <span className={styles.metric}>{recentChangeSummary.newProduct}</span>
-                    <span className={styles.subtle}>Last 7 days</span>
-                </article>
-                <article className={styles.card}>
-                    <span className={styles.eyebrow}>Sold out</span>
-                    <span className={styles.metric}>{recentChangeSummary.soldOut}</span>
-                    <span className={styles.subtle}>Last 7 days</span>
-                </article>
-                <article className={styles.card}>
-                    <span className={styles.eyebrow}>Back in stock</span>
-                    <span className={styles.metric}>{recentChangeSummary.backInStock}</span>
-                    <span className={styles.subtle}>Last 7 days</span>
-                </article>
-            </div>
-
-            <div className={styles.splitColumns}>
-                <section className={styles.section} aria-labelledby="latest-runs-heading">
-                    <div className={styles.sectionHeader}>
-                        <h2 className={styles.sectionTitle} id="latest-runs-heading">
-                            Latest Runs
-                        </h2>
+            <DashboardSummaryGrid summary={recentChangeSummary} />
+            <div className={dashboardStyles.splitColumns}>
+                <DashboardRunListPanel
+                    emptyText="No tracked category runs are available yet."
+                    headingId="latest-runs-heading"
+                    items={latestRunsPreview}
+                    title="Latest Runs"
+                    headerAction={(
                         <Link
                             search={{
                                 ...defaultRunsListSearch,
@@ -144,73 +144,15 @@ export const DashboardHomePage = () => {
                         >
                             View all runs
                         </Link>
-                    </div>
-                    {latestRuns.length === 0 ? (
-                        <p className={styles.emptyState}>No tracked category runs are available yet.</p>
-                    ) : (
-                        <div className={styles.panelList}>
-                            {latestRuns.map((run) => (
-                                <article className={styles.panelItem} key={run.id}>
-                                    <div className={styles.sectionHeader}>
-                                        <strong>{run.categoryName}</strong>
-                                        <span className={styles.statusBadge} data-status={run.status}>
-                                            {formatStatusLabel(run.status)}
-                                        </span>
-                                    </div>
-                                    <div className={styles.metaRow}>
-                                        <span>{formatDateTime(run.startedAt)}</span>
-                                        <span>{run.totalChanges} changes</span>
-                                        <span>{run.totalProducts} products</span>
-                                    </div>
-                                    <Link
-                                        params={{ runId: run.id }}
-                                        search={defaultRunDetailSectionSearch}
-                                        to="/app/runs/$runId"
-                                    >
-                                        Open run detail
-                                    </Link>
-                                </article>
-                            ))}
-                        </div>
                     )}
-                </section>
+                />
 
-                <section className={styles.section} aria-labelledby="failed-runs-heading">
-                    <div className={styles.sectionHeader}>
-                        <h2 className={styles.sectionTitle} id="failed-runs-heading">
-                            Recent Failures
-                        </h2>
-                    </div>
-                    {recentFailures.length === 0 ? (
-                        <p className={styles.emptyState}>No recent failed runs for your tracked categories.</p>
-                    ) : (
-                        <div className={styles.panelList}>
-                            {recentFailures.map((run) => (
-                                <article className={styles.panelItem} key={run.id}>
-                                    <div className={styles.sectionHeader}>
-                                        <strong>{run.categoryName}</strong>
-                                        <span className={styles.statusBadge} data-status="failed">
-                                            Failed
-                                        </span>
-                                    </div>
-                                    <div className={styles.metaRow}>
-                                        <span>{formatDateTime(run.startedAt)}</span>
-                                    </div>
-                                    <p className={styles.subtle}>
-                                        {run.failure?.summary ?? "Run failed without a readable failure summary."}
-                                    </p>
-                                    <Link
-                                        params={{ runId: run.id }}
-                                        search={defaultRunDetailSectionSearch}
-                                        to="/app/runs/$runId"
-                                    >
-                                        Inspect failed run
-                                    </Link>
-                                </article>
-                            ))}
-                        </div>
-                    )}
-                </section>
+                <DashboardRunListPanel
+                    emptyText="No recent failed runs for your tracked categories."
+                    headingId="failed-runs-heading"
+                    items={recentFailuresPreview}
+                    title="Recent Failures"
+                />
             </div>
         </section>
     );

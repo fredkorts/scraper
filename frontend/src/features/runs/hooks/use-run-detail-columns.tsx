@@ -2,15 +2,13 @@ import { Link } from "@tanstack/react-router";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
 import { defaultProductHistoryControls } from "../../products/history-controls";
+import { STOCK_STATUS_LABELS } from "../../../shared/constants/stock.constants";
 import { formatPrice, formatStatusLabel } from "../formatters";
 import type { RunChangesData, RunProductsData } from "../schemas";
+import type { UseRunDetailColumnsOptions } from "../types/use-run-detail-columns.types";
 
 const productColumnHelper = createColumnHelper<RunProductsData["items"][number]>();
 const changeColumnHelper = createColumnHelper<RunChangesData["items"][number]>();
-
-interface UseRunDetailColumnsOptions {
-    productLinkClassName: string;
-}
 
 export const useRunDetailColumns = ({ productLinkClassName }: UseRunDetailColumnsOptions) => {
     const productColumns = useMemo(
@@ -38,7 +36,7 @@ export const useRunDetailColumns = ({ productLinkClassName }: UseRunDetailColumn
                 }),
                 productColumnHelper.accessor("inStock", {
                     header: "Stock",
-                    cell: (info) => (info.getValue() ? "In stock" : "Out of stock"),
+                    cell: (info) => (info.getValue() ? STOCK_STATUS_LABELS.inStock : STOCK_STATUS_LABELS.outOfStock),
                 }),
                 productColumnHelper.display({
                     id: "dashboardLink",
@@ -102,8 +100,8 @@ export const useRunDetailColumns = ({ productLinkClassName }: UseRunDetailColumn
                         }
 
                         if (item.oldStockStatus !== undefined || item.newStockStatus !== undefined) {
-                            return `${item.oldStockStatus ? "In stock" : "Out of stock"} -> ${
-                                item.newStockStatus ? "In stock" : "Out of stock"
+                            return `${item.oldStockStatus ? STOCK_STATUS_LABELS.inStock : STOCK_STATUS_LABELS.outOfStock} -> ${
+                                item.newStockStatus ? STOCK_STATUS_LABELS.inStock : STOCK_STATUS_LABELS.outOfStock
                             }`;
                         }
 

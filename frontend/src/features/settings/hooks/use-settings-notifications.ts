@@ -6,22 +6,12 @@ import {
     useUpdateNotificationChannelMutation,
 } from "../mutations";
 import { useNotificationChannelsQuery } from "../queries";
+import type { UseSettingsNotificationsResult } from "../types/use-settings-notifications.types";
 import { NOTIFICATION_MESSAGES } from "../../../shared/constants/notification-messages";
 import { useAppNotification } from "../../../shared/hooks/use-app-notification";
 import { createNotificationRequestId } from "../../../shared/notifications/request-id";
 import { createNotificationRequestTracker } from "../../../shared/notifications/request-tracker";
 import { normalizeUserError } from "../../../shared/utils/normalize-user-error";
-
-export interface UseSettingsNotificationsResult {
-    channelsQuery: ReturnType<typeof useNotificationChannelsQuery>;
-    newChannelEmail: string;
-    isCreatePending: boolean;
-    setNewChannelEmail: (value: string) => void;
-    onCreateChannel: () => Promise<void>;
-    onToggleChannelDefault: (channelId: string, isDefault: boolean) => Promise<void>;
-    onToggleChannelActive: (channelId: string, isActive: boolean) => Promise<void>;
-    onRemoveChannel: (channelId: string) => Promise<void>;
-}
 
 export const useSettingsNotifications = (): UseSettingsNotificationsResult => {
     const channelsQuery = useNotificationChannelsQuery();

@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+    defaultDashboardHomeSearch,
+    defaultRunDetailSectionSearch,
+    defaultRunsListSearch,
+} from "../../shared/navigation/default-searches";
 
 export const runsSortByValues = ["startedAt", "status", "totalChanges", "totalProducts", "durationMs"] as const;
 export const runsSortOrderValues = ["asc", "desc"] as const;
@@ -44,18 +49,7 @@ const toBooleanString = (value: unknown): "true" | "false" | undefined => {
     return undefined;
 };
 
-export const defaultRunsListSearch = {
-    page: 1,
-    pageSize: 25,
-    sortBy: "startedAt" as const,
-    sortOrder: "desc" as const,
-    status: undefined as (typeof runStatusValues)[number] | undefined,
-    categoryId: undefined as string | undefined,
-};
-
-export const defaultDashboardHomeSearch = {
-    categoryId: undefined as string | undefined,
-};
+export { defaultDashboardHomeSearch, defaultRunDetailSectionSearch, defaultRunsListSearch };
 
 export const parseDashboardHomeSearch = (
     search: Record<string, unknown>,
@@ -98,15 +92,6 @@ export const parseRunsListSearch = (
             : undefined,
         categoryId: categoryId && z.string().uuid().safeParse(categoryId).success ? categoryId : undefined,
     };
-};
-
-export const defaultRunDetailSectionSearch = {
-    productsPage: 1,
-    productsPageSize: 10,
-    productsInStock: undefined as "true" | "false" | undefined,
-    changesPage: 1,
-    changesPageSize: 10,
-    changeType: undefined as (typeof runChangeTypeValues)[number] | undefined,
 };
 
 export const parseRunDetailSearch = (

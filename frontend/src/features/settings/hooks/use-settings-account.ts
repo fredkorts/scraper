@@ -1,21 +1,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { FormEventHandler } from "react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useMeQuery } from "../../auth/queries";
 import { useUpdateProfileMutation } from "../mutations";
 import { updateProfileRequestSchema } from "../schemas";
 import type { UpdateProfileRequestData } from "../types/settings-schema.types";
+import type { UseSettingsAccountResult } from "../types/use-settings-account.types";
 import { NOTIFICATION_MESSAGES } from "../../../shared/constants/notification-messages";
 import { useAppNotification } from "../../../shared/hooks/use-app-notification";
 import { normalizeUserError } from "../../../shared/utils/normalize-user-error";
-
-export interface UseSettingsAccountResult {
-    session: ReturnType<typeof useMeQuery>;
-    profileForm: ReturnType<typeof useForm<UpdateProfileRequestData>>;
-    isSavingProfile: boolean;
-    onSubmitProfile: FormEventHandler<HTMLFormElement>;
-}
 
 export const useSettingsAccount = (): UseSettingsAccountResult => {
     const session = useMeQuery();

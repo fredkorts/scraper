@@ -1,7 +1,7 @@
 import { ROLE_LABELS, getNotificationModeLabel } from "../constants/settings.constants";
 import { getSettingsPanelId, getSettingsTabId } from "../constants/settings-tab-a11y.constants";
 import type { SettingsPlanTabProps } from "../types/settings-ui.types";
-import styles from "../../../routes/settings-page.module.scss";
+import styles from "./settings-shared.module.scss";
 
 export const SettingsPlanTab = ({ role, subscriptions }: SettingsPlanTabProps) => (
     <section

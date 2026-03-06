@@ -1,10 +1,5 @@
 import { useEffect } from "react";
-
-interface UseClampedPageOptions {
-    currentPage: number;
-    totalPages?: number;
-    onPageChange: (nextPage: number, options?: { replace?: boolean }) => void;
-}
+import type { UseClampedPageOptions } from "./types/use-clamped-page.types";
 
 export const useClampedPage = ({
     currentPage,

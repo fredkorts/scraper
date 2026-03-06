@@ -1,0 +1,128 @@
+@use "../../../../styles/components/cards";
+@use "../../../../styles/components/empty-states";
+@use "../../../../styles/components/status-badges";
+@use "../../../../styles/abstracts/mixins";
+
+.summaryGrid {
+    display: grid;
+    gap: var(--space-md);
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+.card {
+    @include cards.card-surface;
+    display: grid;
+    gap: var(--space-sm);
+}
+
+.eyebrow {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+.metric {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+}
+
+.subtle {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+}
+
+.section {
+    display: grid;
+    gap: var(--space-md);
+}
+
+.sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.sectionTitle {
+    margin: 0;
+    font-size: var(--font-size-lg);
+}
+
+.splitColumns {
+    display: grid;
+    gap: var(--space-lg);
+    grid-template-columns: 1fr 1fr;
+    align-items: stretch;
+}
+
+.dashboardColumn {
+    @include cards.card-surface;
+    height: 100%;
+    grid-template-rows: auto 1fr;
+    align-content: start;
+    gap: 0;
+}
+
+.dashboardColumn > .sectionHeader {
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: var(--space-md);
+}
+
+.sectionBody {
+    display: grid;
+    align-content: start;
+    gap: var(--space-sm);
+}
+
+.panelList {
+    display: grid;
+    gap: var(--space-sm);
+}
+
+.panelItem {
+    display: grid;
+    gap: var(--space-2xs);
+    padding: var(--space-sm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+}
+
+.metaRow {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+}
+
+.statusBadge {
+    @include status-badges.status-badge-base;
+}
+
+.statusBadge[data-status="failed"] {
+    @include status-badges.status-badge-tone("danger");
+}
+
+.statusBadge[data-status="completed"] {
+    @include status-badges.status-badge-tone("success");
+}
+
+.statusBadge[data-status="running"] {
+    @include status-badges.status-badge-tone("info");
+}
+
+.statusBadge[data-status="pending"] {
+    @include status-badges.status-badge-tone("neutral");
+}
+
+.emptyState {
+    @include empty-states.state-panel;
+}
+
+@include mixins.mq-md {
+    .splitColumns {
+        grid-template-columns: 1fr;
+    }
+}

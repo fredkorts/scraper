@@ -3,6 +3,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider, createMemoryHistory } from "@tanstack/react-router";
 import { act, render } from "@testing-library/react";
 import { createAppRouter } from "../app/router";
+import { AppThemeProvider } from "../app/theme-provider";
 import { queryKeys } from "../lib/query/query-keys";
 import { createAppQueryClient } from "../lib/query/query-client";
 import { AppNotificationProvider } from "../shared/notifications/notification-provider";
@@ -187,6 +188,29 @@ export const renderRouterApp = async ({
     logoutShouldFail = false,
     apiResponses = {},
 }: RenderRouterOptions = {}) => {
+    if (typeof globalThis.ResizeObserver !== "function") {
+        class ResizeObserverMock {
+            observe(): void {}
+            unobserve(): void {}
+            disconnect(): void {}
+        }
+
+        vi.stubGlobal("ResizeObserver", ResizeObserverMock);
+    }
+
+    if (typeof window.matchMedia !== "function") {
+        vi.stubGlobal("matchMedia", (query: string) => ({
+            matches: false,
+            media: query,
+            onchange: null,
+            addListener: () => undefined,
+            removeListener: () => undefined,
+            addEventListener: () => undefined,
+            removeEventListener: () => undefined,
+            dispatchEvent: () => false,
+        }));
+    }
+
     const queryClient = createAppQueryClient();
     const mergedApiResponses = {
         ...defaultApiResponses,
@@ -408,9 +432,11 @@ export const renderRouterApp = async ({
     await act(async () => {
         renderedReturn = render(
             <QueryClientProvider client={queryClient}>
-                <AppNotificationProvider>
-                    <RouterProvider router={router} />
-                </AppNotificationProvider>
+                <AppThemeProvider>
+                    <AppNotificationProvider>
+                        <RouterProvider router={router} />
+                    </AppNotificationProvider>
+                </AppThemeProvider>
             </QueryClientProvider>,
         );
 

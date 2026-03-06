@@ -1,16 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import type { PaginationControlsProps } from "./types/pagination-controls.types";
 import { buildPageWindow } from "./page-window";
 import styles from "./PaginationControls.module.scss";
-
-interface PaginationControlsProps {
-    page: number;
-    pageSize: number;
-    totalPages: number;
-    totalItems: number;
-    ariaLabel: string;
-    isLoading?: boolean;
-    onPageChange: (nextPage: number) => void;
-}
 
 const COMPACT_BREAKPOINT = "(max-width: 40rem)";
 

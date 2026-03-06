@@ -4,7 +4,7 @@ import {
     getRoleLimitLabel,
 } from "../constants/settings.constants";
 import type { SettingsSummaryProps } from "../types/settings-ui.types";
-import styles from "../../../routes/settings-page.module.scss";
+import styles from "./settings-shared.module.scss";
 
 export const SettingsSummary = ({ email, name, role, subscriptions }: SettingsSummaryProps) => (
     <section className={styles.summaryShell} aria-label="Settings summary">

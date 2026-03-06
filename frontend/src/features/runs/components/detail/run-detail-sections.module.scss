@@ -1,0 +1,148 @@
+@use "../../../../styles/abstracts/mixins";
+@use "../../../../styles/components/cards";
+@use "../../../../styles/components/empty-states";
+@use "../../../../styles/components/forms";
+@use "../../../../styles/components/status-badges";
+
+.summaryGrid {
+    display: grid;
+    gap: var(--space-md);
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+.card {
+    @include cards.card-surface;
+    display: grid;
+    gap: var(--space-sm);
+}
+
+.eyebrow {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+.section {
+    display: grid;
+    gap: var(--space-md);
+}
+
+.failurePanel {
+    @include cards.card-surface;
+    display: grid;
+    gap: var(--space-md);
+}
+
+.sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.sectionTitle {
+    margin: 0;
+    font-size: var(--font-size-lg);
+}
+
+.statusBadge {
+    @include status-badges.status-badge-base;
+}
+
+.statusBadge[data-status="failed"] {
+    @include status-badges.status-badge-tone("danger");
+}
+
+.statusBadge[data-status="completed"] {
+    @include status-badges.status-badge-tone("success");
+}
+
+.statusBadge[data-status="running"] {
+    @include status-badges.status-badge-tone("info");
+}
+
+.statusBadge[data-status="pending"] {
+    @include status-badges.status-badge-tone("neutral");
+}
+
+.filterGroup {
+    display: grid;
+    gap: var(--space-2xs);
+}
+
+.label {
+    @include forms.field-label;
+}
+
+.select {
+    min-width: 10rem;
+}
+
+.select :global(.ant-select-selector) {
+    min-height: 2.5rem !important;
+    height: 2.5rem !important;
+    border-radius: var(--radius-sm) !important;
+    border-color: var(--color-border) !important;
+    background: var(--color-surface) !important;
+    color: var(--color-text) !important;
+    display: flex;
+    align-items: center;
+}
+
+.select :global(.ant-select-selection-item),
+.select :global(.ant-select-selection-placeholder) {
+    line-height: calc(2.5rem - 2px) !important;
+}
+
+.select :global(.ant-select-arrow) {
+    color: var(--color-text-muted);
+}
+
+.select:global(.ant-select-focused) :global(.ant-select-selector) {
+    @include mixins.focus-ring;
+}
+
+.emptyState {
+    @include empty-states.state-panel;
+}
+
+.errorState {
+    @include empty-states.state-panel-error;
+}
+
+.failureMeta {
+    display: grid;
+    gap: var(--space-sm);
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    margin: 0;
+}
+
+.failureMeta div {
+    display: grid;
+    gap: var(--space-2xs);
+}
+
+.failureMeta dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.technicalPanel {
+    display: grid;
+    gap: var(--space-xs);
+    padding: var(--space-sm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-page);
+}
+
+.technicalPanel code {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.productLink {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+}

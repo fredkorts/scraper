@@ -2,16 +2,10 @@ import {
     flexRender,
     getCoreRowModel,
     useReactTable,
-    type ColumnDef,
     type RowData,
 } from "@tanstack/react-table";
+import type { DataTableProps } from "./types/data-table.types";
 import styles from "./DataTable.module.scss";
-
-interface DataTableProps<TData extends RowData> {
-    data: TData[];
-    columns: Array<ColumnDef<TData, unknown>>;
-    emptyText?: string;
-}
 
 export const DataTable = <TData extends RowData>({
     data,

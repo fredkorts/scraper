@@ -1,13 +1,16 @@
+import { CloseCircleOutlined, PlusOutlined } from "@ant-design/icons";
+import { CategoryTreeSelect } from "../../../features/categories/components/category-tree-select";
 import {
     getRoleLimitLabel,
     getTrackingRoleDescription,
 } from "../constants/settings.constants";
 import { getSettingsPanelId, getSettingsTabId } from "../constants/settings-tab-a11y.constants";
 import type { SettingsTrackingTabProps } from "../types/settings-ui.types";
-import styles from "../../../routes/settings-page.module.scss";
+import styles from "./settings-shared.module.scss";
 
 export const SettingsTrackingTab = ({
     availableCategoryOptions,
+    availableCategoryTreeData,
     categoryLabelById,
     role,
     selectedCategoryId,
@@ -48,10 +51,12 @@ export const SettingsTrackingTab = ({
                                 <div className={styles.subtle}>{item.category.slug}</div>
                             </div>
                             <button
+                                className={`${styles.actionButton} ${styles.stopButton}`}
                                 type="button"
                                 onClick={() => void onUntrackCategory(item.id)}
                                 disabled={isDeletePending}
                             >
+                                <CloseCircleOutlined aria-hidden />
                                 Stop tracking
                             </button>
                         </div>
@@ -61,26 +66,25 @@ export const SettingsTrackingTab = ({
         </article>
         <article className={styles.card}>
             <h3 className={styles.cardTitle}>Track a new category</h3>
-            <div className={styles.inlineForm}>
+            <div className={styles.trackingCreateRow}>
                 <label className={styles.field}>
                     <span className={styles.label}>Available categories</span>
-                    <select
+                    <CategoryTreeSelect
+                        ariaLabel="Available categories"
                         className={styles.select}
-                        value={selectedCategoryId}
-                        onChange={(event) => onSelectCategory(event.target.value)}
-                    >
-                        {availableCategoryOptions.map((category) => (
-                            <option key={category.id} value={category.id}>
-                                {category.label}
-                            </option>
-                        ))}
-                    </select>
+                        disabled={!availableCategoryOptions.length}
+                        treeData={availableCategoryTreeData}
+                        value={selectedCategoryId || undefined}
+                        onChange={(value) => onSelectCategory(value ?? "")}
+                    />
                 </label>
                 <button
+                    className={`${styles.actionButton} ${styles.trackButton} ${styles.trackingCreateButton}`}
                     type="button"
                     onClick={() => void onTrackCategory()}
                     disabled={!availableCategoryOptions.length || isCreatePending}
                 >
+                    <PlusOutlined aria-hidden />
                     {isCreatePending ? "Tracking..." : "Track category"}
                 </button>
             </div>

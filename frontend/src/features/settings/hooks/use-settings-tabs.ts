@@ -3,12 +3,7 @@ import { useMemo } from "react";
 import { SETTINGS_TAB_ORDER } from "../constants/settings.constants";
 import { defaultSettingsSearch } from "../search";
 import type { SettingsTab } from "../types/settings-schema.types";
-
-export interface UseSettingsTabsResult {
-    activeTab: SettingsTab;
-    visibleTabs: SettingsTab[];
-    setTab: (tab: SettingsTab) => void;
-}
+import type { UseSettingsTabsResult } from "../types/use-settings-tabs.types";
 
 export const useSettingsTabs = (isAdmin: boolean): UseSettingsTabsResult => {
     const navigate = useNavigate({ from: "/app/settings" });

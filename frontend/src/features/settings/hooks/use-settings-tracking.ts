@@ -1,27 +1,12 @@
 import { useMemo, useState } from "react";
-import { buildCategoryOptions, getCategoryDisplayLabel } from "../../categories/options";
+import { buildCategoryOptions, buildCategoryTreeData, getCategoryDisplayLabel } from "../../categories/options";
 import { useCategoriesQuery } from "../../categories/queries";
 import { useCreateSubscriptionMutation, useDeleteSubscriptionMutation } from "../mutations";
 import { useSubscriptionsQuery } from "../queries";
+import type { UseSettingsTrackingResult } from "../types/use-settings-tracking.types";
 import { NOTIFICATION_MESSAGES } from "../../../shared/constants/notification-messages";
 import { useAppNotification } from "../../../shared/hooks/use-app-notification";
 import { normalizeUserError } from "../../../shared/utils/normalize-user-error";
-
-export interface UseSettingsTrackingResult {
-    categoriesQuery: ReturnType<typeof useCategoriesQuery>;
-    subscriptionsQuery: ReturnType<typeof useSubscriptionsQuery>;
-    categoryOptions: ReturnType<typeof buildCategoryOptions>;
-    availableCategoryOptions: ReturnType<typeof buildCategoryOptions>;
-    categoryLabelById: Map<string, string>;
-    selectedCategoryId: string;
-    effectiveSelectedCategoryId: string;
-    trackingError: string | null;
-    isCreatePending: boolean;
-    isDeletePending: boolean;
-    setSelectedCategoryId: (categoryId: string) => void;
-    onTrackCategory: () => Promise<void>;
-    onUntrackCategory: (subscriptionId: string) => Promise<void>;
-}
 
 export const useSettingsTracking = (): UseSettingsTrackingResult => {
     const categoriesQuery = useCategoriesQuery("all");
@@ -43,6 +28,17 @@ export const useSettingsTracking = (): UseSettingsTrackingResult => {
     const availableCategoryOptions = useMemo(
         () => categoryOptions.filter((category) => !trackedCategoryIds.has(category.id)),
         [categoryOptions, trackedCategoryIds],
+    );
+    const availableCategoryIds = useMemo(
+        () => new Set(availableCategoryOptions.map((category) => category.id)),
+        [availableCategoryOptions],
+    );
+    const availableCategoryTreeData = useMemo(
+        () =>
+            buildCategoryTreeData(categoriesQuery.data?.categories ?? [], {
+                includeCategoryIds: availableCategoryIds,
+            }),
+        [availableCategoryIds, categoriesQuery.data?.categories],
     );
     const categoryLabelById = useMemo(
         () =>
@@ -110,6 +106,7 @@ export const useSettingsTracking = (): UseSettingsTrackingResult => {
         subscriptionsQuery,
         categoryOptions,
         availableCategoryOptions,
+        availableCategoryTreeData,
         categoryLabelById,
         selectedCategoryId,
         effectiveSelectedCategoryId,

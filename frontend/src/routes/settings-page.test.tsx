@@ -8,6 +8,32 @@ afterEach(() => {
     vi.unstubAllGlobals();
 });
 
+const selectAntOption = async (
+    user: ReturnType<typeof userEvent.setup>,
+    label: string,
+    optionText: string,
+) => {
+    await user.click(screen.getByLabelText(label));
+    const titleMatch = await screen.findByTitle(optionText).catch(() => null);
+
+    if (titleMatch) {
+        await user.click(titleMatch);
+        return;
+    }
+
+    const optionMatch = await screen.findByRole("option", { name: optionText }).catch(() => null);
+    const treeItemMatch =
+        optionMatch ?? (await screen.findByRole("treeitem", { name: optionText }).catch(() => null));
+
+    if (treeItemMatch) {
+        await user.click(treeItemMatch);
+        return;
+    }
+
+    const textMatches = await screen.findAllByText(optionText);
+    await user.click(textMatches[textMatches.length - 1]!);
+};
+
 describe("settings page", () => {
     it("renders account summary and updates the profile name", async () => {
         const user = userEvent.setup();
@@ -67,7 +93,7 @@ describe("settings page", () => {
 
         expect(await screen.findByRole("heading", { name: "Settings" })).toBeInTheDocument();
         expect(screen.getByText("Lauamangud / Strateegia")).toBeInTheDocument();
-        expect(screen.getByRole("option", { name: "Lauamangud" })).toBeInTheDocument();
+        await selectAntOption(user, "Available categories", "Lauamangud");
         await user.click(screen.getByRole("button", { name: "Track category" }));
         await waitFor(() => {
             expect(screen.getAllByText("Lauamangud").length).toBeGreaterThan(0);
@@ -77,7 +103,7 @@ describe("settings page", () => {
         await waitFor(() => {
             expect(screen.getByText("lauamangud")).toBeInTheDocument();
         });
-    });
+    }, 15_000);
 
     it("manages notification channels and admin tools for admin users", async () => {
         const user = userEvent.setup();

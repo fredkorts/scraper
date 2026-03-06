@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildCategoryOptions, getCategoryDisplayLabel, getCategoryLabelById } from "./options";
+import {
+    buildCategoryOptions,
+    buildCategoryTreeData,
+    getCategoryDisplayLabel,
+    getCategoryLabelById,
+} from "./options";
 
 const categories = [
     {
@@ -52,5 +57,53 @@ describe("category option helpers", () => {
     it("returns the category display label and resolves labels by id", () => {
         expect(getCategoryDisplayLabel(categories[1])).toBe("Lauamangud / Strateegia");
         expect(getCategoryLabelById(categories, categories[1].id)).toBe("Lauamangud / Strateegia");
+    });
+
+    it("builds tree data for category selectors", () => {
+        expect(buildCategoryTreeData(categories)).toEqual([
+            {
+                key: "22222222-2222-4222-8222-222222222222",
+                value: "22222222-2222-4222-8222-222222222222",
+                title: "Lauamangud",
+                disabled: false,
+                selectable: true,
+                children: [
+                    {
+                        key: "33333333-3333-4333-8333-333333333333",
+                        value: "33333333-3333-4333-8333-333333333333",
+                        title: "Strateegia",
+                        disabled: false,
+                        selectable: true,
+                        children: [],
+                    },
+                ],
+            },
+        ]);
+    });
+
+    it("includes ancestors while disabling non-selectable nodes when filtering tree data", () => {
+        expect(
+            buildCategoryTreeData(categories, {
+                includeCategoryIds: new Set(["33333333-3333-4333-8333-333333333333"]),
+            }),
+        ).toEqual([
+            {
+                key: "22222222-2222-4222-8222-222222222222",
+                value: "22222222-2222-4222-8222-222222222222",
+                title: "Lauamangud",
+                disabled: true,
+                selectable: false,
+                children: [
+                    {
+                        key: "33333333-3333-4333-8333-333333333333",
+                        value: "33333333-3333-4333-8333-333333333333",
+                        title: "Strateegia",
+                        disabled: false,
+                        selectable: true,
+                        children: [],
+                    },
+                ],
+            },
+        ]);
     });
 });

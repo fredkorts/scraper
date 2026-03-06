@@ -1,19 +1,4 @@
-export interface PageWindowOptions {
-    page: number;
-    totalPages: number;
-    siblingCount?: number;
-    boundaryCount?: number;
-}
-
-export type PageWindowItem =
-    | {
-          kind: "page";
-          page: number;
-      }
-    | {
-          kind: "ellipsis";
-          id: string;
-      };
+import type { PageWindowItem, PageWindowOptions } from "./types/page-window.types";
 
 const range = (start: number, end: number): number[] => {
     if (end < start) {

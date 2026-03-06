@@ -2,6 +2,7 @@ import type { ScrapeInterval, UserRole } from "@mabrik/shared";
 import type { FormEventHandler } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import type { CategoryOption } from "../../categories/types/category-option";
+import type { CategoryTreeNode } from "../../categories/types/category-tree-node";
 import type {
     ChannelData,
     SettingsTab,
@@ -34,6 +35,7 @@ export interface SettingsAccountTabProps {
 
 export interface SettingsTrackingTabProps {
     availableCategoryOptions: CategoryOption[];
+    availableCategoryTreeData: CategoryTreeNode[];
     categoryLabelById: Map<string, string>;
     role: UserRole;
     selectedCategoryId: string;
@@ -64,7 +66,7 @@ export interface SettingsPlanTabProps {
 }
 
 export interface SettingsAdminTabProps {
-    categoryOptions: CategoryOption[];
+    categoryTreeData: CategoryTreeNode[];
     selectedCategoryId: string;
     selectedScrapeInterval: ScrapeInterval;
     triggerRunResult?: TriggerRunResponseData;

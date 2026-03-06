@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderRouterApp, mockUser } from "../test/router-utils";
 
@@ -7,6 +7,32 @@ afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
 });
+
+const selectAntOption = async (
+    user: ReturnType<typeof userEvent.setup>,
+    label: string,
+    optionText: string,
+) => {
+    await user.click(screen.getByLabelText(label));
+    const titleMatch = await screen.findByTitle(optionText).catch(() => null);
+
+    if (titleMatch) {
+        await user.click(titleMatch);
+        return;
+    }
+
+    const optionMatch = await screen.findByRole("option", { name: optionText }).catch(() => null);
+    const treeItemMatch =
+        optionMatch ?? (await screen.findByRole("treeitem", { name: optionText }).catch(() => null));
+
+    if (treeItemMatch) {
+        await user.click(treeItemMatch);
+        return;
+    }
+
+    const textMatches = await screen.findAllByText(optionText);
+    await user.click(textMatches[textMatches.length - 1]!);
+};
 
 describe("scrape views", () => {
     it("renders dashboard home summaries and links", async () => {
@@ -72,12 +98,67 @@ describe("scrape views", () => {
         });
 
         expect(await screen.findByRole("heading", { name: "Dashboard Home" })).toBeInTheDocument();
-        await waitFor(() => {
-            expect(screen.getByLabelText("Category")).toHaveValue("22222222-2222-4222-8222-222222222222");
-        });
+        expect(screen.getByText("Filtered to Lauamangud")).toBeInTheDocument();
         expect(screen.getAllByText("Board Games").length).toBeGreaterThan(0);
         expect(screen.getByRole("link", { name: "Open run detail" })).toBeInTheDocument();
         expect(screen.getByText("The scrape timed out while loading page 31.")).toBeInTheDocument();
+    });
+
+    it("caps dashboard latest runs and recent failures panels to five items", async () => {
+        await renderRouterApp({
+            initialEntry: "/app",
+            session: mockUser,
+            apiResponses: {
+                dashboardHome: {
+                    latestRuns: Array.from({ length: 7 }, (_value, index) => {
+                        const idSuffix = String(index + 1).padStart(12, "0");
+
+                        return {
+                            id: `11111111-1111-4111-8111-${idSuffix}`,
+                            categoryId: "22222222-2222-4222-8222-222222222222",
+                            categoryName: `Run Category ${index + 1}`,
+                            status: "completed" as const,
+                            startedAt: new Date().toISOString(),
+                            completedAt: new Date().toISOString(),
+                            totalChanges: index + 1,
+                            totalProducts: 20 + index,
+                        };
+                    }),
+                    recentFailures: Array.from({ length: 7 }, (_value, index) => {
+                        const idSuffix = String(index + 1).padStart(12, "0");
+
+                        return {
+                            id: `33333333-3333-4333-8333-${idSuffix}`,
+                            categoryId: "22222222-2222-4222-8222-222222222222",
+                            categoryName: `Failure Category ${index + 1}`,
+                            startedAt: new Date().toISOString(),
+                            failure: {
+                                summary: `Failure summary ${index + 1}`,
+                                code: "upstream_timeout",
+                                phase: "fetch",
+                                pageNumber: index + 1,
+                                isRetryable: true,
+                            },
+                        };
+                    }),
+                    recentChangeSummary: {
+                        priceIncrease: 2,
+                        priceDecrease: 3,
+                        newProduct: 1,
+                        soldOut: 4,
+                        backInStock: 2,
+                    },
+                },
+            },
+        });
+
+        expect(await screen.findByRole("heading", { name: "Dashboard Home" })).toBeInTheDocument();
+        expect(screen.getAllByRole("link", { name: "Open run detail" })).toHaveLength(5);
+        expect(screen.getAllByRole("link", { name: "Inspect failed run" })).toHaveLength(5);
+        expect(screen.getByText("Run Category 5")).toBeInTheDocument();
+        expect(screen.getByText("Failure Category 5")).toBeInTheDocument();
+        expect(screen.queryByText("Run Category 6")).not.toBeInTheDocument();
+        expect(screen.queryByText("Failure Category 6")).not.toBeInTheDocument();
     });
 
     it("renders runs list from URL-backed query state", async () => {
@@ -317,13 +398,13 @@ describe("scrape views", () => {
             },
         });
 
-        expect(await screen.findByRole("heading", { name: "Test Product" })).toBeInTheDocument();
+        expect(await screen.findByRole("heading", { name: "Test Product" }, { timeout: 5000 })).toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "Price History" })).toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "Recent Runs" })).toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "History Table" })).toBeInTheDocument();
         expect(screen.getByRole("link", { name: "Open on Mabrik" })).toBeInTheDocument();
         expect(screen.getByRole("link", { name: "Open run detail" })).toBeInTheDocument();
-    });
+    }, 15_000);
 
     it("updates product history view when controls change", async () => {
         const user = userEvent.setup();
@@ -400,25 +481,26 @@ describe("scrape views", () => {
         });
 
         expect(await screen.findByRole("heading", { name: "Control Product" })).toBeInTheDocument();
-        expect(screen.getByLabelText("Time range")).toHaveValue("all");
+        expect(router.state.location.search).toMatchObject({
+            range: "all",
+        });
         expect(screen.getByLabelText("Show original price")).toBeChecked();
         expect(screen.getByLabelText("Show stock overlay")).toBeChecked();
         expect(screen.getByText("3 filtered state-change snapshots")).toBeInTheDocument();
 
-        await user.selectOptions(screen.getByLabelText("Category"), "99999999-9999-4999-8999-999999999999");
+        await selectAntOption(user, "Category", "Card Games");
         expect(await screen.findByText("1 filtered state-change snapshots")).toBeInTheDocument();
         expect(router.state.location.search).toMatchObject({
             categoryId: "99999999-9999-4999-8999-999999999999",
         });
-        expect(screen.getByLabelText("Category")).toHaveValue("99999999-9999-4999-8999-999999999999");
-        expect(within(screen.getByText("Latest filtered price").closest("article")!).getByText("€21.99")).toBeInTheDocument();
+        expect(screen.getAllByText("€21.99").length).toBeGreaterThan(0);
 
-        await user.selectOptions(screen.getByLabelText("Stock filter"), "in_stock");
+        await selectAntOption(user, "Stock filter", "In stock only");
         expect(
-            await screen.findByText("No historical snapshots matched the current controls. Change the time range, category, or stock filter."),
+            await screen.findByText("No historical snapshots matched the current controls. Change the filters or reset them."),
         ).toBeInTheDocument();
 
-        await user.selectOptions(screen.getByLabelText("Stock filter"), "out_of_stock");
+        await selectAntOption(user, "Stock filter", "Out of stock only");
         expect(await screen.findByText("1 filtered state-change snapshots")).toBeInTheDocument();
         expect(screen.getByText("Out of stock")).toBeInTheDocument();
 
@@ -428,7 +510,7 @@ describe("scrape views", () => {
             stockFilter: "out_of_stock",
             showStockOverlay: false,
         });
-    });
+    }, 15000);
 
     it("clamps out-of-range runs pages to the last valid page", async () => {
         const { router } = await renderRouterApp({

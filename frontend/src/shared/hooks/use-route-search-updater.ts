@@ -1,18 +1,8 @@
 import { useCallback } from "react";
-
-interface SearchUpdateOptions {
-    replace?: boolean;
-}
-
-interface SearchNavigateOptions<TSearch extends Record<string, unknown>> {
-    to: ".";
-    replace?: boolean;
-    search: (prev: TSearch) => TSearch;
-}
-
-type SearchNavigateFn<TSearch extends Record<string, unknown>> = (
-    options: SearchNavigateOptions<TSearch>,
-) => unknown;
+import type {
+    SearchNavigateFn,
+    SearchUpdateOptions,
+} from "./types/use-route-search-updater.types";
 
 export const useRouteSearchUpdater = <TSearch extends Record<string, unknown>>(
     navigate: SearchNavigateFn<TSearch>,
