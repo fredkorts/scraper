@@ -20,7 +20,7 @@
         "format": "prettier --write .",
         "format:check": "prettier --check .",
         "lint-staged": "lint-staged",
-        "prepare": "husky",
+        "prepare": "node -e \"if(process.env.CI||process.env.VERCEL||process.env.HUSKY==='0'){process.exit(0)};try{require('child_process').execSync('husky',{stdio:'inherit'})}catch{process.exit(0)}\"",
         "clean": "rm -rf node_modules backend/node_modules frontend/node_modules shared/node_modules"
     },
     "lint-staged": {

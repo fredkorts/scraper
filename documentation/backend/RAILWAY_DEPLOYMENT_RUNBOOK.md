@@ -14,6 +14,16 @@ Deploy this single-repo project to Railway using separate backend services:
 
 Frontend stays on Vercel per current architecture decision.
 
+## Vercel Monorepo Note
+
+If Vercel build fails on Husky during dependency install:
+
+1. set `HUSKY=0` in Vercel environment variables
+2. keep frontend build command:
+    - `npm ci && npm run build --workspace=shared && npm run build --workspace=frontend`
+
+This prevents git-hook bootstrap in CI while preserving local Husky hooks.
+
 ## Service Architecture on Railway
 
 Create one Railway project and three services from the same repository/branch:
