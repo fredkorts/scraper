@@ -7,13 +7,13 @@ Implemented on March 4, 2026.
 Delivered:
 
 - category responses now include hierarchy metadata:
-  - `depth`
-  - `pathNameEt`
-  - `pathNameEn`
+    - `depth`
+    - `pathNameEt`
+    - `pathNameEn`
 - settings, dashboard, and runs selectors now render hierarchy-aware category labels
 - added a live category catalog refresh command:
-  - dry-run by default
-  - `--apply` to persist changes
+    - dry-run by default
+    - `--apply` to persist changes
 - live Mabrik catalog applied to the development database
 
 Not implemented:
@@ -103,12 +103,12 @@ Additional decisions:
 Use a two-layer model:
 
 1. bootstrap source:
-   - existing `MABRIK_CATEGORIES`
-   - used only for initial local setup or fallback
+    - existing `MABRIK_CATEGORIES`
+    - used only for initial local setup or fallback
 
 2. dynamic catalog refresh:
-   - scraper-driven category discovery from Mabrik
-   - updates the DB catalog
+    - scraper-driven category discovery from Mabrik
+    - updates the DB catalog
 
 Recommendation:
 
@@ -122,22 +122,22 @@ This plan needs one explicit source priority so refresh behavior is deterministi
 Recommended source order:
 
 1. primary source:
-   - Mabrik category navigation or category landing structure, if it exposes the full hierarchy
+    - Mabrik category navigation or category landing structure, if it exposes the full hierarchy
 
 2. fallback source:
-   - direct category URL discovery from known category listing paths only if the primary source is incomplete or unavailable
+    - direct category URL discovery from known category listing paths only if the primary source is incomplete or unavailable
 
 3. bootstrap fallback:
-   - `MABRIK_CATEGORIES` only for local bootstrap or temporary resilience
+    - `MABRIK_CATEGORIES` only for local bootstrap or temporary resilience
 
 Rule:
 
 - do not merge arbitrary sources opportunistically without normalization rules
 - the refresh service must define exactly which source supplies:
-  - slug
-  - display labels
-  - parent relationship
-  - sibling order
+    - slug
+    - display labels
+    - parent relationship
+    - sibling order
 
 If the primary source does not expose a complete hierarchy, the refresh should fail safely or run in dry-run mode instead of applying uncertain category deletions.
 
@@ -268,10 +268,10 @@ Why:
 Possible first interfaces:
 
 1. CLI:
-   - `npm run categories:refresh --workspace=backend`
+    - `npm run categories:refresh --workspace=backend`
 
 2. Admin API:
-   - `POST /api/categories/refresh`
+    - `POST /api/categories/refresh`
 
 Recommendation:
 
@@ -288,10 +288,10 @@ Required safety rules:
 
 1. first implementation supports dry-run mode
 2. refresh output must summarize:
-   - created
-   - updated
-   - reparented
-   - deactivated
+    - created
+    - updated
+    - reparented
+    - deactivated
 3. if the refresh attempts to deactivate an unexpectedly large portion of the catalog, abort instead of applying automatically
 
 Recommended threshold:
@@ -360,14 +360,14 @@ Keep the API flat, but make it hierarchy-aware:
 
 ```ts
 interface CategoryListItem {
-  id: string;
-  slug: string;
-  nameEt: string;
-  nameEn: string;
-  parentId?: string;
-  depth: number;
-  isActive: boolean;
-  scrapeIntervalHours: 6 | 12 | 24 | 48;
+    id: string;
+    slug: string;
+    nameEt: string;
+    nameEn: string;
+    parentId?: string;
+    depth: number;
+    isActive: boolean;
+    scrapeIntervalHours: 6 | 12 | 24 | 48;
 }
 ```
 
@@ -426,8 +426,8 @@ or:
 Recommendation:
 
 - use breadcrumb labels for compactness and clarity:
-  - `Lauamängud / Strateegia`
-  - `Lauamängud / Seltskond`
+    - `Lauamängud / Strateegia`
+    - `Lauamängud / Seltskond`
 
 Why:
 
@@ -481,10 +481,10 @@ Recommended default rule:
 1. fetch categories once with TanStack Query
 2. derive `displayLabel`
 3. reuse the same formatted category options across:
-   - settings tracking tab
-   - settings admin tab
-   - dashboard filters
-   - runs filters
+    - settings tracking tab
+    - settings admin tab
+    - dashboard filters
+    - runs filters
 
 Recommendation:
 
@@ -503,10 +503,10 @@ Work:
 1. use existing `parentId` data
 2. build a frontend category tree/path formatter
 3. render path-aware labels in:
-   - settings tracking select
-   - settings admin select
-   - dashboard category filter
-   - runs category filter
+    - settings tracking select
+    - settings admin select
+    - dashboard category filter
+    - runs category filter
 
 This is the smallest immediately visible improvement.
 
@@ -552,13 +552,13 @@ Possible future work:
 ### First slice
 
 1. add a service utility to:
-   - build category tree metadata
-   - compute `depth`
-   - generate hierarchy order
+    - build category tree metadata
+    - compute `depth`
+    - generate hierarchy order
 
 2. update [backend/src/services/categories.service.ts](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/backend/src/services/categories.service.ts)
-   - return ordered categories
-   - include `depth`
+    - return ordered categories
+    - include `depth`
 
 3. update shared types in [shared/src/index.ts](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/shared/src/index.ts)
 
@@ -572,18 +572,18 @@ Possible future work:
 1. add category formatting helper in `frontend/src/features/categories`
 2. format category options as path labels
 3. reuse across:
-   - settings page
-   - dashboard home
-   - runs page
+    - settings page
+    - dashboard home
+    - runs page
 
 Potential helper shape:
 
 ```ts
 interface CategoryOption {
-  id: string;
-  label: string;
-  depth: number;
-  slug: string;
+    id: string;
+    label: string;
+    depth: number;
+    slug: string;
 }
 ```
 

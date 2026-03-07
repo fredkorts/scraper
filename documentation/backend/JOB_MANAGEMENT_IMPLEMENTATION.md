@@ -129,8 +129,10 @@ Reason:
 
 1. Query due categories with active subscribers.
 2. For each category:
+
 - Add job to `scrape-queue` with `jobId = scrape:category:{categoryId}`.
 - If add results in a duplicate `jobId` collision, treat as `skipped-existing` and continue.
+
 3. Log enqueue outcomes (enqueued, skipped-existing, failed).
 
 Important:
@@ -143,11 +145,14 @@ Important:
 1. Receive `ScrapeCategoryJob` with `categoryId`.
 2. Call existing `scrapeCategory(categoryId)` orchestration.
 3. On success:
+
 - scrape run completes
 - diff engine executes
 - immediate notification flow executes
+
 4. Update category `next_run_at = now + scrape_interval_hours`.
 5. On failure:
+
 - Bull retry policy handles transient retries.
 - On non-final failed attempts, do not advance `next_run_at`.
 - After final failed attempt, update `next_run_at` to `now + scrape_interval_hours` to avoid tight failure loops.
@@ -257,18 +262,20 @@ Add npm scripts in `backend/package.json`:
 2. run backend worker and scheduler in separate terminals
 3. set one category `next_run_at` to now
 4. confirm:
+
 - job appears in queue
 - scrape run created
 - diff/notification flow executed
 - category `next_run_at` advanced
+
 5. kill worker mid-job and restart; verify recovery
 
 ## 13. Observability and Operations
 
 - structured logs for:
-  - scheduler tick stats
-  - enqueue outcomes
-  - worker start/complete/fail
+    - scheduler tick stats
+    - enqueue outcomes
+    - worker start/complete/fail
 - keep failed jobs with capped retention for inspection
 - use existing stale-run cleanup script as fallback safety guard
 

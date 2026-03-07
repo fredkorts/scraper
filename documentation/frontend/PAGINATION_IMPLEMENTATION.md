@@ -50,8 +50,8 @@ Each paginated table section will show:
 4. `Next page` button
 5. `Last page` button
 6. compact summary text:
-   - `Page 14 of 42`
-   - `Showing 326-350 of 1,032`
+    - `Page 14 of 42`
+    - `Showing 326-350 of 1,032`
 
 Behavior rules:
 
@@ -94,13 +94,13 @@ Recommended component API:
 
 ```ts
 interface PaginationControlsProps {
-  page: number;
-  pageSize: number;
-  totalPages: number;
-  totalItems: number;
-  isLoading?: boolean;
-  ariaLabel: string;
-  onPageChange: (nextPage: number) => void;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    totalItems: number;
+    isLoading?: boolean;
+    ariaLabel: string;
+    onPageChange: (nextPage: number) => void;
 }
 ```
 
@@ -119,25 +119,25 @@ Notes:
 3. When data returns and `page > totalPages`, clamp and navigate to the last valid page using router `replace` semantics (not `push`) to avoid polluting browser history.
 4. Keep existing max page-size guards (`<= 100`) in search parsing and backend validation.
 5. Enforce backend deep-page guardrails:
-   - cap `page` and/or `offset` to a safe maximum
-   - reject out-of-budget requests with a clear validation response
+    - cap `page` and/or `offset` to a safe maximum
+    - reject out-of-budget requests with a clear validation response
 
 ## Backend Pagination Contract
 
 All paginated endpoints used by these screens must follow one shared contract:
 
 1. deterministic ordering:
-   - explicit sortable field + stable tie-breaker (`id`)
+    - explicit sortable field + stable tie-breaker (`id`)
 2. validated input:
-   - bounded `page`
-   - bounded `pageSize`
+    - bounded `page`
+    - bounded `pageSize`
 3. stable response shape:
-   - `items`, `page`, `pageSize`, `totalItems`, `totalPages`
+    - `items`, `page`, `pageSize`, `totalItems`, `totalPages`
 4. out-of-range behavior:
-   - API may return empty `items` for out-of-range pages
-   - frontend remains responsible for URL clamp/correction behavior
+    - API may return empty `items` for out-of-range pages
+    - frontend remains responsible for URL clamp/correction behavior
 5. bounded query cost:
-   - endpoint-level safeguards prevent pathological deep offset scans
+    - endpoint-level safeguards prevent pathological deep offset scans
 
 ## Implementation Steps
 

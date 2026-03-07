@@ -99,16 +99,16 @@ Update the DB-backed backend test bootstrap so tests no longer default to the de
 Required changes:
 
 1. [backend/src/test/setup.ts](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/backend/src/test/setup.ts)
-   - stop defaulting `DATABASE_URL` to `mabrik_scraper`
-   - read `TEST_DATABASE_URL`
-   - assign `DATABASE_URL = TEST_DATABASE_URL`
-   - throw a clear startup error if missing
+    - stop defaulting `DATABASE_URL` to `mabrik_scraper`
+    - read `TEST_DATABASE_URL`
+    - assign `DATABASE_URL = TEST_DATABASE_URL`
+    - throw a clear startup error if missing
 
 2. Add guard logic:
-   - parse `TEST_DATABASE_URL` and validate the target instead of comparing raw strings
-   - fail if parsed DB name does not look like a test DB
-   - fail if host is not local or allowlisted for test execution
-   - fail if `NODE_ENV !== "test"` in destructive DB-backed test helpers
+    - parse `TEST_DATABASE_URL` and validate the target instead of comparing raw strings
+    - fail if parsed DB name does not look like a test DB
+    - fail if host is not local or allowlisted for test execution
+    - fail if `NODE_ENV !== "test"` in destructive DB-backed test helpers
 
 Recommended error message:
 
@@ -123,11 +123,11 @@ Create a predictable local test DB that developers can start easily.
 Options:
 
 1. Recommended:
-   - use the same Postgres container
-   - create a second database inside it: `mabrik_scraper_test`
+    - use the same Postgres container
+    - create a second database inside it: `mabrik_scraper_test`
 
 2. Alternative:
-   - second Postgres container dedicated to tests
+    - second Postgres container dedicated to tests
 
 Recommendation:
 
@@ -153,9 +153,9 @@ Recommended backend package scripts:
 
 ```json
 {
-  "test": "vitest run",
-  "test:watch": "vitest",
-  "test:db:migrate": "DATABASE_URL=$TEST_DATABASE_URL prisma migrate deploy --schema prisma/schema.prisma"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:db:migrate": "DATABASE_URL=$TEST_DATABASE_URL prisma migrate deploy --schema prisma/schema.prisma"
 }
 ```
 
@@ -258,8 +258,8 @@ This is mostly a safety and operational integrity issue rather than an external 
 ### Environment / Docs
 
 - [backend/.env](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/backend/.env)
-- [README.md](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/README.md)
-- optionally [AGENTS.md](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/AGENTS.md) to codify the rule that DB-backed tests must use `TEST_DATABASE_URL`
+- [README.md](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/documentation/backend/README.md)
+- optionally [AGENTS.md](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/documentation/backend/AGENTS.md) to codify the rule that DB-backed tests must use `TEST_DATABASE_URL`
 
 ## Testing Plan
 

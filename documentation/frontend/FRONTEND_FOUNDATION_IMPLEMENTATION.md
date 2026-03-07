@@ -80,11 +80,11 @@ Target file structure (minimum):
 Deliver route tree with:
 
 - public routes:
-  - `/` (landing)
-  - `/login`
-  - `/register`
+    - `/` (landing)
+    - `/login`
+    - `/register`
 - protected layout route:
-  - `/app` (shell + nav + outlet)
+    - `/app` (shell + nav + outlet)
 
 Guard behavior:
 
@@ -99,9 +99,9 @@ Deliver base authenticated layout:
 
 - top-level app frame (header + content container)
 - placeholder nav links for upcoming Phase 4 views:
-  - Home
-  - Runs
-  - Settings
+    - Home
+    - Runs
+    - Settings
 - auth-aware user badge/logout action placeholder
 
 No heavy feature UI yet; shell first.
@@ -131,11 +131,11 @@ Auth behavior:
 
 - requests include credentials
 - 401 handling policy:
-  - auto-refresh retry for idempotent `GET` requests only
-  - do not auto-retry non-idempotent mutations by default
-  - exclude auth endpoints from refresh interception
-  - single-flight refresh lock to prevent concurrent refresh storms
-  - redirect to login if refresh/retry fails
+    - auto-refresh retry for idempotent `GET` requests only
+    - do not auto-retry non-idempotent mutations by default
+    - exclude auth endpoints from refresh interception
+    - single-flight refresh lock to prevent concurrent refresh storms
+    - redirect to login if refresh/retry fails
 - CSRF assumption: same-site deployment with `sameSite=strict` cookies; if frontend/backend become cross-site later, add explicit CSRF protection before rollout
 - add runtime response validation for critical payloads (`/api/auth/me`, runs list/detail)
 

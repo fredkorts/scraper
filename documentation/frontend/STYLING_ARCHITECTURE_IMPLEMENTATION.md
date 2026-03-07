@@ -20,7 +20,7 @@ Still optional for later refinement:
 
 ## 1. Scope
 
-This plan covers the `Phase 4 Styling Architecture (SCSS + CSS Modules)` section in [REQUIREMENTS.md](/Users/fredkorts/Documents/Development/Personal Projects/scraper/REQUIREMENTS.md).
+This plan covers the `Phase 4 Styling Architecture (SCSS + CSS Modules)` section in [REQUIREMENTS.md](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/documentation/backend/REQUIREMENTS.md).
 
 It is specifically about how we will structure, scale, and govern frontend styling for the authenticated dashboard now that Phase 4 views exist:
 
@@ -173,8 +173,8 @@ Target files:
 - `_mixins.scss`
 - `_functions.scss`
 - optional future additions:
-  - `_breakpoints.scss`
-  - `_motion.scss`
+    - `_breakpoints.scss`
+    - `_motion.scss`
 
 Implementation rules:
 
@@ -195,7 +195,7 @@ Target files:
 - `_reset.scss`
 - `_typography.scss`
 - optional future additions:
-  - `_accessibility.scss`
+    - `_accessibility.scss`
 
 Implementation rules:
 

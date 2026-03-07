@@ -39,12 +39,12 @@ These instructions apply by default for all work in this repository.
 
 - Keep backend contracts, controllers, services, schemas, and shared types in sync.
 - If a backend response shape changes, update:
-  - backend zod/prisma/service code
-  - shared types in `shared/src/index.ts`
-  - frontend runtime schemas and queries if they consume that shape
+    - backend zod/prisma/service code
+    - shared types in `shared/src/index.ts`
+    - frontend runtime schemas and queries if they consume that shape
 - Protected data must respect the existing authorization model:
-  - `free` and `paid` users only see data for actively tracked categories
-  - `admin` can see all relevant data
+    - `free` and `paid` users only see data for actively tracked categories
+    - `admin` can see all relevant data
 - Prefer returning `404` for inaccessible protected resource ids where enumeration risk exists.
 - Validate request params and query params explicitly with Zod.
 
@@ -56,9 +56,9 @@ These instructions apply by default for all work in this repository.
 - Reuse the shared `DataTable` and existing query-key conventions where applicable.
 - For new routes, prefer route-level loaders/prefetch that match the current router pattern.
 - When adding frontend features, update tests for:
-  - route behavior
-  - URL/search state behavior
-  - core rendering and accessibility states
+    - route behavior
+    - URL/search state behavior
+    - core rendering and accessibility states
 
 ## Styling Rules
 
@@ -73,9 +73,9 @@ These instructions apply by default for all work in this repository.
 ## Testing Rules
 
 - After meaningful frontend changes, run:
-  - `npm run build --workspace=frontend`
-  - `npm run lint --workspace=frontend`
-  - `npm run test --workspace=frontend`
+    - `npm run build --workspace=frontend`
+    - `npm run lint --workspace=frontend`
+    - `npm run test --workspace=frontend`
 - After meaningful backend changes, run the relevant backend build/tests and lint.
 - If backend tests require Postgres access, say so clearly and run them against the real local DB when available.
 - DB-backed backend tests must use `TEST_DATABASE_URL`, never the development `DATABASE_URL`.
@@ -86,28 +86,28 @@ These instructions apply by default for all work in this repository.
 - `REQUIREMENTS.md` is the primary roadmap and must stay current.
 - When a planned feature is implemented, update the relevant checkboxes and status notes.
 - Keep implementation docs in sync when their scope is completed or materially changed:
-  - `DB_IMPLEMENTATION.md`
-  - `USER_OPERATIONS_IMPLEMENTATION.md`
-  - `USER_AUTH_TESTING.md`
-  - `BASIC_SCRAPER_IMPLEMENTATION.md`
-  - `DIFF_ENGINE_IMPLEMENTATION.md`
-  - `EMAIL_FLOW_IMPLEMENTATION.md`
-  - `JOB_MANAGEMENT_IMPLEMENTATION.md`
-  - `CRUD_API_IMPLEMENTATION.md`
-  - `FRONTEND_FOUNDATION_IMPLEMENTATION.md`
-  - `SCRAPE_VIEWS_IMPLEMENTATION.md`
-  - `FURTHER_IMPLEMENTATIONS.md`
-  - `STYLING_ARCHITECTURE_IMPLEMENTATION.md`
+    - `DB_IMPLEMENTATION.md`
+    - `USER_OPERATIONS_IMPLEMENTATION.md`
+    - `USER_AUTH_TESTING.md`
+    - `BASIC_SCRAPER_IMPLEMENTATION.md`
+    - `DIFF_ENGINE_IMPLEMENTATION.md`
+    - `EMAIL_FLOW_IMPLEMENTATION.md`
+    - `JOB_MANAGEMENT_IMPLEMENTATION.md`
+    - `CRUD_API_IMPLEMENTATION.md`
+    - `FRONTEND_FOUNDATION_IMPLEMENTATION.md`
+    - `SCRAPE_VIEWS_IMPLEMENTATION.md`
+    - `FURTHER_IMPLEMENTATIONS.md`
+    - `STYLING_ARCHITECTURE_IMPLEMENTATION.md`
 - If a doc becomes a historical record rather than a future plan, mark that clearly with a `Status` section.
 
 ## Workflow Preferences
 
 - Before substantial work, read the relevant source files and docs first.
 - Prefer small, coherent passes:
-  - understand
-  - implement
-  - verify
-  - sync docs
+    - understand
+    - implement
+    - verify
+    - sync docs
 - When there are natural next steps, suggest them as a short numbered list.
 
 ## Repo Conventions
@@ -115,6 +115,6 @@ These instructions apply by default for all work in this repository.
 - Backend code lives in `backend/`
 - Frontend code lives in `frontend/`
 - Shared types/contracts live in `shared/`
-- Documentation and plans live in repo-root markdown files and `documentation/`
+- Documentation and plans live under `documentation/backend/` and `documentation/frontend/`
 
 When in doubt, prefer consistency with the existing implementation over novelty.

@@ -317,5 +317,5 @@ Not implemented yet:
 
 ## Project Docs
 
-- [REQUIREMENTS.md](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/REQUIREMENTS.md)
-- [DB_IMPLEMENTATION.md](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/DB_IMPLEMENTATION.md)
+- [REQUIREMENTS.md](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/documentation/backend/REQUIREMENTS.md)
+- [DB_IMPLEMENTATION.md](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/documentation/backend/DB_IMPLEMENTATION.md)

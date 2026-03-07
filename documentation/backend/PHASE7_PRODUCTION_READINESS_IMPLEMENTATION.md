@@ -18,23 +18,23 @@ Execution baseline:
 ## Locked Operational Decisions
 
 1. Limiter store outage policy:
-   - fail-open for public read endpoints
-   - fail-closed for auth/admin mutation paths
+    - fail-open for public read endpoints
+    - fail-closed for auth/admin mutation paths
 2. Worker model:
-   - single worker for now
-   - keep implementation compatible with future multi-worker scaling
+    - single worker for now
+    - keep implementation compatible with future multi-worker scaling
 3. Retry budget:
-   - enforce a per-category cumulative retry wall-clock budget
-   - recommended default: `SCRAPER_RETRY_BUDGET_MS=900000` (15 minutes)
+    - enforce a per-category cumulative retry wall-clock budget
+    - recommended default: `SCRAPER_RETRY_BUDGET_MS=900000` (15 minutes)
 
 ## Current State (as of March 4, 2026)
 
 - API already uses `express-rate-limit` in [backend/src/app.ts](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/backend/src/app.ts) with in-memory stores.
 - Scraper already has:
-  - per-page random delay (`SCRAPER_MIN_DELAY_MS` / `SCRAPER_MAX_DELAY_MS`)
-  - per-request retry with exponential backoff in [backend/src/scraper/fetch.ts](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/backend/src/scraper/fetch.ts)
-  - queue-level retry attempts in [backend/src/queue/enqueue.ts](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/backend/src/queue/enqueue.ts)
-  - failure classification in [backend/src/scraper/failure.ts](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/backend/src/scraper/failure.ts)
+    - per-page random delay (`SCRAPER_MIN_DELAY_MS` / `SCRAPER_MAX_DELAY_MS`)
+    - per-request retry with exponential backoff in [backend/src/scraper/fetch.ts](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/backend/src/scraper/fetch.ts)
+    - queue-level retry attempts in [backend/src/queue/enqueue.ts](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/backend/src/queue/enqueue.ts)
+    - failure classification in [backend/src/scraper/failure.ts](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/backend/src/scraper/failure.ts)
 - Logging is currently `console.log` / `console.error` across API, worker, scheduler, and CLI scripts.
 
 ## Target Architecture Decisions
@@ -55,15 +55,15 @@ Implementation decisions:
 - Keep high test limits in `NODE_ENV=test`.
 - Configure trusted proxy hops explicitly (for correct client IP extraction behind reverse proxy).
 - Key strategy:
-  - unauthenticated routes: client IP
-  - authenticated routes: `userId` fallback to IP
+    - unauthenticated routes: client IP
+    - authenticated routes: `userId` fallback to IP
 - Limiter-store outage behavior:
-  - public read endpoints: fail-open with warning logs/metrics
-  - auth/admin mutation endpoints: fail-closed with 503 and explicit error code
+    - public read endpoints: fail-open with warning logs/metrics
+    - auth/admin mutation endpoints: fail-closed with 503 and explicit error code
 - Return consistent 429 payload:
-  - `error: "rate_limit_exceeded"`
-  - `message`
-  - optional `retryAfterSeconds`
+    - `error: "rate_limit_exceeded"`
+    - `message`
+    - optional `retryAfterSeconds`
 
 ## 2) Scraper Politeness (`robots.txt` + Adaptive Delays)
 
@@ -75,18 +75,18 @@ Add a `robots` policy service:
 - cache result in memory with TTL (example: 6h); this is acceptable for single-worker baseline
 - validate category page URLs against `SCRAPER_USER_AGENT`
 - if disallowed:
-  - abort scrape before page fetch loop
-  - record failure code `robots_disallowed`
-  - mark non-retryable
+    - abort scrape before page fetch loop
+    - record failure code `robots_disallowed`
+    - mark non-retryable
 
 Failure mode for robots fetch:
 
 - add config `SCRAPER_ROBOTS_STRICT`
-  - `true` (recommended for prod): fail closed if robots cannot be validated
-  - `false` (allowed for local dev): log warning and continue
+    - `true` (recommended for prod): fail closed if robots cannot be validated
+    - `false` (allowed for local dev): log warning and continue
 - add last-known-good fallback:
-  - if robots fetch fails but cached policy is still valid, continue using cached policy
-  - if no valid cached policy exists and strict mode is enabled, fail closed
+    - if robots fetch fails but cached policy is still valid, continue using cached policy
+    - if no valid cached policy exists and strict mode is enabled, fail closed
 - add robots fetch timeout budget to prevent indefinite startup stalls
 
 ### Adaptive delays
@@ -95,9 +95,9 @@ Extend fixed random delay into adaptive delay:
 
 - base delay from existing min/max config
 - extra penalty after transient upstream pressure signals:
-  - 429 responses
-  - 5xx spikes
-  - repeated timeouts
+    - 429 responses
+    - 5xx spikes
+    - repeated timeouts
 - honor `Retry-After` header when present
 - cap adaptive delay to a max configured ceiling
 
@@ -126,8 +126,8 @@ Enhancements:
 - in worker, suppress queue retries for non-retryable failures (`job.discard()` pattern)
 - keep queue retries for retryable failures only
 - enforce cumulative retry budget per category run (`SCRAPER_RETRY_BUDGET_MS`)
-  - once exhausted, mark failure code `retry_budget_exhausted`
-  - treat as non-retryable for the remaining queue attempts
+    - once exhausted, mark failure code `retry_budget_exhausted`
+    - treat as non-retryable for the remaining queue attempts
 - persist attempt metadata to logs for each failure
 
 ### Error boundary improvements
@@ -144,21 +144,21 @@ Implementation decisions:
 
 - create shared logger in `backend/src/lib/logger.ts`
 - replace `console.*` calls in:
-  - API app/server
-  - scheduler
-  - worker
-  - scraper/diff/notification scripts
+    - API app/server
+    - scheduler
+    - worker
+    - scraper/diff/notification scripts
 - request logging middleware:
-  - request id (`x-request-id` accepted or generated)
-  - method, path, status, latency
-  - actor id if authenticated
+    - request id (`x-request-id` accepted or generated)
+    - method, path, status, latency
+    - actor id if authenticated
 - child loggers for worker jobs and scrape runs:
-  - `jobId`, `categoryId`, `scrapeRunId`, `attempt`, `trigger`
+    - `jobId`, `categoryId`, `scrapeRunId`, `attempt`, `trigger`
 - correlation id propagation:
-  - accept or generate request id at API edge
-  - propagate into queued job metadata and worker log context
+    - accept or generate request id at API edge
+    - propagate into queued job metadata and worker log context
 - redaction policy for sensitive fields:
-  - auth cookies, JWTs, passwords, secrets, SMTP/Resend creds
+    - auth cookies, JWTs, passwords, secrets, SMTP/Resend creds
 
 Dev/prod behavior:
 
@@ -185,8 +185,8 @@ Dev/prod behavior:
 - verify authenticated keying (same IP, different users)
 - verify bypass/high limits in `NODE_ENV=test`
 - verify limiter-store outage behavior:
-  - read endpoints fail-open
-  - auth/admin mutation endpoints fail-closed
+    - read endpoints fail-open
+    - auth/admin mutation endpoints fail-closed
 
 ### Robots + politeness
 
@@ -200,10 +200,10 @@ Dev/prod behavior:
 
 - fetch retry tests with jitter-aware assertions
 - worker tests:
-  - non-retryable failure is not retried
-  - retryable failure retries until attempts exhausted
+    - non-retryable failure is not retried
+    - retryable failure retries until attempts exhausted
 - retry budget tests:
-  - budget exhausted terminates retry chain with deterministic failure code
+    - budget exhausted terminates retry chain with deterministic failure code
 - run persistence tests for failure codes and readable summaries
 
 ### Logging

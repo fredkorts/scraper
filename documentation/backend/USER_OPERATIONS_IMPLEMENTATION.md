@@ -23,10 +23,12 @@ It is scoped to authentication and session lifecycle only. It does not cover fro
 ### Auth model
 
 Use:
+
 - short-lived JWT access token
 - opaque refresh token persisted as a hash in `refresh_tokens`
 
 Reason:
+
 - access tokens stay stateless and cheap to verify
 - refresh sessions remain revocable server-side
 - this matches the finalized PRD and schema
@@ -34,6 +36,7 @@ Reason:
 ### Session storage
 
 Each login creates one `RefreshToken` row:
+
 - `tokenHash`
 - `userId`
 - `expiresAt`
@@ -42,6 +45,7 @@ Each login creates one `RefreshToken` row:
 - `replacedByTokenId = null`
 
 Each refresh:
+
 - validates the presented refresh token
 - revokes the old row by setting `revokedAt`
 - sets `revocationReason = "rotated"`
@@ -52,37 +56,45 @@ Each refresh:
 This is token rotation, not token reuse.
 
 If a revoked refresh token is presented again:
+
 - treat it as refresh-token reuse
 - assume session compromise is possible
 - revoke all active refresh sessions for that user
 
 Reason:
+
 - reuse of a rotated refresh token is a strong signal that the token may have been stolen
 
 ### Cookie strategy
 
 Use cookies for both tokens:
+
 - `access_token`
 - `refresh_token`
 
 Cookie attributes:
+
 - `httpOnly: true`
 - `sameSite: "strict"`
 - `secure: true` in production
 - `path: "/"`
 
 Access token lifetime:
+
 - `15m`
 
 Refresh token lifetime:
+
 - `30d`
 
 Reason:
+
 - consistent browser-based auth flow
 - minimizes XSS exposure
 - supports silent session refresh
 
 Cookie names:
+
 - `access_token`
 - `refresh_token`
 
@@ -91,14 +103,17 @@ Cookie names:
 ### `POST /api/auth/register`
 
 Purpose:
+
 - create a new user account
 
 Input:
+
 - `email`
 - `password`
 - `name`
 
 Behavior:
+
 - validate request with Zod
 - normalize email to lowercase + trimmed
 - reject duplicate email
@@ -110,19 +125,23 @@ Behavior:
 - run user creation, default notification channel creation, and refresh token creation in a single DB transaction
 
 Response:
+
 - `201 Created`
 - authenticated user payload
 
 ### `POST /api/auth/login`
 
 Purpose:
+
 - authenticate an existing user
 
 Input:
+
 - `email`
 - `password`
 
 Behavior:
+
 - validate request with Zod
 - lookup user by normalized email
 - reject inactive or missing users
@@ -132,19 +151,23 @@ Behavior:
 - keep login failure responses generic so email enumeration is not exposed
 
 Response:
+
 - `200 OK`
 - authenticated user payload
 
 ### `POST /api/auth/refresh`
 
 Purpose:
+
 - rotate refresh token and issue new session tokens
 
 Input:
+
 - no JSON body required
 - refresh token read from cookie
 
 Behavior:
+
 - require refresh token cookie
 - hash the presented token
 - lookup matching `RefreshToken`
@@ -156,40 +179,49 @@ Behavior:
 - run revoke + replacement token creation in a single DB transaction
 
 Response:
+
 - `200 OK`
 - authenticated user payload or minimal success payload
 
 ### `POST /api/auth/logout`
 
 Purpose:
+
 - revoke current refresh session
 
 Input:
+
 - no JSON body required
 - refresh token read from cookie
 
 Behavior:
+
 - if refresh cookie exists, hash it and revoke matching DB row
 - clear both auth cookies
 - return success even if token was already missing or invalid
 
 Response:
+
 - `200 OK`
 
 ### `GET /api/auth/me`
 
 Purpose:
+
 - return the currently authenticated user
 
 Input:
+
 - access token from cookie
 
 Behavior:
+
 - verify access token
 - load user from DB
 - reject revoked/inactive/missing users
 
 Response:
+
 - `200 OK`
 - sanitized user payload
 
@@ -198,13 +230,16 @@ Response:
 ### New files
 
 #### [backend/src/routes/auth.ts](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/backend/src/routes/auth.ts)
+
 - define auth router
 - register `/register`, `/login`, `/refresh`, `/logout`, `/me`
 
 #### [backend/src/controllers/auth.controller.ts](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/backend/src/controllers/auth.controller.ts)
+
 - request handlers for all auth endpoints
 
 #### [backend/src/services/auth.service.ts](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/backend/src/services/auth.service.ts)
+
 - user creation
 - password verification
 - token issuance
@@ -212,42 +247,51 @@ Response:
 - logout revocation
 
 #### [backend/src/lib/jwt.ts](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/backend/src/lib/jwt.ts)
+
 - sign access tokens
 - sign refresh tokens
 - verify access tokens
 
 #### [backend/src/lib/cookies.ts](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/backend/src/lib/cookies.ts)
+
 - central cookie options
 - helper to set and clear auth cookies
 
 #### [backend/src/lib/hash.ts](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/backend/src/lib/hash.ts)
+
 - refresh-token hashing helper
 - keep refresh token hashing separate from password hashing
 
 #### [backend/src/middleware/auth.ts](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/backend/src/middleware/auth.ts)
+
 - verify access token from cookie
 - attach authenticated user info to request
 
 #### [backend/src/schemas/auth.ts](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/backend/src/schemas/auth.ts)
+
 - Zod schemas for register/login payloads
 - password policy definitions
 
 #### [backend/src/types/express.d.ts](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/backend/src/types/express.d.ts)
+
 - extend `Express.Request` with authenticated user context
 
 ### Existing files to modify
 
 #### [backend/src/index.ts](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/backend/src/index.ts)
+
 - mount auth router under `/api/auth`
 - add centralized error handling
 
 #### [backend/src/config.ts](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/backend/src/config.ts)
+
 - add auth config:
-  - `ACCESS_TOKEN_TTL`
-  - `REFRESH_TOKEN_TTL_DAYS`
-  - optional `BCRYPT_ROUNDS`
+    - `ACCESS_TOKEN_TTL`
+    - `REFRESH_TOKEN_TTL_DAYS`
+    - optional `BCRYPT_ROUNDS`
 
 #### [shared/src/index.ts](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/shared/src/index.ts)
+
 - add auth request/response types if shared typing is desired now
 
 ## Data Model Usage
@@ -255,6 +299,7 @@ Response:
 ### `users`
 
 Used for:
+
 - registration
 - login identity lookup
 - `me` response
@@ -263,11 +308,13 @@ Used for:
 ### `refresh_tokens`
 
 Used for:
+
 - session creation at register/login
 - token rotation on refresh
 - session revocation on logout
 
 Recommended minimum schema support:
+
 - `revocationReason`
 - `replacedByTokenId`
 
@@ -276,13 +323,16 @@ These fields are enough to support basic rotation lineage and security-driven re
 ### `notification_channels`
 
 Used for:
+
 - default email destination on registration
 - future user-managed notification destinations
 
 Recommended minimum schema support:
+
 - unique composite on `userId`, `channelType`, `destination`
 
 Reason:
+
 - prevents duplicate default email-channel rows for the same user
 
 ## Validation Rules
@@ -294,6 +344,7 @@ Reason:
 - `password`: minimum 10 chars, maximum 128 chars
 
 Recommended stronger policy:
+
 - at least one uppercase letter
 - at least one lowercase letter
 - at least one number
@@ -308,6 +359,7 @@ Recommended stronger policy:
 ### Access token payload
 
 Minimal payload:
+
 - `sub` = user id
 - `role`
 - `email`
@@ -318,6 +370,7 @@ Minimal payload:
 Avoid placing mutable profile fields beyond what is needed for authorization.
 
 Verification must check:
+
 - signature
 - expiration
 - issuer
@@ -329,15 +382,18 @@ Verification must check:
 Use a high-entropy random token, not a JWT.
 
 Store:
+
 - raw token in cookie only
 - SHA-256 hash in DB only
 
 Reason:
+
 - if DB leaks, refresh tokens are not directly usable
 
 ## Error Handling
 
 Expected auth failures:
+
 - invalid input -> `400`
 - duplicate email -> `409`
 - bad credentials -> `401`
@@ -345,6 +401,7 @@ Expected auth failures:
 - inactive user -> `403`
 
 Response shape should be consistent:
+
 - `error`
 - `message`
 
@@ -365,6 +422,7 @@ Do not reveal whether email or password was incorrect on login.
 ### CSRF note
 
 Current design relies on:
+
 - `HttpOnly` cookies
 - `SameSite=Strict`
 - restricted CORS
@@ -372,6 +430,7 @@ Current design relies on:
 This is acceptable for the current same-site local deployment model.
 
 If frontend and backend move to a cross-site deployment later, add explicit CSRF protection for state-changing routes:
+
 - CSRF token pattern, or
 - double-submit cookie pattern
 
@@ -380,6 +439,7 @@ If frontend and backend move to a cross-site deployment later, add explicit CSRF
 This phase does not include email verification.
 
 Implication:
+
 - newly registered accounts are considered immediately trusted for login
 
 That is acceptable for the current project phase, but should be revisited before production launch.
@@ -389,6 +449,7 @@ That is acceptable for the current project phase, but should be revisited before
 ### Unit tests
 
 Add backend tests for:
+
 - password hashing/verification helpers
 - refresh token hashing helper
 - access token verification
@@ -398,6 +459,7 @@ Add backend tests for:
 ### Integration tests
 
 Add endpoint-level tests for:
+
 - register success
 - duplicate email rejection
 - login success
@@ -410,6 +472,7 @@ Add endpoint-level tests for:
 ### Edge cases
 
 Test:
+
 - logout with missing refresh cookie
 - refresh with expired token
 - login for inactive user

@@ -31,11 +31,11 @@ Included in this phase:
 
 - diffing a completed scrape run against prior known state
 - detecting:
-  - `price_increase`
-  - `price_decrease`
-  - `new_product`
-  - `sold_out`
-  - `back_in_stock`
+    - `price_increase`
+    - `price_decrease`
+    - `new_product`
+    - `sold_out`
+    - `back_in_stock`
 - creating `change_reports`
 - creating `change_items`
 - updating `scrape_runs.soldOut` and `scrape_runs.backInStock`
@@ -96,9 +96,9 @@ Source:
 Rule:
 
 - emit `new_product` only when:
-  - the product has a current-run snapshot
-  - and `products.first_seen_at` falls within the current run window
-  - and the product was first created in the whole system during this run
+    - the product has a current-run snapshot
+    - and `products.first_seen_at` falls within the current run window
+    - and the product was first created in the whole system during this run
 
 Practical implementation rule:
 
@@ -140,8 +140,8 @@ Rule:
 - treat `products.in_stock` as global truth
 - emit `sold_out` only when there is explicit out-of-stock evidence in persisted data
 - specifically, emit `sold_out` when:
-  - the product has a current-run snapshot with `in_stock = false`
-  - and the most recent persisted historical state before this run was `in_stock = true`
+    - the product has a current-run snapshot with `in_stock = false`
+    - and the most recent persisted historical state before this run was `in_stock = true`
 
 Do not emit `sold_out` from category-local absence alone.
 
@@ -214,10 +214,10 @@ Reason:
 Practical baseline strategy:
 
 - current state comes from:
-  - current canonical `products`
-  - current-run `product_snapshots`
+    - current canonical `products`
+    - current-run `product_snapshots`
 - previous state comes from:
-  - the most recent `product_snapshot` before the current run for each relevant product
+    - the most recent `product_snapshot` before the current run for each relevant product
 - if no pre-run snapshot exists for a product, the diff engine must treat prior comparison state as unavailable rather than inferred
 
 Implementation note:
@@ -251,9 +251,9 @@ For each product:
 - determine previous price and stock state
 - determine current price and stock state
 - emit at most:
-  - one price change item
-  - one stock change item
-  - one `new_product` item
+    - one price change item
+    - one stock change item
+    - one `new_product` item
 
 Allowed combinations:
 
@@ -347,10 +347,10 @@ This keeps delivery state uniform and lets later jobs decide how to dispatch.
 `persist.ts`
 
 - transaction for:
-  - `change_report`
-  - `change_items`
-  - `notification_deliveries`
-  - `scrape_run` counters
+    - `change_report`
+    - `change_items`
+    - `notification_deliveries`
+    - `scrape_run` counters
 
 `run.ts`
 
@@ -409,10 +409,10 @@ This matters for:
 Behavior:
 
 - do not emit diff items that require historical comparison:
-  - `price_increase`
-  - `price_decrease`
-  - `sold_out`
-  - `back_in_stock`
+    - `price_increase`
+    - `price_decrease`
+    - `sold_out`
+    - `back_in_stock`
 - emit `new_product` only for products whose `first_seen_at` falls within the current run window
 
 Rationale:
@@ -446,8 +446,8 @@ Reason:
 Behavior:
 
 - emit both:
-  - one price change item
-  - one stock change item
+    - one price change item
+    - one stock change item
 
 ### Product appears in multiple categories
 
@@ -553,13 +553,13 @@ After implementation:
 1. Run a real category scrape twice.
 2. Modify one known product price in test fixtures or staging data.
 3. Verify:
-   - one `change_report` exists for the later run
-   - expected `change_items` exist
-   - `scrape_runs` counters match item counts
-   - `notification_deliveries` were created for subscribed users
+    - one `change_report` exists for the later run
+    - expected `change_items` exist
+    - `scrape_runs` counters match item counts
+    - `notification_deliveries` were created for subscribed users
 4. Simulate an explicit out-of-stock transition and verify:
-   - `sold_out` item created
-   - no duplicate change item is created on retry
+    - `sold_out` item created
+    - no duplicate change item is created on retry
 
 ## Open implementation considerations
 

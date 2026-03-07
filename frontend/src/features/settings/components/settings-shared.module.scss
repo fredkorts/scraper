@@ -25,22 +25,6 @@
     font-size: var(--font-size-sm);
 }
 
-.tabBar {
-    display: flex;
-    gap: var(--space-sm);
-    flex-wrap: wrap;
-}
-
-.tabButton {
-    @include forms.control-base;
-    background: var(--color-surface);
-}
-
-.tabButton[data-active="true"] {
-    border-color: var(--color-primary);
-    box-shadow: inset 0 0 0 1px var(--color-primary);
-}
-
 .section {
     display: grid;
     gap: var(--space-md);

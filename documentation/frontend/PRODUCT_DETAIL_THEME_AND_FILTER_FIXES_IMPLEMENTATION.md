@@ -46,9 +46,9 @@ Likely root cause:
 
 1. Product Detail must use a **single visual theme system** derived from existing app CSS tokens.
 2. Price History controls will be organized into **structured rows**:
-   - row A: range control (primary)
-   - row B: category + stock select
-   - row C: toggles + reset action
+    - row A: range control (primary)
+    - row B: category + stock select
+    - row C: toggles + reset action
 3. On mobile, controls stack full-width with clean vertical spacing.
 4. Keep behavior intact: only visual/layout and theming consistency changes.
 
@@ -61,26 +61,26 @@ Before token/provider changes, run a CSS-surface audit focused on app-owned laye
 Audit scope:
 
 1. App shell and route wrappers:
-   - `body`, `#root`, app layout containers, route page wrappers
-   - background, text color, border, and elevation variables in light/dark
+    - `body`, `#root`, app layout containers, route page wrappers
+    - background, text color, border, and elevation variables in light/dark
 2. Product Detail non-Ant containers:
-   - breadcrumb/header/context wrappers
-   - page-level panels/sections defined in CSS Modules
+    - breadcrumb/header/context wrappers
+    - page-level panels/sections defined in CSS Modules
 3. Shared style primitives:
-   - global tokens and any fallback hardcoded values
-   - surfaces that can override theme unintentionally
+    - global tokens and any fallback hardcoded values
+    - surfaces that can override theme unintentionally
 4. Cross-route sanity check (same classes/patterns):
-   - dashboard home
-   - runs list/detail
-   - settings
+    - dashboard home
+    - runs list/detail
+    - settings
 
 Audit output (required in implementation notes/PR):
 
 - `surface/layer` -> `source file` -> `token/value currently used` -> `expected token/value` -> `action`
 - Explicitly mark root-cause items as:
-  - app-surface mismatch
-  - token mismatch
-  - Ant token mismatch
+    - app-surface mismatch
+    - token mismatch
+    - Ant token mismatch
 
 ## A) Theme unification for Ant components
 
@@ -89,25 +89,25 @@ Add Ant token mapping via `ConfigProvider` so Ant honors current CSS-variable pa
 Rollout strategy (to reduce blast radius):
 
 1. **Phase A (route-scoped first):**
-   - add a Product Detail scoped provider (`ProductDetailThemeScope`) that maps Ant tokens from existing CSS vars
-   - apply only on Product Detail route while validating behavior
+    - add a Product Detail scoped provider (`ProductDetailThemeScope`) that maps Ant tokens from existing CSS vars
+    - apply only on Product Detail route while validating behavior
 2. **Phase B (optional global rollout):**
-   - promote to app-level provider only after smoke validation on dashboard, runs, settings, and auth pages
-   - keep token map minimal and additive
+    - promote to app-level provider only after smoke validation on dashboard, runs, settings, and auth pages
+    - keep token map minimal and additive
 
 Implementation direction:
 
 1. Execute the non-Ant surface audit and fix app-surface mismatches first.
 2. Add `frontend/src/app/theme-provider.tsx` (or route-scoped equivalent in Phase A):
-   - wraps app with `ConfigProvider`
-   - sets Ant tokens using CSS variables:
-     - `colorBgBase`, `colorBgContainer`, `colorText`, `colorTextSecondary`, `colorBorder`, `colorPrimary`
-   - set component-level token overrides for frequently used components:
-     - `Card`, `Typography`, `Select`, `Segmented`, `Switch`, `Tag`, `Alert`, `Button`
+    - wraps app with `ConfigProvider`
+    - sets Ant tokens using CSS variables:
+        - `colorBgBase`, `colorBgContainer`, `colorText`, `colorTextSecondary`, `colorBorder`, `colorPrimary`
+    - set component-level token overrides for frequently used components:
+        - `Card`, `Typography`, `Select`, `Segmented`, `Switch`, `Tag`, `Alert`, `Button`
 3. If promoting globally, wrap root in `main.tsx`:
-   - `QueryClientProvider -> AppThemeProvider -> AppNotificationProvider -> RouterProvider`
+    - `QueryClientProvider -> AppThemeProvider -> AppNotificationProvider -> RouterProvider`
 4. Verify dark-mode behavior:
-   - Ant surfaces and text respond consistently when system preference switches.
+    - Ant surfaces and text respond consistently when system preference switches.
 
 ## B) Product detail filter layout redesign
 
@@ -116,26 +116,26 @@ Refactor history controls into grouped, responsive layout.
 Implementation direction in product detail view:
 
 1. Replace single wrapped flex row with a structured container:
-   - `Form layout="vertical"` + `Row/Col` for predictable spacing
+    - `Form layout="vertical"` + `Row/Col` for predictable spacing
 2. Row A (primary):
-   - Time range segmented (full row)
+    - Time range segmented (full row)
 3. Row B (secondary filters):
-   - Category select and Stock filter select side-by-side on desktop/tablet
-   - full-width stacked on mobile
+    - Category select and Stock filter select side-by-side on desktop/tablet
+    - full-width stacked on mobile
 4. Row C (display toggles + action):
-   - left cluster: original price + stock overlay toggles
-   - right cluster: reset filters button
+    - left cluster: original price + stock overlay toggles
+    - right cluster: reset filters button
 5. Add consistent spacing and min/max width constraints in route-local module SCSS.
 
 ## C) Minor cleanup while touching this area
 
 1. Replace deprecated Ant usages still present, with explicit mapping:
-   - record exact warning from test/build output
-   - map each warning to:
-     - current API usage
-     - target API usage
-     - file changed
-   - keep scope limited to Product Detail and directly related shared UI code touched by this fix
+    - record exact warning from test/build output
+    - map each warning to:
+        - current API usage
+        - target API usage
+        - file changed
+    - keep scope limited to Product Detail and directly related shared UI code touched by this fix
 2. Keep run list section behavior unchanged (only visual cleanup if needed).
 
 Deprecation cleanup checklist format:
@@ -159,8 +159,8 @@ Deprecation cleanup checklist format:
 
 1. Product Detail header/context and cards share one coherent theme in both light and dark modes.
 2. Filters no longer crowd:
-   - desktop: clear row hierarchy and spacing
-   - tablet/mobile: no overlap, no cramped controls, touch-friendly targets
+    - desktop: clear row hierarchy and spacing
+    - tablet/mobile: no overlap, no cramped controls, touch-friendly targets
 3. Price History controls remain understandable at a glance.
 4. Cross-route spot check confirms no app-surface theme mismatch on dashboard/runs/settings.
 
@@ -173,16 +173,16 @@ Deprecation cleanup checklist format:
 ## Automated checks
 
 1. Ensure test environment supports Ant runtime dependencies:
-   - `matchMedia`
-   - `ResizeObserver`
-   - stubs remain active even when tests call global un-stub helpers
+    - `matchMedia`
+    - `ResizeObserver`
+    - stubs remain active even when tests call global un-stub helpers
 2. Update route tests if selector strategy changes due to Ant structure updates:
-   - prefer role/label queries and helper methods for Ant `Select`/`Segmented` interaction
-   - avoid brittle class-name selectors
+    - prefer role/label queries and helper methods for Ant `Select`/`Segmented` interaction
+    - avoid brittle class-name selectors
 3. Run:
-   - `npm run lint --workspace=frontend`
-   - `npm run test --workspace=frontend`
-   - `npm run build --workspace=frontend`
+    - `npm run lint --workspace=frontend`
+    - `npm run test --workspace=frontend`
+    - `npm run build --workspace=frontend`
 
 ## Acceptance Criteria
 

@@ -64,24 +64,24 @@ These controls should answer the most likely dashboard questions:
 Implement these controls in this order:
 
 1. `Time range`
-   - Options: `30d`, `90d`, `180d`, `all`
-   - Why: users need to compress long histories into a readable period quickly.
+    - Options: `30d`, `90d`, `180d`, `all`
+    - Why: users need to compress long histories into a readable period quickly.
 
 2. `Category filter`
-   - Only show categories that exist in the returned product history for the current product.
-   - Why: products can belong to multiple categories, and mixed-category lines can be confusing.
+    - Only show categories that exist in the returned product history for the current product.
+    - Why: products can belong to multiple categories, and mixed-category lines can be confusing.
 
 3. `Stock filter`
-   - Options: `all`, `in stock only`, `out of stock only`
-   - Why: lets users isolate periods relevant to availability changes.
+    - Options: `all`, `in stock only`, `out of stock only`
+    - Why: lets users isolate periods relevant to availability changes.
 
 4. `Show original price`
-   - Toggle a second line only when historical `originalPrice` data exists.
-   - Why: useful for discount context, but should stay optional to avoid clutter.
+    - Toggle a second line only when historical `originalPrice` data exists.
+    - Why: useful for discount context, but should stay optional to avoid clutter.
 
 5. `Show stock overlay`
-   - Toggle stock-state markers or a stock-state band/legend on the chart.
-   - Why: users often need to correlate price points with stock transitions.
+    - Toggle stock-state markers or a stock-state band/legend on the chart.
+    - Why: users often need to correlate price points with stock transitions.
 
 These five controls are enough for a meaningful first analytical version. Anything beyond this should wait until actual usage reveals gaps.
 
@@ -169,17 +169,17 @@ This module should remain the single place for:
 Recommended component breakdown:
 
 - `ProductDetailPage`
-  - route shell
-  - loader/useSearch integration
+    - route shell
+    - loader/useSearch integration
 - `ProductHistoryControls`
-  - labeled selects/toggles
-  - no data fetching logic
+    - labeled selects/toggles
+    - no data fetching logic
 - `ProductHistoryChart`
-  - chart rendering only
+    - chart rendering only
 - `ProductHistorySummary`
-  - summary cards derived from filtered data
+    - summary cards derived from filtered data
 - `ProductHistoryTable`
-  - filtered table view
+    - filtered table view
 
 This keeps the route file from becoming the next monolith.
 
@@ -242,11 +242,11 @@ Acceptance criteria:
 
 - Filter chart/table data using the helper module.
 - Add summary cards for filtered view:
-  - point count
-  - latest price
-  - min price
-  - max price
-  - stock transitions
+    - point count
+    - latest price
+    - min price
+    - max price
+    - stock transitions
 
 Acceptance criteria:
 
@@ -300,13 +300,13 @@ Add or extend route tests to cover:
 ## Risks
 
 1. Large product histories may still produce heavy client-side filtering work.
-   - Mitigation: keep client-side for now, measure later, add backend range limiting only if needed.
+    - Mitigation: keep client-side for now, measure later, add backend range limiting only if needed.
 
 2. Chart clutter can degrade usability quickly.
-   - Mitigation: default to a single current-price line and keep overlays opt-in.
+    - Mitigation: default to a single current-price line and keep overlays opt-in.
 
 3. Route-splitting can regress prefetch behavior if done carelessly.
-   - Mitigation: keep loader contracts unchanged and verify route navigation tests.
+    - Mitigation: keep loader contracts unchanged and verify route navigation tests.
 
 ## Recommended Execution Order
 

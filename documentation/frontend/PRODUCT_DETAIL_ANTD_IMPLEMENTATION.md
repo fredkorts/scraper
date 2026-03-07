@@ -23,24 +23,24 @@ Primary UX goal:
 This contract is mandatory for implementation consistency:
 
 1. First viewport must show:
-   - Current Price
-   - Stock state
-   - Product name
+    - Current Price
+    - Stock state
+    - Product name
 2. Visual weight order:
-   - Price (`Statistic` value, largest emphasis)
-   - Stock (`Tag/Badge` + explicit text)
-   - Original price + discount delta
-   - Secondary metadata
+    - Price (`Statistic` value, largest emphasis)
+    - Stock (`Tag/Badge` + explicit text)
+    - Original price + discount delta
+    - Secondary metadata
 3. Desktop layout rule:
-   - Price and Stock must appear in the first metric row.
+    - Price and Stock must appear in the first metric row.
 4. Mobile layout rule:
-   - Price card first, Stock card second, before image/extended metadata.
+    - Price card first, Stock card second, before image/extended metadata.
 5. Status semantics:
-   - `In stock` and `Out of stock` must always be textual, not icon/color only.
+    - `In stock` and `Out of stock` must always be textual, not icon/color only.
 6. Measurable prominence rule:
-   - current price uses primary metric styling (`Statistic` with largest size in the hero metrics block)
-   - stock uses emphasized semantic tag adjacent to primary metrics
-   - secondary metrics (history points/original price) must use lower visual emphasis than current price
+    - current price uses primary metric styling (`Statistic` with largest size in the hero metrics block)
+    - stock uses emphasized semantic tag adjacent to primary metrics
+    - secondary metrics (history points/original price) must use lower visual emphasis than current price
 
 ## Non-Goals
 
@@ -121,19 +121,19 @@ Ant components around existing chart:
 
 1. Add quick range shortcuts using Ant segmented controls (`30d`, `90d`, `180d`, `All`) for faster scanning.
 2. Improve tooltip content hierarchy:
-   - date/time first
-   - current price
-   - original price (if present)
-   - stock state
+    - date/time first
+    - current price
+    - original price (if present)
+    - stock state
 3. Add clearer empty-state guidance when filters exclude all points.
 4. Keep chart legend minimal and move explanatory copy to a compact `Alert`/note block.
 
 ## P2 (optional follow-up, do not block release)
 
 1. Add a compact “trend summary” row:
-   - latest vs previous snapshot delta
-   - min/max in selected range
-   - stock transitions count
+    - latest vs previous snapshot delta
+    - min/max in selected range
+    - stock transitions count
 
 Scope rule:
 
@@ -188,19 +188,19 @@ Ant components:
 Each state must include a user-visible next step:
 
 1. Product detail load failure:
-   - show `Alert` with `Retry` action
-   - secondary action: `Back to runs`
+    - show `Alert` with `Retry` action
+    - secondary action: `Back to runs`
 2. History fetch failure:
-   - show `Alert` with `Retry history` action
-   - keep existing product summary visible
+    - show `Alert` with `Retry history` action
+    - keep existing product summary visible
 3. Filtered history empty:
-   - show `Empty` with action: `Reset filters`
+    - show `Empty` with action: `Reset filters`
 4. Missing product (404):
-   - show explicit not-found message with `Back to runs`
+    - show explicit not-found message with `Back to runs`
 5. Broken image:
-   - use fallback placeholder image and keep page functional
+    - use fallback placeholder image and keep page functional
 6. No recent runs:
-   - show informative empty state with link to runs list
+    - show informative empty state with link to runs list
 
 ## Accessibility Requirements
 
@@ -211,22 +211,22 @@ Each state must include a user-visible next step:
 5. Keep keyboard focus order predictable across cards, controls, and links.
 6. Ensure touch target size for filters and action buttons is mobile-appropriate.
 7. Provide a concise screen-reader history summary above the chart:
-   - point count
-   - latest price
-   - min/max in selected range
+    - point count
+    - latest price
+    - min/max in selected range
 8. Ensure switches/selects have programmatic labels and descriptive helper text where needed.
 
 ## Freshness and Data Source UX Rules
 
 1. Show absolute timestamp for `Last seen` and `First seen`.
 2. Add relative freshness text near last seen, for example:
-   - `Updated 12 minutes ago`
+    - `Updated 12 minutes ago`
 3. Add stale-data warning state:
-   - when `Last seen` exceeds configured threshold
-   - show warning `Alert` with neutral guidance (no alarmist copy)
+    - when `Last seen` exceeds configured threshold
+    - show warning `Alert` with neutral guidance (no alarmist copy)
 4. Show source context:
-   - categories shown as chips
-   - recent runs section links to originating run details
+    - categories shown as chips
+    - recent runs section links to originating run details
 
 Implementation rule:
 
@@ -248,16 +248,16 @@ Implementation rule:
 Use a strict container/presentational split:
 
 1. `routes/product-detail-page.tsx`:
-   - route composition only
-   - query/search wiring only
-   - passes prepared props into UI sections
+    - route composition only
+    - query/search wiring only
+    - passes prepared props into UI sections
 2. `features/products/hooks/*`:
-   - derived view-model logic only
-   - no JSX layout rendering
+    - derived view-model logic only
+    - no JSX layout rendering
 3. `features/products/components/*`:
-   - presentational rendering only
-   - receives precomputed props
-   - no direct query/search parsing
+    - presentational rendering only
+    - receives precomputed props
+    - no direct query/search parsing
 
 Rule:
 

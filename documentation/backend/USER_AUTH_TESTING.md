@@ -10,6 +10,7 @@ This plan defines how to test the backend user-auth section end to end:
 - `/api/auth/me`
 
 It covers:
+
 - user flows
 - edge cases
 - security-sensitive scenarios
@@ -17,6 +18,7 @@ It covers:
 - recommended fixtures and helpers
 
 It does not cover:
+
 - frontend login/register UI tests
 - PayPal-driven role changes
 - password reset
@@ -36,19 +38,23 @@ It does not cover:
 Use three layers:
 
 1. Unit tests
+
 - pure helpers and token utilities
 - schema validation
 - cookie utilities
 
 2. Service tests
+
 - `auth.service.ts` against a test database
 - verify DB state transitions directly
 
 3. Endpoint/integration tests
+
 - exercise HTTP routes
 - assert status codes, response bodies, and `Set-Cookie` behavior
 
 Recommended priority:
+
 - service tests first
 - route/integration tests second
 - helper unit tests for targeted coverage
@@ -60,12 +66,14 @@ Recommended priority:
 Use a dedicated Postgres test database, not the local development DB.
 
 Recommended options:
+
 - separate Docker database for tests
 - or same Postgres instance with a dedicated test database and schema reset between runs
 
 ### Environment values
 
 Test env should use:
+
 - short access-token TTL if needed for expiry tests
 - short refresh-token TTL only in targeted expiry tests
 - test-specific `JWT_SECRET`
@@ -75,11 +83,13 @@ Test env should use:
 ### Isolation
 
 Each test suite should:
+
 - start from a clean DB state
 - truncate or recreate relevant tables
 - avoid depending on existing users or refresh tokens
 
 Minimum tables to reset:
+
 - `refresh_tokens`
 - `notification_channels`
 - `user_subscriptions`
@@ -90,6 +100,7 @@ Minimum tables to reset:
 ### Flow 1: Register new user
 
 Expected behavior:
+
 - valid payload is accepted
 - user row is created
 - password is stored hashed
@@ -101,6 +112,7 @@ Expected behavior:
 ### Flow 2: Login existing user
 
 Expected behavior:
+
 - valid credentials return `200`
 - access and refresh cookies are set
 - new refresh-token row is created
@@ -109,12 +121,14 @@ Expected behavior:
 ### Flow 3: Get current user with valid access token
 
 Expected behavior:
+
 - valid access cookie returns `200`
 - response matches authenticated user
 
 ### Flow 4: Refresh session
 
 Expected behavior:
+
 - valid refresh cookie returns `200`
 - old refresh token is revoked
 - `revocationReason = "rotated"`
@@ -125,6 +139,7 @@ Expected behavior:
 ### Flow 5: Logout current session
 
 Expected behavior:
+
 - current refresh token is revoked
 - `revocationReason = "logout"`
 - both auth cookies are cleared
@@ -133,6 +148,7 @@ Expected behavior:
 ### Flow 6: Refresh-token reuse detection
 
 Expected behavior:
+
 - attempting to reuse a rotated refresh token returns `401`
 - all active refresh tokens for that user are revoked
 - active sessions receive `revocationReason = "reuse_detected"`
@@ -142,11 +158,13 @@ Expected behavior:
 ### `POST /api/auth/register`
 
 Success cases:
+
 - registers user with valid payload
 - normalizes email to lowercase
 - trims name and email as expected
 
 Failure cases:
+
 - duplicate email
 - invalid email
 - password too short
@@ -158,6 +176,7 @@ Failure cases:
 - malformed JSON body
 
 Assertions:
+
 - status code
 - sanitized response body
 - `Set-Cookie` for both cookies
@@ -169,9 +188,11 @@ Assertions:
 ### `POST /api/auth/login`
 
 Success cases:
+
 - logs in valid user
 
 Failure cases:
+
 - non-existent email
 - wrong password
 - inactive user
@@ -179,6 +200,7 @@ Failure cases:
 - missing password
 
 Assertions:
+
 - generic error message for invalid credentials
 - cookies set only on success
 - refresh-token row created only on success
@@ -186,9 +208,11 @@ Assertions:
 ### `POST /api/auth/refresh`
 
 Success cases:
+
 - valid refresh cookie rotates session
 
 Failure cases:
+
 - missing refresh cookie
 - invalid refresh cookie
 - expired refresh token
@@ -197,6 +221,7 @@ Failure cases:
 - inactive user
 
 Assertions:
+
 - old token revoked on success
 - `revocationReason = "rotated"` for rotated token
 - `replacedByTokenId` is populated
@@ -207,11 +232,13 @@ Assertions:
 ### `POST /api/auth/logout`
 
 Success cases:
+
 - logout with valid refresh token
 - logout with missing refresh cookie
 - logout with already revoked token
 
 Assertions:
+
 - always returns `200`
 - cookies cleared
 - valid current session gets `revocationReason = "logout"`
@@ -219,9 +246,11 @@ Assertions:
 ### `GET /api/auth/me`
 
 Success cases:
+
 - valid access token returns current user
 
 Failure cases:
+
 - missing access cookie
 - invalid access token
 - expired access token
@@ -230,6 +259,7 @@ Failure cases:
 - inactive user
 
 Assertions:
+
 - sanitized user shape
 - no password hash or session data in response
 
@@ -238,6 +268,7 @@ Assertions:
 ### `register()`
 
 Test:
+
 - creates user, default notification channel, and refresh token in one transaction
 - fails cleanly on duplicate email
 - does not leave partial rows behind if notification channel creation fails
@@ -245,6 +276,7 @@ Test:
 ### `login()`
 
 Test:
+
 - returns new session tokens for valid credentials
 - rejects invalid credentials
 - rejects inactive user
@@ -252,6 +284,7 @@ Test:
 ### `refreshSession()`
 
 Test:
+
 - rotates valid token
 - revokes expired token with `revocationReason = "expired"`
 - revokes all active sessions when a revoked token is reused
@@ -260,12 +293,14 @@ Test:
 ### `logout()`
 
 Test:
+
 - revokes current token with `revocationReason = "logout"`
 - succeeds when token is missing
 
 ### `getCurrentUser()`
 
 Test:
+
 - returns sanitized user
 - rejects missing user
 - rejects inactive user
@@ -275,6 +310,7 @@ Test:
 ### Zod schema tests
 
 Test:
+
 - `registerSchema` accepts valid payloads
 - rejects weak passwords
 - normalizes email
@@ -283,6 +319,7 @@ Test:
 ### JWT helper tests
 
 Test:
+
 - signs access token with expected claims
 - verifies valid access token
 - rejects token with wrong issuer
@@ -292,6 +329,7 @@ Test:
 ### Cookie helper tests
 
 Test:
+
 - sets both cookies with expected names
 - uses `httpOnly`
 - uses `sameSite=strict`
@@ -301,6 +339,7 @@ Test:
 ### Auth middleware tests
 
 Test:
+
 - attaches `req.auth` for valid access token
 - rejects missing token
 - rejects invalid token
@@ -311,9 +350,11 @@ Test:
 ### Duplicate registration race
 
 Scenario:
+
 - two registration attempts for the same email happen close together
 
 Expected:
+
 - one succeeds
 - one fails with conflict
 - only one user exists
@@ -322,19 +363,23 @@ Expected:
 ### Refresh reuse after rotation
 
 Scenario:
+
 - client refreshes successfully
 - attacker or stale client reuses old refresh token
 
 Expected:
+
 - request fails with `401`
 - all active refresh tokens for that user are revoked
 
 ### Inactive account behavior
 
 Scenario:
+
 - user becomes inactive after login
 
 Expected:
+
 - login rejected
 - refresh rejected
 - `/me` rejected
@@ -342,21 +387,25 @@ Expected:
 ### Sensitive field leakage
 
 Scenario:
+
 - success and error responses are inspected
 
 Expected:
+
 - never return:
-  - `passwordHash`
-  - raw refresh token
-  - `tokenHash`
-  - refresh-token metadata
+    - `passwordHash`
+    - raw refresh token
+    - `tokenHash`
+    - refresh-token metadata
 
 ### Cookie correctness
 
 Scenario:
+
 - login, refresh, and logout responses are inspected
 
 Expected:
+
 - cookies use correct names
 - cookies are `HttpOnly`
 - cookies use strict same-site behavior
@@ -367,6 +416,7 @@ Expected:
 ### Factory helpers
 
 Add helpers for:
+
 - creating users
 - creating inactive users
 - creating refresh-token rows
@@ -375,6 +425,7 @@ Add helpers for:
 ### Cookie helpers
 
 Add helpers for:
+
 - parsing `Set-Cookie`
 - extracting `access_token`
 - extracting `refresh_token`
@@ -382,6 +433,7 @@ Add helpers for:
 ### DB helpers
 
 Add helpers for:
+
 - truncating auth tables
 - counting user/session/channel rows
 - fetching latest refresh token for a user

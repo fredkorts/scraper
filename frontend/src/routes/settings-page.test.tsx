@@ -8,11 +8,7 @@ afterEach(() => {
     vi.unstubAllGlobals();
 });
 
-const selectAntOption = async (
-    user: ReturnType<typeof userEvent.setup>,
-    label: string,
-    optionText: string,
-) => {
+const selectAntOption = async (user: ReturnType<typeof userEvent.setup>, label: string, optionText: string) => {
     await user.click(screen.getByLabelText(label));
     const titleMatch = await screen.findByTitle(optionText).catch(() => null);
 
@@ -22,8 +18,7 @@ const selectAntOption = async (
     }
 
     const optionMatch = await screen.findByRole("option", { name: optionText }).catch(() => null);
-    const treeItemMatch =
-        optionMatch ?? (await screen.findByRole("treeitem", { name: optionText }).catch(() => null));
+    const treeItemMatch = optionMatch ?? (await screen.findByRole("treeitem", { name: optionText }).catch(() => null));
 
     if (treeItemMatch) {
         await user.click(treeItemMatch);
@@ -148,5 +143,27 @@ describe("settings page", () => {
         await waitFor(() => {
             expect(screen.getByText("new@example.com")).toBeInTheDocument();
         });
+    });
+
+    it("falls back to account tab for non-admin users when URL requests admin tab", async () => {
+        await renderRouterApp({
+            initialEntry: "/app/settings?tab=admin",
+            session: {
+                ...mockUser,
+                role: "paid",
+            },
+            apiResponses: {
+                subscriptions: {
+                    items: [],
+                    limit: 6,
+                    used: 0,
+                    remaining: 6,
+                },
+            },
+        });
+
+        expect(await screen.findByRole("tab", { name: "Account" })).toHaveAttribute("aria-selected", "true");
+        expect(screen.queryByRole("tab", { name: "Admin" })).not.toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Account Basics" })).toBeInTheDocument();
     });
 });

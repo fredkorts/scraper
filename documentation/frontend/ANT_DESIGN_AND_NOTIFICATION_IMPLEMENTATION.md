@@ -64,7 +64,7 @@ Provider responsibilities:
 - initialize Ant notification API via `notification.useNotification()`
 - render Ant `contextHolder` once near app root
 - expose a payload-first API from the hook:
-  - `notify(payload)`
+    - `notify(payload)`
 
 Recommended payload contract (single source of truth):
 
@@ -151,11 +151,11 @@ Wire notifications into high-impact actions first.
 
 1. Use normalized user-safe messages by default.
 2. Avoid duplicate feedback for the same event:
-   - field validation stays inline
-   - mutation-level result goes to notification
+    - field validation stays inline
+    - mutation-level result goes to notification
 3. Prevent notification spam:
-   - use key-based updates for repeated pending->result flows when needed
-   - avoid firing duplicate success notifications on rapid retries
+    - use key-based updates for repeated pending->result flows when needed
+    - avoid firing duplicate success notifications on rapid retries
 
 ## 7. Accessibility Rules
 
@@ -173,23 +173,23 @@ Define one shared behavior profile so feedback feels predictable across all view
 
 1. Placement: top-right on desktop, top-center on narrow/mobile widths.
 2. Duration:
-   - success/info: short auto-close (for example 3-4s)
-   - warning: medium auto-close
-   - error: longer auto-close or persistent when user action is required
+    - success/info: short auto-close (for example 3-4s)
+    - warning: medium auto-close
+    - error: longer auto-close or persistent when user action is required
 3. Max visible notifications: capped (for example 3) to avoid stack overload.
 4. Duplicate suppression:
-   - reuse keyed notifications for pending->success/failure transitions
-   - avoid showing repeated success for identical actions in rapid sequence
+    - reuse keyed notifications for pending->success/failure transitions
+    - avoid showing repeated success for identical actions in rapid sequence
 5. Actionable failures:
-   - include next-step language ("Try again", "Check input", "Open settings")
-   - include optional CTA/link only when recovery path is clear
+    - include next-step language ("Try again", "Check input", "Open settings")
+    - include optional CTA/link only when recovery path is clear
 6. Tone and content:
-   - concise title + one actionable sentence
-   - no raw technical internals for non-admin users
+    - concise title + one actionable sentence
+    - no raw technical internals for non-admin users
 7. Error source policy:
-   - field validation remains inline
-   - mutation result gets notification
-   - page/query load failures stay inline on the page unless global handling is required (e.g., auth expiry)
+    - field validation remains inline
+    - mutation result gets notification
+    - page/query load failures stay inline on the page unless global handling is required (e.g., auth expiry)
 
 ## 9. Variant Icon Mapping
 
@@ -211,24 +211,24 @@ Rules:
 Implement these seven fixes directly in this slice:
 
 1. Strict notification contract in shared config:
-   - add `frontend/src/shared/constants/notification-config.ts`
-   - centralize placement, durations, max visible, dedupe defaults
+    - add `frontend/src/shared/constants/notification-config.ts`
+    - centralize placement, durations, max visible, dedupe defaults
 2. Actionable failure patterns:
-   - extend message model with `nextStep` and optional CTA metadata
+    - extend message model with `nextStep` and optional CTA metadata
 3. Accessibility behavior lock:
-   - keyboard dismissal, no focus trap/steal, polite announcements
+    - keyboard dismissal, no focus trap/steal, polite announcements
 4. Feedback matrix as source of truth:
-   - map view/action -> pending/success/failure/recovery behavior
+    - map view/action -> pending/success/failure/recovery behavior
 5. Race/spam handling:
-   - keyed notifications and stale-response protection
-   - request identity model:
-     - generate request id in mutation hooks
-     - include `requestId` in payload
-     - only show final notification for latest request id per logical action key
+    - keyed notifications and stale-response protection
+    - request identity model:
+        - generate request id in mutation hooks
+        - include `requestId` in payload
+        - only show final notification for latest request id per logical action key
 6. UX-critical test expansion:
-   - duplicate click, out-of-order results, navigation during pending, auth-expiry
+    - duplicate click, out-of-order results, navigation during pending, auth-expiry
 7. Localization-ready copy layer:
-   - all message copy centralized and reusable, no hardcoded feature strings
+    - all message copy centralized and reusable, no hardcoded feature strings
 
 ## 11. Feedback Matrix Requirement
 

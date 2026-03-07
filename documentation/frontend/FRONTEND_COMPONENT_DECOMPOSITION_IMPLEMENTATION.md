@@ -35,12 +35,12 @@ Highest-impact targets:
 4. Reuse existing constants and shared helpers; do not duplicate literals.
 5. Preserve existing accessibility labels/roles and keyboard behavior.
 6. Keep styling ownership explicit:
-   - feature section styles stay in feature CSS modules
-   - route CSS modules keep page shell/layout only
-   - shared style primitives/tokens stay in `styles/` or `shared/ui`
+    - feature section styles stay in feature CSS modules
+    - route CSS modules keep page shell/layout only
+    - shared style primitives/tokens stay in `styles/` or `shared/ui`
 7. Each new extracted component must have:
-   - colocated `types/*` for exported props/types
-   - no new inline exported interfaces in `.tsx` files
+    - colocated `types/*` for exported props/types
+    - no new inline exported interfaces in `.tsx` files
 8. Do not introduce new cross-feature dependencies during extraction.
 
 ## Target Structure
@@ -186,28 +186,28 @@ Run after each phase:
 Targeted checks (existing suites):
 
 1. Product detail tests:
-   - `frontend/src/features/products/utils/product-detail-view.test.ts`
-   - `frontend/src/routes/scrape-views.test.tsx`
+    - `frontend/src/features/products/utils/product-detail-view.test.ts`
+    - `frontend/src/routes/scrape-views.test.tsx`
 2. Run detail + dashboard:
-   - `frontend/src/routes/scrape-views.test.tsx`
+    - `frontend/src/routes/scrape-views.test.tsx`
 3. Settings/runs route integrity:
-   - `frontend/src/routes/auth-routing.test.tsx`
-   - `frontend/src/routes/settings-page.test.tsx`
+    - `frontend/src/routes/auth-routing.test.tsx`
+    - `frontend/src/routes/settings-page.test.tsx`
 
 New tests to add during this refactor:
 
 1. Product detail extracted components:
-   - render tests for each section component
-   - interaction tests for history controls callbacks
+    - render tests for each section component
+    - interaction tests for history controls callbacks
 2. Run detail extracted sections:
-   - failure panel (admin vs non-admin technical message visibility)
-   - diff/products section empty/loading/error/success rendering
+    - failure panel (admin vs non-admin technical message visibility)
+    - diff/products section empty/loading/error/success rendering
 3. Dashboard extracted panels:
-   - panel list rendering with max-item truncation
-   - empty-state coverage
+    - panel list rendering with max-item truncation
+    - empty-state coverage
 4. Theme modules:
-   - token reader unit tests for fallback/default behavior
-   - system-theme hook tests for media query subscription/unsubscription
+    - token reader unit tests for fallback/default behavior
+    - system-theme hook tests for media query subscription/unsubscription
 
 Architecture checks to run after each phase:
 
@@ -219,11 +219,11 @@ Architecture checks to run after each phase:
 ## Risk Areas and Mitigation
 
 1. **Styling regressions during component extraction**
-   - Mitigation: keep existing class names and CSS module references in first pass.
+    - Mitigation: keep existing class names and CSS module references in first pass.
 2. **Search state regressions**
-   - Mitigation: keep state updates in route-level orchestrators.
+    - Mitigation: keep state updates in route-level orchestrators.
 3. **Over-fragmentation**
-   - Mitigation: split by section boundaries, not tiny presentational wrappers.
+    - Mitigation: split by section boundaries, not tiny presentational wrappers.
 
 ## Definition of Done
 

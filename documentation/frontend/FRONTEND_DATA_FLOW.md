@@ -55,14 +55,14 @@ Responsibilities:
 - protocol: REST JSON
 - auth transport: cookies only (`credentials: include`)
 - default request headers:
-  - `Content-Type: application/json`
-  - `Accept: application/json`
+    - `Content-Type: application/json`
+    - `Accept: application/json`
 - default behavior on `401`:
-  - apply auto-refresh retry only for idempotent `GET` requests by default
-  - never auto-retry non-idempotent mutations unless explicitly marked safe
-  - exclude auth endpoints (`/api/auth/refresh`, `/api/auth/login`, `/api/auth/register`, `/api/auth/logout`) from refresh interception
-  - use a single-flight refresh lock to avoid concurrent refresh storms
-  - if still unauthorized, redirect to login route
+    - apply auto-refresh retry only for idempotent `GET` requests by default
+    - never auto-retry non-idempotent mutations unless explicitly marked safe
+    - exclude auth endpoints (`/api/auth/refresh`, `/api/auth/login`, `/api/auth/register`, `/api/auth/logout`) from refresh interception
+    - use a single-flight refresh lock to avoid concurrent refresh storms
+    - if still unauthorized, redirect to login route
 
 ## 5.1 CSRF Assumptions
 
@@ -104,8 +104,8 @@ Rules:
 
 - source: `GET /api/runs/:id`
 - companion data:
-  - `GET /api/runs/:id/products`
-  - `GET /api/runs/:id/changes`
+    - `GET /api/runs/:id/products`
+    - `GET /api/runs/:id/changes`
 
 ### Product Detail / History
 
@@ -116,17 +116,17 @@ Rules:
 
 - source: `GET /api/notifications/channels`
 - mutations:
-  - `POST /api/notifications/channels`
-  - `PATCH /api/notifications/channels/:id`
-  - `DELETE /api/notifications/channels/:id`
+    - `POST /api/notifications/channels`
+    - `PATCH /api/notifications/channels/:id`
+    - `DELETE /api/notifications/channels/:id`
 
 ## 8. Mutation and Invalidation Rules
 
 - channel create/update/delete invalidates:
-  - `notifications.channels()`
+    - `notifications.channels()`
 - manual scrape trigger invalidates (future endpoint wiring):
-  - `runs.list(...)`
-  - `dashboard.home(...)`
+    - `runs.list(...)`
+    - `dashboard.home(...)`
 - auth logout clears query cache and routes to login
 
 ## 9. Table Data Pattern (TanStack Table)
@@ -175,34 +175,34 @@ The frontend state model is intentionally split by responsibility.
 - Owner: TanStack Query
 - Examples: current user (`/api/auth/me`), runs list/detail, product detail/history, channels, subscriptions
 - Rules:
-  - fetched via shared API client
-  - keyed with centralized query-key factory
-  - invalidated by mutations
-  - prefetched with route loaders where appropriate
+    - fetched via shared API client
+    - keyed with centralized query-key factory
+    - invalidated by mutations
+    - prefetched with route loaders where appropriate
 
 ### 13.2 Route and URL state
 
 - Owner: TanStack Router
 - Examples: route params (`runId`, `productId`), search params for pagination/sorting/filtering
 - Rules:
-  - URL is source of truth for navigable table/filter state
-  - route loaders use `ensureQueryData` for deterministic data preloading
+    - URL is source of truth for navigable table/filter state
+    - route loaders use `ensureQueryData` for deterministic data preloading
 
 ### 13.3 Auth session state
 
 - Owner: cookie-backed backend session + Query cache
 - Rules:
-  - access/refresh tokens remain in `HttpOnly` cookies
-  - frontend derives session from `/api/auth/me`
-  - on `401`: refresh once, retry once, then redirect to login if still unauthorized
+    - access/refresh tokens remain in `HttpOnly` cookies
+    - frontend derives session from `/api/auth/me`
+    - on `401`: refresh once, retry once, then redirect to login if still unauthorized
 
 ### 13.4 Form state
 
 - Owner: React Hook Form + Zod
 - Examples: login/register, settings, notification channel create/update forms
 - Rules:
-  - form state stays local to feature/components
-  - successful mutations trigger query invalidation
+    - form state stays local to feature/components
+    - successful mutations trigger query invalidation
 
 ### 13.5 UI-only local state
 
@@ -215,8 +215,8 @@ The frontend state model is intentionally split by responsibility.
 - Owner: TanStack Table + Router search params
 - Examples: current page, sort order, column filters/visibility
 - Rules:
-  - table state drives query params
-  - backend remains source of truth for paginated/sorted data
+    - table state drives query params
+    - backend remains source of truth for paginated/sorted data
 
 ### 13.7 Global client store policy
 

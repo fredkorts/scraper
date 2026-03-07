@@ -52,13 +52,13 @@ That is adequate for debugging during early development, but not for a usable mo
 
 1. Failed runs remain non-authoritative.
 2. Failed runs must not contribute to:
-   - diffs
-   - product history
-   - current canonical product state
-   - notifications
+    - diffs
+    - product history
+    - current canonical product state
+    - notifications
 3. The run-detail page must show both:
-   - a human-readable explanation
-   - an operator-oriented technical details section when the viewer is allowed to see it
+    - a human-readable explanation
+    - an operator-oriented technical details section when the viewer is allowed to see it
 4. If the scraper can identify the page URL and page number, both should be stored.
 5. If the failure source is unknown, the record must still be valid and readable.
 6. Structured failure metadata belongs only to scrape-execution failures, not downstream notification failures.
@@ -96,45 +96,45 @@ Long-term direction:
 ### Recommended field semantics
 
 - `failure_code`
-  - machine-readable cause
-  - examples:
-    - `upstream_timeout`
-    - `http_error`
-    - `parser_zero_products`
-    - `parser_warning_limit`
-    - `safety_limit_reached`
-    - `persist_failed`
-    - `diff_failed`
-    - `unknown_error`
+    - machine-readable cause
+    - examples:
+        - `upstream_timeout`
+        - `http_error`
+        - `parser_zero_products`
+        - `parser_warning_limit`
+        - `safety_limit_reached`
+        - `persist_failed`
+        - `diff_failed`
+        - `unknown_error`
 
 - `failure_phase`
-  - stage of failure
-  - examples:
-    - `fetch`
-    - `parse`
-    - `persist`
-    - `diff`
-    - `notification`
+    - stage of failure
+    - examples:
+        - `fetch`
+        - `parse`
+        - `persist`
+        - `diff`
+        - `notification`
 
 - `failure_page_url`
-  - exact URL being processed when the error occurred
+    - exact URL being processed when the error occurred
 
 - `failure_page_number`
-  - derived page number if known
-  - nullable for failures that happen outside paginated fetch flow
+    - derived page number if known
+    - nullable for failures that happen outside paginated fetch flow
 
 - `failure_is_retryable`
-  - `true` for timeouts and likely transient upstream/network issues
-  - `false` for parser/safety/data integrity failures
+    - `true` for timeouts and likely transient upstream/network issues
+    - `false` for parser/safety/data integrity failures
 
 - `failure_technical_message`
-  - raw error detail for debugging
+    - raw error detail for debugging
 
 - `failure_summary`
-  - short readable explanation suitable for normal authenticated users
-  - examples:
-    - `The scrape timed out while loading page 31.`
-    - `The scraper found no valid products on the first page.`
+    - short readable explanation suitable for normal authenticated users
+    - examples:
+        - `The scrape timed out while loading page 31.`
+        - `The scraper found no valid products on the first page.`
 
 ## Prisma Changes
 
@@ -172,13 +172,13 @@ Create a shared internal backend type such as:
 
 ```ts
 interface ScrapeFailureInfo {
-  summary: string;
-  technicalMessage?: string;
-  code: string;
-  phase: "fetch" | "parse" | "persist";
-  pageUrl?: string;
-  pageNumber?: number;
-  isRetryable: boolean;
+    summary: string;
+    technicalMessage?: string;
+    code: string;
+    phase: "fetch" | "parse" | "persist";
+    pageUrl?: string;
+    pageNumber?: number;
+    isRetryable: boolean;
 }
 ```
 
@@ -225,9 +225,9 @@ In the `catch` block of the scraper:
 
 - map the error into `ScrapeFailureInfo`
 - write:
-  - human summary into `failureSummary`
-  - structured fields into the new columns
-  - legacy `errorMessage` only if needed during compatibility window
+    - human summary into `failureSummary`
+    - structured fields into the new columns
+    - legacy `errorMessage` only if needed during compatibility window
 
 When a run is finalized as non-failed:
 
@@ -281,12 +281,12 @@ Recommended shape:
 
 ```ts
 export interface ScrapeRunFailure {
-  summary: string;
-  code?: string;
-  phase?: string;
-  pageUrl?: string;
-  pageNumber?: number;
-  isRetryable?: boolean;
+    summary: string;
+    code?: string;
+    phase?: string;
+    pageUrl?: string;
+    pageNumber?: number;
+    isRetryable?: boolean;
 }
 ```
 
@@ -303,16 +303,16 @@ Replace the current raw error alert with a dedicated failure panel.
 Sections:
 
 1. Readable summary
-   - example: `The scrape timed out while loading page 31.`
+    - example: `The scrape timed out while loading page 31.`
 
 2. Context list
-   - phase: `Fetch`
-   - page: `31`
-   - retryable: `Yes`
-   - URL: linked if safe to show
+    - phase: `Fetch`
+    - page: `31`
+    - retryable: `Yes`
+    - URL: linked if safe to show
 
 3. Technical details
-   - raw technical message in a lower-priority block for admin viewers only
+    - raw technical message in a lower-priority block for admin viewers only
 
 ### Runs list view
 
@@ -384,13 +384,13 @@ as the primary user-facing message.
 
 1. Add scraper failure mapper utility.
 2. Detect and classify:
-   - Axios timeout
-   - HTTP status failures
-   - parser zero-products failure
-   - parser warning limit failure
-   - safety-limit failure
-   - persistence failure
-   - unknown fallback
+    - Axios timeout
+    - HTTP status failures
+    - parser zero-products failure
+    - parser warning limit failure
+    - safety-limit failure
+    - persistence failure
+    - unknown fallback
 3. Capture page URL and page number where available.
 4. Normalize and validate failure URL/page metadata before persistence.
 
@@ -467,10 +467,10 @@ Add view tests to verify:
 ## Open Decisions
 
 1. Should failure taxonomy use free strings first or Prisma enums immediately?
-   - Recommendation: free strings first
+    - Recommendation: free strings first
 
 2. Should failed runs expose page URLs directly in the UI?
-   - Recommendation: yes for public category URLs
+    - Recommendation: yes for public category URLs
 
 ## Recommended First Slice
 

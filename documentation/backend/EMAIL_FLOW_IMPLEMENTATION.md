@@ -115,8 +115,8 @@ Out of scope:
 `templates.ts`
 
 - render HTML/text for:
-  - immediate single-report email
-  - free-user digest email
+    - immediate single-report email
+    - free-user digest email
 
 `transport.ts`
 
@@ -150,17 +150,17 @@ Out of scope:
 
 1. Diff engine creates `change_report` and `notification_deliveries`.
 2. Immediate delivery service loads:
-   - `notification_deliveries` with `status = PENDING`
-   - only for users with `role = PAID` or `role = ADMIN`
-   - only for email channels
+    - `notification_deliveries` with `status = PENDING`
+    - only for users with `role = PAID` or `role = ADMIN`
+    - only for email channels
 3. For each delivery:
-   - load the canonical `change_report` and `change_items`
-   - render the immediate email template
-   - send email through the configured transport
-   - update delivery status:
-     - `SENT` on success
-     - `FAILED` on provider error
-     - `SKIPPED` if required data is missing or user/channel is no longer eligible
+    - load the canonical `change_report` and `change_items`
+    - render the immediate email template
+    - send email through the configured transport
+    - update delivery status:
+        - `SENT` on success
+        - `FAILED` on provider error
+        - `SKIPPED` if required data is missing or user/channel is no longer eligible
 
 Important rule:
 
@@ -170,22 +170,22 @@ Important rule:
 ### Free-user digest flow
 
 1. Digest job selects users with:
-   - `role = FREE`
-   - active default email channel
-   - pending email deliveries
-   - `last_digest_sent_at` older than 6 hours, or null
+    - `role = FREE`
+    - active default email channel
+    - pending email deliveries
+    - `last_digest_sent_at` older than 6 hours, or null
 2. For each eligible user:
-   - load all eligible pending deliveries since the last digest cut-off
-   - group by `change_report`
-   - aggregate report summaries and change items
-   - render one digest email
-   - send the digest email
-   - if successful:
-     - mark included deliveries as `SENT`
-     - set `users.last_digest_sent_at = now`
-   - if failed:
-     - keep deliveries `PENDING` for transient transport/provider/network failures
-     - mark deliveries `SKIPPED` only for deterministic data or eligibility problems
+    - load all eligible pending deliveries since the last digest cut-off
+    - group by `change_report`
+    - aggregate report summaries and change items
+    - render one digest email
+    - send the digest email
+    - if successful:
+        - mark included deliveries as `SENT`
+        - set `users.last_digest_sent_at = now`
+    - if failed:
+        - keep deliveries `PENDING` for transient transport/provider/network failures
+        - mark deliveries `SKIPPED` only for deterministic data or eligibility problems
 
 Recommended rule:
 
@@ -269,11 +269,11 @@ Content:
 - counts by change type
 - compact list of changed products
 - per-item details:
-  - product name
-  - product URL
-  - image
-  - old/new price if applicable
-  - stock transition label if applicable
+    - product name
+    - product URL
+    - image
+    - old/new price if applicable
+    - stock transition label if applicable
 
 Subject example:
 
@@ -375,10 +375,10 @@ Flow:
 1. Load pending deliveries for the report.
 2. Select only users with `role in (PAID, ADMIN)`.
 3. For each delivery:
-   - validate delivery/user/channel/report presence
-   - render immediate template
-   - call transport
-   - update row status
+    - validate delivery/user/channel/report presence
+    - render immediate template
+    - call transport
+    - update row status
 
 ### Concurrency
 
@@ -475,8 +475,8 @@ Behavior:
 Behavior:
 
 - simplest phase-2 rule:
-  - immediate sender handles only newly created paid deliveries for later reports
-  - older pending free deliveries remain digest-eligible
+    - immediate sender handles only newly created paid deliveries for later reports
+    - older pending free deliveries remain digest-eligible
 
 Alternative behavior is possible later, but do not complicate phase 2 with migration logic.
 
@@ -574,9 +574,9 @@ Cases:
 2. Run a scrape that produces a `change_report`.
 3. Trigger immediate send.
 4. Verify:
-   - email transport called once
-   - delivery marked `SENT`
-   - subject/body match the report
+    - email transport called once
+    - delivery marked `SENT`
+    - subject/body match the report
 
 ### Free digest flow
 
@@ -584,9 +584,9 @@ Cases:
 2. Generate multiple pending deliveries across reports.
 3. Run digest send.
 4. Verify:
-   - one email sent for that user
-   - included deliveries marked `SENT`
-   - `last_digest_sent_at` updated
+    - one email sent for that user
+    - included deliveries marked `SENT`
+    - `last_digest_sent_at` updated
 
 ## Suggested implementation order
 

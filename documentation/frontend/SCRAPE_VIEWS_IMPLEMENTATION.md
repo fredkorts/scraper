@@ -15,15 +15,15 @@ Completed Phase 4 outcomes tied to this plan:
 - product detail / price-history is implemented as the next connected drill-down
 - product-history route is lazy-loaded so chart code is no longer in the main authenticated entry bundle
 - product-history controls are URL-backed and include:
-  - time range
-  - category filter
-  - stock filter
-  - original-price toggle
-  - stock-overlay toggle
+    - time range
+    - category filter
+    - stock filter
+    - original-price toggle
+    - stock-overlay toggle
 
 Related follow-up implementation record:
 
-- [FURTHER_IMPLEMENTATIONS.md](/Users/fredkorts/Documents/Development/Personal Projects/scraper/FURTHER_IMPLEMENTATIONS.md)
+- [FURTHER_IMPLEMENTATIONS.md](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/documentation/frontend/FURTHER_IMPLEMENTATIONS.md)
 
 ## 1. Scope
 
@@ -107,9 +107,9 @@ Recommended contents:
 - recent completed/failed runs
 - recent change totals by type
 - quick links:
-  - view all runs
-  - open latest failed run
-  - open latest run with changes
+    - view all runs
+    - open latest failed run
+    - open latest run with changes
 
 Keep this screen summary-oriented. Do not turn it into a second runs list.
 
@@ -149,22 +149,22 @@ Purpose:
 Recommended sections:
 
 - run summary card
-  - category
-  - status
-  - started/completed timestamps
-  - duration
-  - total products
-  - change counters
+    - category
+    - status
+    - started/completed timestamps
+    - duration
+    - total products
+    - change counters
 - diff items section
-  - recent price decreases/increases
-  - sold out / back in stock
-  - new products
+    - recent price decreases/increases
+    - sold out / back in stock
+    - new products
 - products table section
-  - product name
-  - current price
-  - original price
-  - stock state
-  - product link
+    - product name
+    - current price
+    - original price
+    - stock state
+    - product link
 
 The detail view should answer two questions clearly:
 
@@ -243,11 +243,11 @@ Validation rules:
 - clamp `page` to a minimum of `1`
 - clamp `pageSize` to a safe maximum such as `100`
 - allow only explicit sortable fields, for example:
-  - `startedAt`
-  - `status`
-  - `totalChanges`
-  - `totalProducts`
-  - `durationMs`
+    - `startedAt`
+    - `status`
+    - `totalChanges`
+    - `totalProducts`
+    - `durationMs`
 - reject or normalize invalid filters instead of passing them through
 
 Default sorting:
@@ -340,18 +340,18 @@ Add or refine these routes:
 Route responsibilities:
 
 - `/app`
-  - loader prefetches dashboard home query
+    - loader prefetches dashboard home query
 - `/app/runs`
-  - validates URL search params
-  - loader prefetches runs list query using search params
+    - validates URL search params
+    - loader prefetches runs list query using search params
 - `/app/runs/$runId`
-  - validates `runId`
-  - loader prefetches run summary
-  - loader may also prefetch first page of products and changes
+    - validates `runId`
+    - loader prefetches run summary
+    - loader may also prefetch first page of products and changes
 - `/app/products/$productId`
-  - loader prefetches product detail and product history
-  - route is lazy-loaded so the charting code only loads when the user opens a product
-  - validates URL-backed product-history control state
+    - loader prefetches product detail and product history
+    - route is lazy-loaded so the charting code only loads when the user opens a product
+    - validates URL-backed product-history control state
 
 Route rules:
 
@@ -400,15 +400,15 @@ Runtime validation should be added for all new response payloads before data rea
 - TanStack Router search params own runs list pagination/filter/sort state.
 - TanStack Table renders list state, but the backend remains the source of truth for sorted/paginated data.
 - Local UI state should stay small:
-  - expanded cards
-  - selected diff filter chips
-  - temporary panel toggles
+    - expanded cards
+    - selected diff filter chips
+    - temporary panel toggles
 - Product-history controls are URL-backed, not local-only:
-  - `range`
-  - `categoryId`
-  - `stockFilter`
-  - `showOriginalPrice`
-  - `showStockOverlay`
+    - `range`
+    - `categoryId`
+    - `stockFilter`
+    - `showOriginalPrice`
+    - `showStockOverlay`
 
 Do not add a global client store for these views.
 
@@ -454,8 +454,8 @@ Accessibility and semantics:
 - changes second
 - products third
 - separate error state for failed runs:
-  - show `errorMessage`
-  - still show whatever metadata is available
+    - show `errorMessage`
+    - still show whatever metadata is available
 
 Accessibility and semantics:
 
@@ -495,26 +495,26 @@ Accessibility and semantics:
 ## 10.2 Frontend
 
 - route loader tests for:
-  - `/app`
-  - `/app/runs`
-  - `/app/runs/$runId`
-  - `/app/products/$productId`
+    - `/app`
+    - `/app/runs`
+    - `/app/runs/$runId`
+    - `/app/products/$productId`
 - component tests for:
-  - dashboard summary rendering
-  - runs table rendering
-  - run detail summary and diff sections
-  - product detail summary and history sections
+    - dashboard summary rendering
+    - runs table rendering
+    - run detail summary and diff sections
+    - product detail summary and history sections
 - URL state tests:
-  - changing table sort updates search params
-  - pagination reads from and restores from URL
-  - changing product-history controls updates route search params
+    - changing table sort updates search params
+    - pagination reads from and restores from URL
+    - changing product-history controls updates route search params
 - accessibility tests:
-  - heading structure
-  - table headers
-  - keyboard navigation
-  - empty/error states
-  - non-color status communication
-  - focus placement on route change
+    - heading structure
+    - table headers
+    - keyboard navigation
+    - empty/error states
+    - non-color status communication
+    - focus placement on route change
 - unit tests for product-history control parsing, filtering, and summary derivation
 
 ## 11. Implementation Order
