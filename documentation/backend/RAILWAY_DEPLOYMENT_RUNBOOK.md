@@ -25,6 +25,7 @@ Required Vercel project settings:
 3. Build Command: `npm run build --workspace=shared && npm run build --workspace=frontend`
 4. Output Directory: `frontend/dist`
 5. Environment variable: `HUSKY=0`
+6. Environment variable: `VITE_API_BASE_URL=https://<your-railway-api-domain>`
 
 If Root Directory is set to `frontend`, commands using `--workspace=shared` fail with:
 
@@ -89,6 +90,12 @@ Set these in Railway for all backend services unless noted:
 8. `EMAIL_FROM=<verified sender>`
 9. `PORT=3001` (API service only; Railway may inject this automatically)
 
+Cookie/session note for hosted frontend + hosted backend:
+
+1. production auth cookies are cross-site (`Vercel` <-> `Railway`) and require HTTPS
+2. backend must run with `NODE_ENV=production` so cookies are `Secure` and `SameSite=None`
+3. after deployment, login again to issue fresh production cookies
+
 If using SMTP:
 
 1. `SMTP_HOST`
@@ -144,6 +151,7 @@ Do not run `prisma migrate dev` in production.
     - startup fails in config validation.
 2. CORS mismatch (`FRONTEND_URL`):
     - browser auth/session calls fail.
+    - if `/api/auth/me` returns `401` after successful login, verify cross-site cookie policy and `NODE_ENV=production`.
 3. Scheduler running but no worker:
     - queue grows, runs never execute.
 4. Worker running but scheduler down:

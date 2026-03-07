@@ -63,7 +63,7 @@ Each deploy target points to the same repository and branch.
 2. Build command: `npm ci && npm run build --workspace=shared && npm run build --workspace=frontend`
 3. Output directory: `frontend/dist`
 4. Runtime env:
-    - `VITE_API_URL`
+    - `VITE_API_BASE_URL`
 
 ### Backend API target
 

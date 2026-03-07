@@ -2,10 +2,11 @@ import type { Response } from "express";
 import { config } from "../config";
 
 const secure = config.NODE_ENV === "production";
+const sameSite = config.NODE_ENV === "production" ? ("none" as const) : ("strict" as const);
 
 const baseCookieOptions = {
     httpOnly: true,
-    sameSite: "strict" as const,
+    sameSite,
     secure,
     path: "/",
 };
