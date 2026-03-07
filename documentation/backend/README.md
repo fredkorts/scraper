@@ -122,6 +122,32 @@ If hooks are missing after dependency install, run:
 npm run prepare
 ```
 
+## Dependency Automation (Renovate)
+
+This repository uses Renovate via GitHub App with repository-event-driven processing.
+
+Primary trigger behavior:
+
+1. push and merge activity on the default branch
+2. manifest/lockfile changes in branches
+3. optional manual "check now" from Renovate dashboard
+
+Safety net:
+
+1. lockfile maintenance is scheduled weekly
+2. vulnerability alerts stay enabled and are labeled `security`
+
+Policy highlights:
+
+1. major updates are always manual review
+2. core runtime/auth/db/queue packages are always manual review
+3. only allowlisted low-risk tooling patch/pin/digest updates can auto-merge
+4. branch protection checks must pass before any auto-merge path is valid
+
+Config file:
+
+- [.github/renovate.json](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/.github/renovate.json)
+
 Backend:
 
 ```bash

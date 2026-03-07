@@ -1,0 +1,85 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": ["config:recommended"],
+    "timezone": "Europe/Tallinn",
+    "labels": ["dependencies"],
+    "prConcurrentLimit": 6,
+    "prHourlyLimit": 2,
+    "separateMajorMinor": true,
+    "dependencyDashboard": true,
+    "platformAutomerge": false,
+    "automerge": false,
+    "lockFileMaintenance": {
+        "enabled": true,
+        "schedule": ["before 5am on monday"]
+    },
+    "vulnerabilityAlerts": {
+        "enabled": true,
+        "labels": ["dependencies", "security"],
+        "automerge": false
+    },
+    "packageRules": [
+        {
+            "description": "Group frontend patch/minor updates",
+            "matchManagers": ["npm"],
+            "matchFileNames": ["frontend/**"],
+            "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+            "groupName": "frontend dependencies",
+            "labels": ["dependencies", "frontend"]
+        },
+        {
+            "description": "Group backend patch/minor updates",
+            "matchManagers": ["npm"],
+            "matchFileNames": ["backend/**"],
+            "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+            "groupName": "backend dependencies",
+            "labels": ["dependencies", "backend"]
+        },
+        {
+            "description": "Group shared and root patch/minor updates",
+            "matchManagers": ["npm"],
+            "matchFileNames": ["shared/**", "package.json", "package-lock.json"],
+            "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+            "groupName": "shared and root dependencies",
+            "labels": ["dependencies", "shared"]
+        },
+        {
+            "description": "Never auto-merge major updates",
+            "matchUpdateTypes": ["major"],
+            "automerge": false
+        },
+        {
+            "description": "Never auto-merge core runtime/auth/db/queue libraries",
+            "matchManagers": ["npm"],
+            "matchPackageNames": [
+                "prisma",
+                "@prisma/client",
+                "express",
+                "bullmq",
+                "ioredis",
+                "jsonwebtoken",
+                "zod",
+                "bcrypt",
+                "bcryptjs"
+            ],
+            "automerge": false
+        },
+        {
+            "description": "Auto-merge allowlisted low-risk tooling patch updates",
+            "matchManagers": ["npm"],
+            "matchUpdateTypes": ["patch", "pin", "digest"],
+            "matchPackageNames": [
+                "eslint",
+                "eslint-*",
+                "@eslint/*",
+                "@typescript-eslint/*",
+                "prettier",
+                "stylelint",
+                "stylelint-*",
+                "@types/*"
+            ],
+            "automerge": true,
+            "automergeType": "pr"
+        }
+    ]
+}
