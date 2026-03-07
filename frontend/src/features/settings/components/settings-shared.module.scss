@@ -141,6 +141,17 @@
     flex-wrap: wrap;
 }
 
+.successPrimaryButton:global(.ant-btn-primary) {
+    background: var(--color-success);
+    border-color: var(--color-success);
+    color: #fff;
+}
+
+.successPrimaryButton:global(.ant-btn-primary):hover:enabled,
+.successPrimaryButton:global(.ant-btn-primary):focus-visible:enabled {
+    filter: brightness(1.08);
+}
+
 .actionButton {
     @include forms.control-base;
     display: inline-flex;
@@ -153,7 +164,9 @@
     font-weight: 600;
     color: #fff;
     cursor: pointer;
-    transition: filter var(--transition-fast), opacity var(--transition-fast);
+    transition:
+        filter var(--transition-fast),
+        opacity var(--transition-fast);
 }
 
 .actionButton:disabled {

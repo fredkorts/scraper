@@ -1,4 +1,5 @@
-import { Button, Col, Flex, Form, Row, Segmented, Select, Switch, Typography } from "antd";
+import { Col, Flex, Form, Row, Segmented, Select, Switch, Typography } from "antd";
+import { AppButton } from "../../../../components/app-button/AppButton";
 import { CategoryTreeSelect } from "../../../categories/components/category-tree-select";
 import {
     PRODUCT_HISTORY_RANGE_OPTIONS,
@@ -95,7 +96,7 @@ export const ProductHistoryControlsSection = ({
 
                 <Col lg={6} md={8} sm={24} xs={24}>
                     <Flex className={styles.resetControlAction} justify="end">
-                        <Button onClick={onResetFilters}>Reset filters</Button>
+                        <AppButton onClick={onResetFilters}>Reset filters</AppButton>
                     </Flex>
                 </Col>
             </Row>

@@ -1,26 +1,59 @@
 {
-  "name": "mabrik-scraper",
-  "private": true,
-  "version": "1.0.0",
-  "description": "Mabrik.ee product scraper, price tracker & notification dashboard",
-  "workspaces": [
-    "shared",
-    "backend",
-    "frontend"
-  ],
-  "scripts": {
-    "dev:backend": "npm run dev --workspace=backend",
-    "dev:frontend": "npm run dev --workspace=frontend",
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "build": "npm run build --workspaces",
-    "lint": "npm run lint --workspaces",
-    "clean": "rm -rf node_modules backend/node_modules frontend/node_modules shared/node_modules"
-  },
-  "devDependencies": {
-    "concurrently": "^9.1.2",
-    "typescript": "~5.9.3"
-  },
-  "engines": {
-    "node": ">=20.0.0"
-  }
+    "name": "mabrik-scraper",
+    "private": true,
+    "version": "1.0.0",
+    "description": "Mabrik.ee product scraper, price tracker & notification dashboard",
+    "workspaces": [
+        "shared",
+        "backend",
+        "frontend"
+    ],
+    "scripts": {
+        "dev:backend": "npm run dev --workspace=backend",
+        "dev:frontend": "npm run dev --workspace=frontend",
+        "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+        "build": "npm run build --workspaces",
+        "lint": "npm run lint --workspace=shared && npm run lint --workspace=backend && npm run lint --workspace=frontend && npm run lint:styles",
+        "lint:styles": "stylelint \"frontend/src/**/*.{scss,css}\"",
+        "lint:styles:fix": "stylelint \"frontend/src/**/*.{scss,css}\" --fix",
+        "typecheck": "npm run typecheck --workspace=shared && npm run typecheck --workspace=backend && npm run typecheck --workspace=frontend",
+        "format": "prettier --write .",
+        "format:check": "prettier --check .",
+        "lint-staged": "lint-staged",
+        "prepare": "husky",
+        "clean": "rm -rf node_modules backend/node_modules frontend/node_modules shared/node_modules"
+    },
+    "lint-staged": {
+        "frontend/**/*.{ts,tsx,js,jsx,mjs,cjs}": [
+            "npm run lint:staged --workspace=frontend --",
+            "prettier --write"
+        ],
+        "backend/**/*.{ts,tsx,js,jsx,mjs,cjs}": [
+            "npm run lint:staged --workspace=backend --",
+            "prettier --write"
+        ],
+        "shared/**/*.{ts,tsx,js,jsx,mjs,cjs}": [
+            "npm run lint:staged --workspace=shared --",
+            "prettier --write"
+        ],
+        "frontend/src/**/*.{scss,css}": [
+            "stylelint --fix",
+            "prettier --write"
+        ],
+        "*.{json,md,yml,yaml}": [
+            "prettier --write"
+        ]
+    },
+    "devDependencies": {
+        "concurrently": "^9.1.2",
+        "husky": "^9.1.7",
+        "lint-staged": "^16.2.1",
+        "prettier": "^3.6.2",
+        "stylelint": "^16.26.0",
+        "stylelint-config-standard-scss": "^16.0.0",
+        "typescript": "~5.9.3"
+    },
+    "engines": {
+        "node": ">=20.0.0"
+    }
 }

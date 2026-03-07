@@ -1,6 +1,7 @@
-import { Alert, Button, Empty, Space, Typography } from "antd";
+import { Alert, Empty, Space, Typography } from "antd";
 import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
+import { AppButton } from "../components/app-button/AppButton";
 import { ProductDetailView } from "../features/products/components/product-detail-view";
 import { defaultProductHistoryControls } from "../features/products/history-controls";
 import { useProductHistoryColumns } from "../features/products/hooks/use-product-history-columns";
@@ -35,11 +36,11 @@ export const ProductDetailPage = () => {
                 <Alert
                     action={
                         <Space>
-                            <Button size="small" onClick={() => void detailQuery.refetch()}>
+                            <AppButton size="small" onClick={() => void detailQuery.refetch()}>
                                 Retry
-                            </Button>
+                            </AppButton>
                             <Link search={defaultRunsListSearch} to="/app/runs">
-                                <Button size="small">Back to runs</Button>
+                                <AppButton size="small">Back to runs</AppButton>
                             </Link>
                         </Space>
                     }

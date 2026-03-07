@@ -97,6 +97,29 @@ Root:
 npm run dev
 npm run build
 npm run lint
+npm run typecheck
+npm run format
+npm run format:check
+```
+
+## Code Quality Tooling
+
+Repo-level tooling now includes:
+
+1. ESLint (workspace linting for `frontend`, `backend`, and `shared`)
+2. Prettier (repo-wide formatting)
+3. Stylelint (frontend SCSS/CSS quality checks)
+4. Husky + lint-staged (git hooks)
+
+Git hooks:
+
+1. `pre-commit`: runs staged lint/format checks via `lint-staged`
+2. `pre-push`: runs `npm run lint`, `npm run typecheck`, and frontend tests
+
+If hooks are missing after dependency install, run:
+
+```bash
+npm run prepare
 ```
 
 Backend:

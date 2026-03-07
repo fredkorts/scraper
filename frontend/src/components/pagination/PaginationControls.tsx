@@ -1,4 +1,5 @@
-import { Button, Pagination } from "antd";
+import { Pagination } from "antd";
+import { AppButton } from "../app-button/AppButton";
 import type { PaginationControlsProps } from "./types/pagination-controls.types";
 import styles from "./PaginationControls.module.scss";
 
@@ -42,14 +43,14 @@ export const PaginationControls = ({
     return (
         <div className={styles.wrapper} data-loading={isLoading}>
             <nav aria-label={ariaLabel} className={styles.controls}>
-                <Button
+                <AppButton
                     htmlType="button"
                     aria-label="Go to first page"
                     disabled={isLoading || safePage <= 1}
                     onClick={() => onPageChange(1)}
                 >
                     First page
-                </Button>
+                </AppButton>
 
                 <Pagination
                     className={styles.antPagination}
@@ -62,14 +63,14 @@ export const PaginationControls = ({
                     onChange={(nextPage) => onPageChange(nextPage)}
                 />
 
-                <Button
+                <AppButton
                     htmlType="button"
                     aria-label="Go to last page"
                     disabled={isLoading || safePage >= safeTotalPages}
                     onClick={() => onPageChange(safeTotalPages)}
                 >
                     Last page
-                </Button>
+                </AppButton>
             </nav>
 
             <div className={styles.summary}>

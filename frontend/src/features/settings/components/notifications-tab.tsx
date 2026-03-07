@@ -1,3 +1,5 @@
+import { PlusOutlined } from "@ant-design/icons";
+import { AppButton } from "../../../components/app-button/AppButton";
 import { getSettingsPanelId, getSettingsTabId } from "../constants/settings-tab-a11y.constants";
 import type { SettingsNotificationsTabProps } from "../types/settings-ui.types";
 import styles from "./settings-shared.module.scss";
@@ -34,13 +36,18 @@ export const SettingsNotificationsTab = ({
                         onChange={(event) => onSetNewChannelEmail(event.target.value)}
                     />
                 </label>
-                <button
-                    type="button"
+                <AppButton
+                    aria-label="Add channel"
+                    className={styles.successPrimaryButton}
+                    icon={<PlusOutlined />}
+                    intent="primary"
+                    size="large"
+                    isLoading={isCreatePending}
                     onClick={() => void onCreateChannel()}
-                    disabled={!newChannelEmail || isCreatePending}
+                    disabled={!newChannelEmail}
                 >
-                    {isCreatePending ? "Adding..." : "Add channel"}
-                </button>
+                    Add channel
+                </AppButton>
             </div>
             <p className={styles.subtle}>
                 {role === "free"
@@ -61,21 +68,21 @@ export const SettingsNotificationsTab = ({
                             </div>
                         </div>
                         <div className={styles.actionRow}>
-                            <button
-                                type="button"
+                            <AppButton
+                                intent="secondary"
                                 onClick={() => void onToggleChannelDefault(channel.id, channel.isDefault)}
                             >
                                 {channel.isDefault ? "Unset default" : "Make default"}
-                            </button>
-                            <button
-                                type="button"
+                            </AppButton>
+                            <AppButton
+                                intent="secondary"
                                 onClick={() => void onToggleChannelActive(channel.id, channel.isActive)}
                             >
                                 {channel.isActive ? "Disable" : "Enable"}
-                            </button>
-                            <button type="button" onClick={() => void onRemoveChannel(channel.id)}>
+                            </AppButton>
+                            <AppButton intent="danger" onClick={() => void onRemoveChannel(channel.id)}>
                                 Remove
-                            </button>
+                            </AppButton>
                         </div>
                     </div>
                 ))}

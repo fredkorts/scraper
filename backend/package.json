@@ -9,6 +9,8 @@
         "build": "tsc",
         "start": "node dist/index.js",
         "lint": "eslint .",
+        "lint:staged": "eslint --fix",
+        "typecheck": "tsc --noEmit",
         "test": "vitest run",
         "test:watch": "vitest",
         "test:db:migrate": "tsx src/test/migrate-test-db.ts",

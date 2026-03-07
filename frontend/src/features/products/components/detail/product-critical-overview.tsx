@@ -1,4 +1,5 @@
-import { Badge, Button, Card, Col, Descriptions, Image, Row, Space, Statistic, Tag, Typography } from "antd";
+import { Badge, Card, Col, Descriptions, Image, Row, Space, Statistic, Tag, Typography } from "antd";
+import { AppButton } from "../../../../components/app-button/AppButton";
 import { formatPrice } from "../../../../shared/formatters/display";
 import { PRODUCT_IMAGE_FALLBACK_DATA_URL } from "../../constants/product-detail.constants";
 import { STOCK_STATUS_LABELS } from "../../../../shared/constants/stock.constants";
@@ -86,8 +87,13 @@ export const ProductCriticalOverview = ({ discount, product }: ProductCriticalOv
                             <Descriptions.Item label="Product ID">{product.id}</Descriptions.Item>
                             <Descriptions.Item label="Source URL">{product.externalUrl}</Descriptions.Item>
                         </Descriptions>
-                        <a className={styles.externalLinkAnchor} href={product.externalUrl} rel="noreferrer" target="_blank">
-                            <Button type="primary">Open on Mabrik</Button>
+                        <a
+                            className={styles.externalLinkAnchor}
+                            href={product.externalUrl}
+                            rel="noreferrer"
+                            target="_blank"
+                        >
+                            <AppButton intent="primary">Open on Mabrik</AppButton>
                         </a>
                     </Card>
                 </Space>
