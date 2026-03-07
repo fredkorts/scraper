@@ -50,6 +50,8 @@ Current decision for execution:
 Runbook:
 
 1. [RAILWAY_DEPLOYMENT_RUNBOOK.md](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/documentation/backend/RAILWAY_DEPLOYMENT_RUNBOOK.md)
+2. Backend Dockerfile for Railway services:
+    - [Dockerfile.backend](/Users/fredkorts/Documents/Development/Personal%20Projects/scraper/Dockerfile.backend)
 
 ## Monorepo Deployment Model
 

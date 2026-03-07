@@ -1,0 +1,11 @@
+.git
+.gitignore
+.husky
+node_modules
+backend/node_modules
+frontend
+shared/node_modules
+coverage
+dist
+.DS_Store
+*.log

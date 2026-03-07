@@ -1,0 +1,27 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Keep dev dependencies because backend runtime uses tsx scripts.
+ENV NODE_ENV=production
+ENV HUSKY=0
+
+# Copy workspace manifests first for better layer caching.
+COPY package.json package-lock.json ./
+COPY shared/package.json shared/package.json
+COPY backend/package.json backend/package.json
+
+# Install only the workspaces needed by backend services.
+RUN npm ci --include=dev --workspace=shared --workspace=backend
+
+# Copy source after dependencies.
+COPY tsconfig.json tsconfig.json
+COPY shared shared
+COPY backend backend
+
+# Ensure Prisma client is generated in image build.
+RUN npm run prisma:generate --workspace=backend
+
+EXPOSE 3001
+
+CMD ["npm", "run", "start:runtime", "--workspace=backend"]

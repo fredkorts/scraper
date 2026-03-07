@@ -16,13 +16,19 @@ Frontend stays on Vercel per current architecture decision.
 
 ## Vercel Monorepo Note
 
-If Vercel build fails on Husky during dependency install:
+Vercel must run from repo root for npm workspaces to resolve correctly.
 
-1. set `HUSKY=0` in Vercel environment variables
-2. keep frontend build command:
-    - `npm ci && npm run build --workspace=shared && npm run build --workspace=frontend`
+Required Vercel project settings:
 
-This prevents git-hook bootstrap in CI while preserving local Husky hooks.
+1. Root Directory: `.` (repo root, not `frontend`)
+2. Install Command: `npm ci`
+3. Build Command: `npm run build --workspace=shared && npm run build --workspace=frontend`
+4. Output Directory: `frontend/dist`
+5. Environment variable: `HUSKY=0`
+
+If Root Directory is set to `frontend`, commands using `--workspace=shared` fail with:
+
+1. `npm error No workspaces found: --workspace=shared`
 
 ## Service Architecture on Railway
 
@@ -34,12 +40,25 @@ Create one Railway project and three services from the same repository/branch:
 
 Use the same repo root for all three services and different start commands.
 
-## Build and Start Commands
+## Backend Build Mode (Recommended)
+
+Use Dockerfile deployment for backend services to avoid Railpack workspace edge cases:
+
+1. Dockerfile path: `Dockerfile.backend`
+2. Build context: repo root
+3. Service start command override:
+    - `backend-api`: `npm run start:runtime --workspace=backend`
+    - `backend-worker`: `npm run queue:worker --workspace=backend`
+    - `backend-scheduler`: `npm run queue:scheduler --workspace=backend`
+
+This avoids repeated auto-install phases that can trigger `EBUSY` errors on frontend cache folders.
+
+## Build and Start Commands (If staying on Railpack/Nixpacks)
 
 For all three services:
 
 1. Build command:
-    - `npm ci`
+    - `npm ci --include=dev --workspace=shared --workspace=backend`
 
 Service-specific start commands:
 
@@ -49,6 +68,12 @@ Service-specific start commands:
     - `npm run queue:worker --workspace=backend`
 3. `backend-scheduler`:
     - `npm run queue:scheduler --workspace=backend`
+
+Why this install command:
+
+1. installs only required workspaces for backend services (`shared` + `backend`)
+2. avoids touching `frontend/node_modules` in backend builds
+3. keeps `tsx` available (backend currently starts with tsx scripts)
 
 ## Required Environment Variables
 
@@ -123,9 +148,22 @@ Do not run `prisma migrate dev` in production.
     - queue grows, runs never execute.
 4. Worker running but scheduler down:
     - no scheduled jobs enter queue.
+5. Build fails with `EBUSY ... frontend/node_modules/.vite` during `npm ci`:
+    - switch to backend-only workspace install command
+    - clear Railway build cache and redeploy
+    - if persistent, switch service to Dockerfile mode (`Dockerfile.backend`)
 
 ## Rollback
 
 1. Re-deploy previous known-good commit for all three backend services.
 2. Keep DB migration rollback manual and explicit (no destructive auto-rollback).
 3. If issue is worker-only, rollback worker first without touching API.
+
+## Railway Build Cache Recovery
+
+If backend service build cache causes lock/busy install failures:
+
+1. open service settings/deployments
+2. clear build cache
+3. redeploy latest commit
+4. confirm build command is backend-only workspace install (not plain root `npm ci`)
