@@ -6,6 +6,7 @@
     "main": "./src/index.ts",
     "scripts": {
         "dev": "tsx watch src/index.ts",
+        "start:runtime": "tsx src/index.ts",
         "build": "tsc",
         "start": "node dist/index.js",
         "lint": "eslint .",
