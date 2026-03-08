@@ -17,6 +17,16 @@ export enum ChangeType {
     BACK_IN_STOCK = "back_in_stock",
 }
 
+export enum NotificationChangeCategory {
+    NEW_PRODUCT = "new_product",
+    BACK_IN_STOCK = "back_in_stock",
+    PRICE_DROP = "price_drop",
+    PRICE_INCREASE = "price_increase",
+    OUT_OF_STOCK = "out_of_stock",
+    REMOVED = "removed",
+    OTHER = "other",
+}
+
 export enum ScrapeStatus {
     PENDING = "pending",
     RUNNING = "running",
