@@ -38,9 +38,8 @@ export const SettingsNotificationsTab = ({
                 </label>
                 <AppButton
                     aria-label="Add channel"
-                    className={styles.successPrimaryButton}
                     icon={<PlusOutlined />}
-                    intent="primary"
+                    intent="success"
                     size="large"
                     isLoading={isCreatePending}
                     onClick={() => void onCreateChannel()}

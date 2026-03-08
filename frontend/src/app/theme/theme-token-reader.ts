@@ -1,17 +1,17 @@
 import type { AppColorTokens, AppThemeState } from "./types/theme.types";
 
 const FALLBACK_COLOR_TOKENS: AppColorTokens = {
-    colorPrimary: "#0f4c81",
-    colorBgLayout: "#f4f6f8",
-    colorBgContainer: "#ffffff",
-    colorBgElevated: "#ffffff",
-    colorBorder: "#d6dce3",
-    colorText: "#17202a",
-    colorTextSecondary: "#536171",
-    colorSuccess: "#1d6f42",
-    colorWarning: "#9a6700",
-    colorInfo: "#235d9f",
-    colorError: "#b02a37",
+    colorPrimary: "var(--color-primary)",
+    colorBgLayout: "var(--color-page)",
+    colorBgContainer: "var(--color-surface)",
+    colorBgElevated: "var(--color-surface)",
+    colorBorder: "var(--color-border)",
+    colorText: "var(--color-text)",
+    colorTextSecondary: "var(--color-text-muted)",
+    colorSuccess: "var(--color-success)",
+    colorWarning: "var(--color-warning)",
+    colorInfo: "var(--color-info)",
+    colorError: "var(--color-danger)",
 };
 
 const readIsDarkMode = (): boolean => {

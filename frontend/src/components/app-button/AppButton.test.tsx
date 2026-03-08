@@ -2,15 +2,19 @@ import { render, screen } from "@testing-library/react";
 import { AppButton } from "./AppButton";
 
 describe("AppButton", () => {
-    it("applies mapped primary and danger variants", () => {
+    it("applies mapped intent variants", () => {
         render(
             <>
                 <AppButton intent="primary">Primary</AppButton>
+                <AppButton intent="success">Success</AppButton>
+                <AppButton intent="warning">Warning</AppButton>
                 <AppButton intent="danger">Danger</AppButton>
             </>,
         );
 
         expect(screen.getByRole("button", { name: "Primary" })).toHaveClass("ant-btn-primary");
+        expect(screen.getByRole("button", { name: "Success" })).toHaveClass("ant-btn-default");
+        expect(screen.getByRole("button", { name: "Warning" })).toHaveClass("ant-btn-default");
         expect(screen.getByRole("button", { name: "Danger" })).toHaveClass("ant-btn-primary", "ant-btn-dangerous");
     });
 

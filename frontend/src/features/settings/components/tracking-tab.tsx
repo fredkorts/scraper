@@ -1,9 +1,7 @@
 import { CloseCircleOutlined, PlusOutlined } from "@ant-design/icons";
+import { AppButton } from "../../../components/app-button/AppButton";
 import { CategoryTreeSelect } from "../../../features/categories/components/category-tree-select";
-import {
-    getRoleLimitLabel,
-    getTrackingRoleDescription,
-} from "../constants/settings.constants";
+import { getRoleLimitLabel, getTrackingRoleDescription } from "../constants/settings.constants";
 import { getSettingsPanelId, getSettingsTabId } from "../constants/settings-tab-a11y.constants";
 import type { SettingsTrackingTabProps } from "../types/settings-ui.types";
 import styles from "./settings-shared.module.scss";
@@ -50,15 +48,14 @@ export const SettingsTrackingTab = ({
                                 <strong>{categoryLabelById.get(item.category.id) ?? item.category.nameEt}</strong>
                                 <div className={styles.subtle}>{item.category.slug}</div>
                             </div>
-                            <button
-                                className={`${styles.actionButton} ${styles.stopButton}`}
-                                type="button"
+                            <AppButton
+                                intent="danger"
+                                icon={<CloseCircleOutlined aria-hidden />}
                                 onClick={() => void onUntrackCategory(item.id)}
                                 disabled={isDeletePending}
                             >
-                                <CloseCircleOutlined aria-hidden />
                                 Stop tracking
-                            </button>
+                            </AppButton>
                         </div>
                     ))}
                 </div>
@@ -78,15 +75,17 @@ export const SettingsTrackingTab = ({
                         onChange={(value) => onSelectCategory(value ?? "")}
                     />
                 </label>
-                <button
-                    className={`${styles.actionButton} ${styles.trackButton} ${styles.trackingCreateButton}`}
-                    type="button"
+                <AppButton
+                    className={styles.trackingCreateButton}
+                    intent="success"
+                    icon={<PlusOutlined aria-hidden />}
+                    size="large"
                     onClick={() => void onTrackCategory()}
+                    isLoading={isCreatePending}
                     disabled={!availableCategoryOptions.length || isCreatePending}
                 >
-                    <PlusOutlined aria-hidden />
-                    {isCreatePending ? "Tracking..." : "Track category"}
-                </button>
+                    Track category
+                </AppButton>
             </div>
             {trackingError ? <p className={styles.errorText}>{trackingError}</p> : null}
             {!availableCategoryOptions.length ? (
