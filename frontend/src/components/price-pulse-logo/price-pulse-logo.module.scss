@@ -1,0 +1,16 @@
+.logo {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0;
+    font-weight: 700;
+    font-size: var(--font-size-lg);
+    line-height: var(--line-height-tight);
+}
+
+.price {
+    color: var(--color-primary);
+}
+
+.pulse {
+    color: var(--color-warning);
+}

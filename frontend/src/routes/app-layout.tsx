@@ -6,6 +6,7 @@ import { defaultSettingsSearch } from "../features/settings/search";
 import { NOTIFICATION_MESSAGES } from "../shared/constants/notification-messages";
 import { useAppNotification } from "../shared/hooks/use-app-notification";
 import { normalizeUserError } from "../shared/utils/normalize-user-error";
+import { PricePulseLogo } from "../components/price-pulse-logo/PricePulseLogo";
 import styles from "./app-layout.module.scss";
 
 export const AppLayout = () => {
@@ -31,7 +32,7 @@ export const AppLayout = () => {
     return (
         <div className={styles.shell}>
             <header className={styles.header}>
-                <span className={styles.brand}>Mabrik Dashboard</span>
+                <PricePulseLogo />
                 <nav className={styles.nav} aria-label="Main">
                     <Link search={defaultDashboardHomeSearch} to="/app">
                         Home
