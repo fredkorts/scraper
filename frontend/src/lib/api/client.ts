@@ -98,7 +98,7 @@ const fetchCsrfToken = async (): Promise<string> => {
 
     throw new ApiError({
         status: 500,
-        error: "server_error",
+        code: "server_error",
         message: "Unable to initialize CSRF token",
     });
 };
