@@ -34,7 +34,6 @@ import {
     verifyMfaLogin,
 } from "../services/auth.service";
 import { authCookieNames, clearAuthCookies, setAuthCookies, setCsrfCookie } from "../lib/cookies";
-import { issueCsrfCookie } from "../middleware/csrf";
 
 const getSessionContext = (request: Request): { ip?: string; userAgent?: string } => ({
     ip: request.ip || undefined,
@@ -42,8 +41,9 @@ const getSessionContext = (request: Request): { ip?: string; userAgent?: string 
 });
 
 export const csrfHandler = (req: Request, res: Response): void => {
-    issueCsrfCookie(req, res);
-    res.status(200).json({ success: true });
+    void req;
+    const csrfToken = setCsrfCookie(res);
+    res.status(200).json({ success: true, csrfToken });
 };
 
 export const registerHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -118,7 +118,6 @@ export const logoutHandler = async (req: Request, res: Response, next: NextFunct
 export const meHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const result = await getCurrentUser(req.auth!.userId);
-        setCsrfCookie(res);
         res.status(200).json(result);
     } catch (error) {
         next(error);

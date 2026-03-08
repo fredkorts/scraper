@@ -11,14 +11,17 @@ interface ApiRequestOptions<TBody> {
 }
 
 const AUTH_ENDPOINT_EXCLUSIONS = new Set([
+    "/api/auth/csrf",
     "/api/auth/refresh",
     "/api/auth/login",
     "/api/auth/register",
     "/api/auth/logout",
+    "/api/auth/me",
 ]);
 
 let refreshPromise: Promise<void> | null = null;
 let csrfPromise: Promise<void> | null = null;
+let csrfTokenCache: string | null = null;
 
 const toAbsoluteUrl = (path: string): string => {
     if (path.startsWith("http://") || path.startsWith("https://")) {
@@ -66,7 +69,7 @@ const getCookieValue = (name: string): string | null => {
     return null;
 };
 
-const fetchCsrfToken = async (): Promise<void> => {
+const fetchCsrfToken = async (): Promise<string> => {
     const response = await fetch(toAbsoluteUrl("/api/auth/csrf"), {
         method: "GET",
         credentials: "include",
@@ -79,17 +82,40 @@ const fetchCsrfToken = async (): Promise<void> => {
         const payload = await parseResponseBody(response);
         throw new ApiError(normalizeApiError(response.status, payload));
     }
+
+    const payload = await parseResponseBody(response);
+    if (payload && typeof payload === "object" && "csrfToken" in payload) {
+        const token = (payload as { csrfToken?: unknown }).csrfToken;
+        if (typeof token === "string" && token.length > 0) {
+            return token;
+        }
+    }
+
+    const cookieToken = getCookieValue("csrf_token");
+    if (cookieToken) {
+        return cookieToken;
+    }
+
+    throw new ApiError({
+        status: 500,
+        error: "server_error",
+        message: "Unable to initialize CSRF token",
+    });
 };
 
 const ensureCsrfToken = async (): Promise<void> => {
-    if (getCookieValue("csrf_token")) {
+    if (csrfTokenCache) {
         return;
     }
 
     if (!csrfPromise) {
-        csrfPromise = fetchCsrfToken().finally(() => {
-            csrfPromise = null;
-        });
+        csrfPromise = fetchCsrfToken()
+            .then((token) => {
+                csrfTokenCache = token;
+            })
+            .finally(() => {
+                csrfPromise = null;
+            });
     }
 
     await csrfPromise;
@@ -97,7 +123,7 @@ const ensureCsrfToken = async (): Promise<void> => {
 
 const refreshSession = async (): Promise<void> => {
     await ensureCsrfToken();
-    const csrfToken = getCookieValue("csrf_token");
+    const csrfToken = csrfTokenCache;
     const response = await fetch(toAbsoluteUrl("/api/auth/refresh"), {
         method: "POST",
         credentials: "include",
@@ -137,7 +163,7 @@ export const apiRequest = async <TResponse, TBody = unknown>(
     }
 
     const request = async (): Promise<Response> => {
-        const csrfToken = getCookieValue("csrf_token");
+        const csrfToken = csrfTokenCache;
         return fetch(url, {
             method,
             credentials: "include",
@@ -154,9 +180,13 @@ export const apiRequest = async <TResponse, TBody = unknown>(
     let response = await request();
 
     if (response.status === 403 && isMutation) {
-        csrfPromise = fetchCsrfToken().finally(() => {
-            csrfPromise = null;
-        });
+        csrfPromise = fetchCsrfToken()
+            .then((token) => {
+                csrfTokenCache = token;
+            })
+            .finally(() => {
+                csrfPromise = null;
+            });
         await csrfPromise;
         response = await request();
     }
@@ -170,6 +200,10 @@ export const apiRequest = async <TResponse, TBody = unknown>(
 
     if (!response.ok) {
         throw new ApiError(normalizeApiError(response.status, payload));
+    }
+
+    if (path === "/api/auth/logout" && method === "POST") {
+        csrfTokenCache = null;
     }
 
     if (!schema) {
