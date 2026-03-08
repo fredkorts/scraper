@@ -7,10 +7,7 @@ import { config } from "./config";
 import { AppError } from "./lib/errors";
 import { logger, requestContextMiddleware } from "./lib/logger";
 import { prisma } from "./lib/prisma";
-import {
-    apiReadLimiter,
-    paymentsMutationLimiter,
-} from "./middleware/rate-limit";
+import { apiReadLimiter, paymentsMutationLimiter } from "./middleware/rate-limit";
 import { authRouter } from "./routes/auth";
 import { categoriesRouter } from "./routes/categories";
 import { dashboardRouter } from "./routes/dashboard";
@@ -21,12 +18,13 @@ import { subscriptionsRouter } from "./routes/subscriptions";
 
 export const createApp = () => {
     const app = express();
+    const frontendOrigin = new URL(config.FRONTEND_URL).origin;
 
     app.set("trust proxy", config.TRUST_PROXY_HOPS);
 
     app.use(
         cors({
-            origin: config.FRONTEND_URL,
+            origin: frontendOrigin,
             credentials: true,
         }),
     );
