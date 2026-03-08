@@ -3,7 +3,7 @@ import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
 import { defaultProductHistoryControls } from "../../products/history-controls";
 import { STOCK_STATUS_LABELS } from "../../../shared/constants/stock.constants";
-import { formatChangeDetails, formatPrice, formatStatusLabel } from "../formatters";
+import { formatChangeDetails, formatPreorderState, formatPrice, formatStatusLabel } from "../formatters";
 import type { RunChangesData, RunProductsData } from "../schemas";
 import type { UseRunDetailColumnsOptions } from "../types/use-run-detail-columns.types";
 
@@ -37,6 +37,11 @@ export const useRunDetailColumns = ({ productLinkClassName }: UseRunDetailColumn
                 productColumnHelper.accessor("inStock", {
                     header: "Stock",
                     cell: (info) => (info.getValue() ? STOCK_STATUS_LABELS.inStock : STOCK_STATUS_LABELS.outOfStock),
+                }),
+                productColumnHelper.display({
+                    id: "preorder",
+                    header: "Preorder",
+                    cell: (info) => formatPreorderState(info.row.original),
                 }),
                 productColumnHelper.display({
                     id: "dashboardLink",
@@ -93,6 +98,11 @@ export const useRunDetailColumns = ({ productLinkClassName }: UseRunDetailColumn
                     id: "details",
                     header: "Details",
                     cell: (info) => formatChangeDetails(info.row.original),
+                }),
+                changeColumnHelper.display({
+                    id: "preorder",
+                    header: "Preorder",
+                    cell: (info) => formatPreorderState(info.row.original.product),
                 }),
                 changeColumnHelper.display({
                     id: "productLink",

@@ -154,6 +154,7 @@ const appRunDetailRoute = createRoute({
                     page: deps.changesPage,
                     pageSize: deps.changesPageSize,
                     changeType: deps.changeType,
+                    preorder: deps.preorder,
                 }),
             ),
         ]);

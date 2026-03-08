@@ -30,6 +30,7 @@ export const RunDetailPage = () => {
         page: search.changesPage,
         pageSize: search.changesPageSize,
         changeType: search.changeType,
+        preorder: search.preorder,
     });
     const setSearch = useRouteSearchUpdater(navigate);
 
@@ -89,7 +90,8 @@ export const RunDetailPage = () => {
                             {run.categoryName}
                         </h1>
                         <p className={styles.lede}>
-                            Inspect one scrape run, its diff output, and the exact snapshot data persisted for that execution.
+                            Inspect one scrape run, its diff output, and the exact snapshot data persisted for that
+                            execution.
                         </p>
                     </div>
                     <Link search={defaultRunsListSearch} to="/app/runs">
@@ -124,6 +126,7 @@ export const RunDetailPage = () => {
             <RunChangesSection
                 changeColumns={changeColumns}
                 changeType={search.changeType}
+                preorder={search.preorder}
                 changes={changesQuery.data}
                 errorMessage={changesQuery.isError ? changesQuery.error.message : undefined}
                 isFetching={changesQuery.isFetching}
@@ -136,6 +139,7 @@ export const RunDetailPage = () => {
                         changesPage: 1,
                     })
                 }
+                onPreorderChange={(value) => setSearch({ preorder: value, changesPage: 1 })}
                 onPageChange={(nextPage) => setSearch({ changesPage: nextPage })}
             />
 

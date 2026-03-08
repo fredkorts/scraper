@@ -26,6 +26,7 @@ export interface RunsTableSectionProps {
 export interface ChangesFiltersProps {
     categoryId?: string;
     changeType?: "price_increase" | "price_decrease" | "new_product" | "sold_out" | "back_in_stock";
+    preorder: "all" | "only" | "exclude";
     pageSize: number;
     windowDays: number;
     categoryTreeData: CategoryTreeNode[];
@@ -33,6 +34,7 @@ export interface ChangesFiltersProps {
     onChangeTypeChange: (
         value?: "price_increase" | "price_decrease" | "new_product" | "sold_out" | "back_in_stock",
     ) => void;
+    onPreorderChange: (value: "all" | "only" | "exclude") => void;
     onWindowDaysChange: (value: number) => void;
     onPageSizeChange: (value: string) => void;
     onReset: () => void;

@@ -24,6 +24,7 @@ export interface RunMetricsGridProps {
 export interface RunChangesSectionProps {
     changeColumns: Array<ColumnDef<RunChangesData["items"][number], unknown>>;
     changeType?: string;
+    preorder: "all" | "only" | "exclude";
     changes: RunChangesData | undefined;
     errorMessage?: string;
     isLoading: boolean;
@@ -31,6 +32,7 @@ export interface RunChangesSectionProps {
     page: number;
     pageSize: number;
     onChangeTypeChange: (value?: string) => void;
+    onPreorderChange: (value: "all" | "only" | "exclude") => void;
     onPageChange: (page: number) => void;
 }
 

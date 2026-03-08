@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { SortHeader } from "../../../components/sort-header/SortHeader";
 import { defaultProductHistoryControls } from "../../products/history-controls";
 import { defaultRunDetailSectionSearch } from "../search";
-import { formatChangeDetails, formatDateTime, formatStatusLabel } from "../formatters";
+import { formatChangeDetails, formatDateTime, formatPreorderState, formatStatusLabel } from "../formatters";
 import type { ChangesListData } from "../schemas";
 import type { UseChangesListColumnsOptions } from "../types/use-changes-list-columns.types";
 
@@ -65,6 +65,11 @@ export const useChangesListColumns = ({
                     id: "details",
                     header: "Details",
                     cell: (info) => formatChangeDetails(info.row.original),
+                }),
+                changesColumnHelper.display({
+                    id: "preorder",
+                    header: "Preorder",
+                    cell: (info) => formatPreorderState(info.row.original.product),
                 }),
                 changesColumnHelper.display({
                     id: "categoryName",

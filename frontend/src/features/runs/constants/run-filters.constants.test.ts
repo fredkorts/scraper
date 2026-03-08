@@ -3,6 +3,7 @@ import {
     RUN_CHANGE_TYPE_FILTER_OPTIONS,
     RUN_CHANGE_WINDOW_OPTIONS,
     RUN_PAGE_SIZE_OPTIONS,
+    RUN_PREORDER_FILTER_OPTIONS,
     RUN_PRODUCT_STOCK_FILTER_OPTIONS,
     RUN_STATUS_FILTER_OPTIONS,
 } from "./run-filters.constants";
@@ -47,6 +48,14 @@ describe("run filter constants", () => {
             { label: "Last 24 hours", value: "1" },
             { label: "Last 7 days", value: "7" },
             { label: "Last 30 days", value: "30" },
+        ]);
+    });
+
+    it("defines preorder filter options", () => {
+        expect(RUN_PREORDER_FILTER_OPTIONS).toEqual([
+            { label: "All products", value: "all" },
+            { label: "Preorder only", value: "only" },
+            { label: "Exclude preorders", value: "exclude" },
         ]);
     });
 });

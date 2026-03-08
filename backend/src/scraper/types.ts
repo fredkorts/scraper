@@ -5,6 +5,9 @@ export interface ParsedProduct {
     currentPrice: string;
     originalPrice?: string;
     inStock: boolean;
+    isPreorderCandidate?: boolean;
+    preorderEtaCandidate?: Date;
+    preorderDetectedFromCandidate?: "CATEGORY_SLUG" | "TITLE" | "DESCRIPTION";
 }
 
 export interface ParsedCategoryPage {

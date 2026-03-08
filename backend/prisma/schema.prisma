@@ -28,6 +28,12 @@ enum ChangeType {
   BACK_IN_STOCK
 }
 
+enum PreorderDetectionSource {
+  CATEGORY_SLUG
+  TITLE
+  DESCRIPTION
+}
+
 enum NotificationChannelType {
   EMAIL
   DISCORD
@@ -156,6 +162,10 @@ model Product {
   currentPrice     Decimal           @map("current_price") @db.Decimal(10, 2)
   originalPrice    Decimal?          @map("original_price") @db.Decimal(10, 2)
   inStock          Boolean           @map("in_stock")
+  isPreorder       Boolean           @default(false) @map("is_preorder")
+  preorderEta      DateTime?         @map("preorder_eta")
+  preorderDetectedFrom PreorderDetectionSource? @map("preorder_detected_from")
+  preorderLastCheckedAt DateTime?    @map("preorder_last_checked_at")
   firstSeenAt      DateTime          @default(now()) @map("first_seen_at")
   lastSeenAt       DateTime          @default(now()) @map("last_seen_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")

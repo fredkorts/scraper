@@ -9,6 +9,8 @@ const paginationShape = {
     pageSize: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(25),
 };
 
+const preorderFilterSchema = z.enum(["all", "only", "exclude"]).default("all");
+
 const validatePaginationBounds = (value: { page: number; pageSize: number }, context: z.RefinementCtx): void => {
     const offset = (value.page - 1) * value.pageSize;
 
@@ -53,6 +55,7 @@ export const runChangesQuerySchema = z
     .object({
         ...paginationShape,
         changeType: z.enum(["price_increase", "price_decrease", "new_product", "sold_out", "back_in_stock"]).optional(),
+        preorder: preorderFilterSchema,
     })
     .superRefine(validatePaginationBounds);
 
@@ -62,6 +65,7 @@ export const changesListQuerySchema = z
         sortBy: z.enum(["changedAt", "changeType", "productName", "categoryName"]).default("changedAt"),
         sortOrder: z.enum(["asc", "desc"]).default("desc"),
         changeType: z.enum(["price_increase", "price_decrease", "new_product", "sold_out", "back_in_stock"]).optional(),
+        preorder: preorderFilterSchema,
         categoryId: z.string().uuid().optional(),
         windowDays: z.coerce.number().int().min(1).max(30).default(7),
     })

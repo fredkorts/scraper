@@ -3,6 +3,7 @@ import { AppSelect } from "../../../../components/app-select/AppSelect";
 import { CategoryTreeSelect } from "../../../categories/components/category-tree-select";
 import {
     RUN_CHANGE_TYPE_FILTER_OPTIONS,
+    RUN_PREORDER_FILTER_OPTIONS,
     RUN_CHANGE_WINDOW_OPTIONS,
     RUN_PAGE_SIZE_OPTIONS,
 } from "../../constants/run-filters.constants";
@@ -12,11 +13,13 @@ import type { ChangesFiltersProps } from "../../types/run-list-sections.types";
 export const ChangesFilters = ({
     categoryId,
     changeType,
+    preorder,
     pageSize,
     windowDays,
     categoryTreeData,
     onCategoryChange,
     onChangeTypeChange,
+    onPreorderChange,
     onWindowDaysChange,
     onPageSizeChange,
     onReset,
@@ -56,6 +59,20 @@ export const ChangesFilters = ({
                 placeholder="All tracked categories"
                 value={categoryId}
                 onChange={(value) => onCategoryChange(value || undefined)}
+            />
+        </div>
+
+        <div className={styles.filterGroup}>
+            <label className={styles.label} htmlFor="changes-preorder-filter">
+                Preorder
+            </label>
+            <AppSelect
+                ariaLabel="Preorder"
+                className={styles.select}
+                id="changes-preorder-filter"
+                options={RUN_PREORDER_FILTER_OPTIONS}
+                value={preorder}
+                onChange={(value) => onPreorderChange((value as "all" | "only" | "exclude") || "all")}
             />
         </div>
 

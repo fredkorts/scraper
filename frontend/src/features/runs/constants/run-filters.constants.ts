@@ -27,6 +27,12 @@ export const RUN_CHANGE_WINDOW_OPTIONS: AppSelectOption[] = [
     { label: "Last 30 days", value: "30" },
 ];
 
+export const RUN_PREORDER_FILTER_OPTIONS: AppSelectOption[] = [
+    { label: "All products", value: "all" },
+    { label: "Preorder only", value: "only" },
+    { label: "Exclude preorders", value: "exclude" },
+];
+
 export const RUN_PRODUCT_STOCK_FILTER_OPTIONS: AppSelectOption[] = [
     { label: "In stock", value: "true" },
     { label: "Out of stock", value: "false" },

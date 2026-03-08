@@ -1,4 +1,12 @@
-import type { ChangeItem, ChangeReport, NotificationChannel, NotificationDelivery, Product, ScrapeRun, User } from "@prisma/client";
+import type {
+    ChangeItem,
+    ChangeReport,
+    NotificationChannel,
+    NotificationDelivery,
+    Product,
+    ScrapeRun,
+    User,
+} from "@prisma/client";
 
 export interface EmailMessage {
     to: string;
@@ -18,7 +26,10 @@ export interface ReportChangeItem {
     newPrice: ChangeItem["newPrice"];
     oldStockStatus: ChangeItem["oldStockStatus"];
     newStockStatus: ChangeItem["newStockStatus"];
-    product: Pick<Product, "id" | "name" | "externalUrl" | "imageUrl">;
+    product: Pick<
+        Product,
+        "id" | "name" | "externalUrl" | "imageUrl" | "isPreorder" | "preorderEta" | "preorderDetectedFrom"
+    >;
 }
 
 export interface ReportEmailPayload {

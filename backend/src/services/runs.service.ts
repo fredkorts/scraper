@@ -1,4 +1,9 @@
-import { ChangeType as PrismaChangeType, Prisma, ScrapeRunStatus as PrismaScrapeRunStatus } from "@prisma/client";
+import {
+    ChangeType as PrismaChangeType,
+    PreorderDetectionSource,
+    Prisma,
+    ScrapeRunStatus as PrismaScrapeRunStatus,
+} from "@prisma/client";
 import {
     ChangeType as SharedChangeType,
     type ChangesListResponse,
@@ -67,6 +72,13 @@ const changeTypeInputMap: Record<NonNullable<RunChangesQuery["changeType"]>, Pri
 
 const toNumber = (value: Prisma.Decimal | null | undefined): number | undefined =>
     value === null || value === undefined ? undefined : Number(value.toString());
+const toDateOnly = (value: Date | null | undefined): string | undefined =>
+    value ? value.toISOString().slice(0, 10) : undefined;
+const preorderSourceMap: Record<PreorderDetectionSource, "category_slug" | "title" | "description"> = {
+    CATEGORY_SLUG: "category_slug",
+    TITLE: "title",
+    DESCRIPTION: "description",
+};
 
 const buildEmptyChangeSummary = (): DashboardChangeSummary => ({
     priceIncrease: 0,
@@ -174,6 +186,7 @@ interface ListChangesWithScopeParams {
     sortBy: "changedAt" | "changeType" | "productName" | "categoryName";
     sortOrder: "asc" | "desc";
     changeType?: RunChangesQuery["changeType"];
+    preorder?: "all" | "only" | "exclude";
     categoryId?: string;
     windowDays?: number;
     changeReportId?: string;
@@ -186,6 +199,7 @@ const listChangesWithScope = async ({
     sortBy,
     sortOrder,
     changeType,
+    preorder = "all",
     categoryId,
     windowDays,
     changeReportId,
@@ -223,6 +237,19 @@ const listChangesWithScope = async ({
     const where: Prisma.ChangeItemWhereInput = {
         changeReport: changeReportWhere,
         ...(changeType ? { changeType: changeTypeInputMap[changeType] } : {}),
+        ...(preorder === "only"
+            ? {
+                  product: {
+                      isPreorder: true,
+                  },
+              }
+            : preorder === "exclude"
+              ? {
+                    product: {
+                        isPreorder: false,
+                    },
+                }
+              : {}),
     };
 
     const orderBy: Prisma.ChangeItemOrderByWithRelationInput[] =
@@ -245,6 +272,9 @@ const listChangesWithScope = async ({
                         name: true,
                         imageUrl: true,
                         externalUrl: true,
+                        isPreorder: true,
+                        preorderEta: true,
+                        preorderDetectedFrom: true,
                     },
                 },
                 changeReport: {
@@ -284,6 +314,11 @@ const listChangesWithScope = async ({
                 name: item.product.name,
                 imageUrl: item.product.imageUrl,
                 externalUrl: item.product.externalUrl,
+                isPreorder: item.product.isPreorder,
+                preorderEta: toDateOnly(item.product.preorderEta),
+                preorderDetectedFrom: item.product.preorderDetectedFrom
+                    ? preorderSourceMap[item.product.preorderDetectedFrom]
+                    : undefined,
             },
             changedAt: item.changeReport.createdAt.toISOString(),
             category: {
@@ -573,6 +608,9 @@ export const listRunProducts = async (
                 product: {
                     select: {
                         externalUrl: true,
+                        isPreorder: true,
+                        preorderEta: true,
+                        preorderDetectedFrom: true,
                     },
                 },
             },
@@ -593,6 +631,11 @@ export const listRunProducts = async (
             inStock: snapshot.inStock,
             imageUrl: snapshot.imageUrl,
             externalUrl: snapshot.product.externalUrl,
+            isPreorder: snapshot.product.isPreorder,
+            preorderEta: toDateOnly(snapshot.product.preorderEta),
+            preorderDetectedFrom: snapshot.product.preorderDetectedFrom
+                ? preorderSourceMap[snapshot.product.preorderDetectedFrom]
+                : undefined,
             scrapedAt: snapshot.scrapedAt.toISOString(),
         })),
         page: query.page,
@@ -627,6 +670,7 @@ export const listRunChanges = async (
         sortBy: "changedAt",
         sortOrder: "desc",
         changeType: query.changeType,
+        preorder: query.preorder,
         changeReportId: run.changeReport.id,
     });
 
@@ -668,6 +712,7 @@ export const listChanges = async (
         sortBy: query.sortBy,
         sortOrder: query.sortOrder,
         changeType: query.changeType,
+        preorder: query.preorder,
         categoryId: query.categoryId,
         windowDays: query.windowDays,
     });

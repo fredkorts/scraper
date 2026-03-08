@@ -40,6 +40,7 @@ interface RunChangesParams {
     page: number;
     pageSize: number;
     changeType?: string;
+    preorder: "all" | "only" | "exclude";
 }
 
 interface ChangesListParams {
@@ -48,6 +49,7 @@ interface ChangesListParams {
     sortBy: string;
     sortOrder: string;
     changeType?: string;
+    preorder: "all" | "only" | "exclude";
     categoryId?: string;
     windowDays: number;
 }
@@ -125,6 +127,7 @@ export const runChangesQueryOptions = (runId: string, params: RunChangesParams) 
                     page: params.page,
                     pageSize: params.pageSize,
                     changeType: params.changeType,
+                    preorder: params.preorder,
                 })}`,
                 runChangesResponseSchema,
             ),
@@ -142,6 +145,7 @@ export const changesListQueryOptions = (params: ChangesListParams) =>
                     sortBy: params.sortBy,
                     sortOrder: params.sortOrder,
                     changeType: params.changeType,
+                    preorder: params.preorder,
                     categoryId: params.categoryId,
                     windowDays: params.windowDays,
                 })}`,

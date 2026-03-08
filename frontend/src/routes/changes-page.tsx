@@ -8,6 +8,7 @@ import { ChangesTableSection } from "../features/runs/components/shared/changes-
 import sectionStyles from "../features/runs/components/detail/run-detail-sections.module.scss";
 import {
     RUN_CHANGE_TYPE_FILTER_OPTIONS,
+    RUN_PREORDER_FILTER_OPTIONS,
     RUN_CHANGE_WINDOW_OPTIONS,
 } from "../features/runs/constants/run-filters.constants";
 import { useChangesListColumns } from "../features/runs/hooks/use-changes-list-columns";
@@ -60,6 +61,10 @@ export const ChangesPage = () => {
         const entry = RUN_CHANGE_WINDOW_OPTIONS.find((option) => Number(option.value) === search.windowDays);
         return entry?.label ?? "Last 7 days";
     }, [search.windowDays]);
+    const preorderLabel = useMemo(() => {
+        const entry = RUN_PREORDER_FILTER_OPTIONS.find((option) => option.value === search.preorder);
+        return entry?.label ?? "All products";
+    }, [search.preorder]);
 
     const toggleSort = (sortBy: typeof search.sortBy) => {
         setSearch({
@@ -94,10 +99,12 @@ export const ChangesPage = () => {
                 categoryId={search.categoryId}
                 categoryTreeData={categoryTreeData}
                 changeType={search.changeType}
+                preorder={search.preorder}
                 pageSize={search.pageSize}
                 windowDays={search.windowDays}
                 onCategoryChange={(value) => setSearch({ categoryId: value, page: 1 })}
                 onChangeTypeChange={(value) => setSearch({ changeType: value, page: 1 })}
+                onPreorderChange={(value) => setSearch({ preorder: value, page: 1 })}
                 onWindowDaysChange={(value) => setSearch({ windowDays: value as 1 | 7 | 30, page: 1 })}
                 onPageSizeChange={(value) => setSearch({ pageSize: Number(value), page: 1 })}
                 onReset={() =>
@@ -118,6 +125,9 @@ export const ChangesPage = () => {
                 </p>
                 <p>
                     Window: <strong>{windowLabel}</strong>
+                </p>
+                <p>
+                    Preorder: <strong>{preorderLabel}</strong>
                 </p>
                 <p>
                     Sorted by:{" "}

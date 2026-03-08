@@ -1,10 +1,7 @@
-import { Alert, Breadcrumb, Flex, Space, Typography } from "antd";
+import { Alert, Breadcrumb, Flex, Space, Tag, Typography } from "antd";
 import { Link } from "@tanstack/react-router";
 import { formatDateTime } from "../../../../shared/formatters/display";
-import {
-    defaultDashboardHomeSearch,
-    defaultRunsListSearch,
-} from "../../../../shared/navigation/default-searches";
+import { defaultDashboardHomeSearch, defaultRunsListSearch } from "../../../../shared/navigation/default-searches";
 import styles from "../product-detail-view.module.scss";
 import type { ProductDetailHeaderProps } from "../../types/product-detail-sections.types";
 
@@ -12,13 +9,28 @@ export const ProductDetailHeader = ({ freshness, product }: ProductDetailHeaderP
     <Space orientation="vertical" size="small">
         <Breadcrumb
             items={[
-                { title: <Link search={defaultDashboardHomeSearch} to="/app">Home</Link> },
-                { title: <Link search={defaultRunsListSearch} to="/app/runs">Runs</Link> },
+                {
+                    title: (
+                        <Link search={defaultDashboardHomeSearch} to="/app">
+                            Home
+                        </Link>
+                    ),
+                },
+                {
+                    title: (
+                        <Link search={defaultRunsListSearch} to="/app/runs">
+                            Runs
+                        </Link>
+                    ),
+                },
                 { title: product.name },
             ]}
         />
         <div className={styles.headerStack}>
             <Typography.Title level={1}>{product.name}</Typography.Title>
+            {product.isPreorder ? (
+                <Tag color="gold">Preorder{product.preorderEta ? ` (ETA ${product.preorderEta})` : ""}</Tag>
+            ) : null}
         </div>
         <Flex gap="small" wrap>
             <Typography.Text type="secondary">First seen: {formatDateTime(product.firstSeenAt)}</Typography.Text>

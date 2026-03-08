@@ -85,6 +85,11 @@ export const ProductCriticalOverview = ({ discount, product }: ProductCriticalOv
                     <Card size="small">
                         <Descriptions column={1} size="small">
                             <Descriptions.Item label="Product ID">{product.id}</Descriptions.Item>
+                            <Descriptions.Item label="Preorder">
+                                {product.isPreorder
+                                    ? `Yes${product.preorderEta ? ` (ETA ${product.preorderEta})` : ""}`
+                                    : "No"}
+                            </Descriptions.Item>
                             <Descriptions.Item label="Source URL">{product.externalUrl}</Descriptions.Item>
                         </Descriptions>
                         <a

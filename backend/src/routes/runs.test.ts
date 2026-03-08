@@ -94,6 +94,9 @@ const createProduct = async (
         currentPrice: string;
         originalPrice: string | null;
         inStock: boolean;
+        isPreorder: boolean;
+        preorderEta: Date | null;
+        preorderDetectedFrom: "CATEGORY_SLUG" | "TITLE" | "DESCRIPTION" | null;
     }> = {},
 ) =>
     prisma.product.create({
@@ -104,6 +107,9 @@ const createProduct = async (
             currentPrice: overrides.currentPrice ?? "19.99",
             originalPrice: overrides.originalPrice === undefined ? null : overrides.originalPrice,
             inStock: overrides.inStock ?? true,
+            isPreorder: overrides.isPreorder ?? false,
+            preorderEta: overrides.preorderEta === undefined ? null : overrides.preorderEta,
+            preorderDetectedFrom: overrides.preorderDetectedFrom === undefined ? null : overrides.preorderDetectedFrom,
         },
     });
 
@@ -616,6 +622,54 @@ describe("dashboard and runs routes", () => {
         expect(response.body.items[0].newStockStatus).toBe(false);
     });
 
+    it("filters run changes by preorder state", async () => {
+        const app = createApp();
+        const { user } = await createUser({ email: "changes-preorder@example.com" });
+        const category = await createCategory("run-changes-preorder", "Run Changes Preorder");
+
+        await subscribeToCategory(user.id, category.id);
+        const run = await createRun(category.id, { totalProducts: 2 });
+        const report = await prisma.changeReport.create({
+            data: {
+                scrapeRunId: run.id,
+                totalChanges: 2,
+            },
+        });
+
+        const preorderProduct = await createProduct("preorder-change-product", {
+            isPreorder: true,
+            preorderDetectedFrom: "CATEGORY_SLUG",
+        });
+        const regularProduct = await createProduct("regular-change-product", {
+            isPreorder: false,
+            preorderDetectedFrom: null,
+        });
+
+        await prisma.changeItem.createMany({
+            data: [
+                {
+                    changeReportId: report.id,
+                    productId: preorderProduct.id,
+                    changeType: PrismaChangeType.NEW_PRODUCT,
+                },
+                {
+                    changeReportId: report.id,
+                    productId: regularProduct.id,
+                    changeType: PrismaChangeType.NEW_PRODUCT,
+                },
+            ],
+        });
+
+        const response = await request(app)
+            .get(`/api/runs/${run.id}/changes?page=1&pageSize=25&preorder=only`)
+            .set("Cookie", authCookie(user.id, user.email));
+
+        expect(response.status).toBe(200);
+        expect(response.body.totalItems).toBe(1);
+        expect(response.body.items[0].product.id).toBe(preorderProduct.id);
+        expect(response.body.items[0].product.isPreorder).toBe(true);
+    });
+
     it("lists scoped cross-run changes for accessible categories", async () => {
         const app = createApp();
         const { user } = await createUser({ email: "global-changes@example.com" });
@@ -667,6 +721,58 @@ describe("dashboard and runs routes", () => {
         expect(response.body.items[0].category.id).toBe(visibleCategory.id);
         expect(response.body.items[0].run.id).toBe(visibleRun.id);
         expect(response.body.items[0].changedAt).toBeTruthy();
+    });
+
+    it("filters cross-run changes by preorder state", async () => {
+        const app = createApp();
+        const { user } = await createUser({ email: "global-changes-preorder@example.com" });
+        const category = await createCategory("global-preorder", "Global Preorder");
+        await subscribeToCategory(user.id, category.id);
+
+        const run = await createRun(category.id, { totalProducts: 2 });
+        const report = await prisma.changeReport.create({
+            data: {
+                scrapeRunId: run.id,
+                totalChanges: 2,
+            },
+        });
+
+        const preorderProduct = await createProduct("global-preorder-product", {
+            isPreorder: true,
+            preorderDetectedFrom: "TITLE",
+        });
+        const regularProduct = await createProduct("global-regular-product", {
+            isPreorder: false,
+            preorderDetectedFrom: null,
+        });
+
+        await prisma.changeItem.createMany({
+            data: [
+                {
+                    changeReportId: report.id,
+                    productId: preorderProduct.id,
+                    changeType: PrismaChangeType.SOLD_OUT,
+                    oldStockStatus: true,
+                    newStockStatus: false,
+                },
+                {
+                    changeReportId: report.id,
+                    productId: regularProduct.id,
+                    changeType: PrismaChangeType.SOLD_OUT,
+                    oldStockStatus: true,
+                    newStockStatus: false,
+                },
+            ],
+        });
+
+        const response = await request(app)
+            .get("/api/changes?page=1&pageSize=25&windowDays=30&preorder=exclude")
+            .set("Cookie", authCookie(user.id, user.email));
+
+        expect(response.status).toBe(200);
+        expect(response.body.totalItems).toBe(1);
+        expect(response.body.items[0].product.id).toBe(regularProduct.id);
+        expect(response.body.items[0].product.isPreorder).toBe(false);
     });
 
     it("includes descendant category changes when filtering global changes by a parent category", async () => {

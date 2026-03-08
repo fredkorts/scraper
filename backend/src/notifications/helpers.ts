@@ -1,13 +1,6 @@
-import {
-    NotificationDeliveryStatus,
-    UserRole,
-} from "@prisma/client";
+import { NotificationDeliveryStatus, UserRole } from "@prisma/client";
 import { prisma } from "../lib/prisma";
-import type {
-    DigestRecipientPayload,
-    ImmediateDeliveryPayload,
-    ReportChangeItem,
-} from "./types";
+import type { DigestRecipientPayload, ImmediateDeliveryPayload, ReportChangeItem } from "./types";
 
 const buildReportChangeItems = (
     items: {
@@ -54,9 +47,7 @@ const toReportPayload = (report: {
     },
 });
 
-export const getImmediateDeliveryPayloads = async (
-    changeReportId: string,
-): Promise<ImmediateDeliveryPayload[]> => {
+export const getImmediateDeliveryPayloads = async (changeReportId: string): Promise<ImmediateDeliveryPayload[]> => {
     const deliveries = await prisma.notificationDelivery.findMany({
         where: {
             changeReportId,
@@ -108,6 +99,9 @@ export const getImmediateDeliveryPayloads = async (
                                     name: true,
                                     externalUrl: true,
                                     imageUrl: true,
+                                    isPreorder: true,
+                                    preorderEta: true,
+                                    preorderDetectedFrom: true,
                                 },
                             },
                         },
@@ -188,6 +182,9 @@ export const getDigestRecipientPayloads = async (now: Date): Promise<DigestRecip
                                     name: true,
                                     externalUrl: true,
                                     imageUrl: true,
+                                    isPreorder: true,
+                                    preorderEta: true,
+                                    preorderDetectedFrom: true,
                                 },
                             },
                         },

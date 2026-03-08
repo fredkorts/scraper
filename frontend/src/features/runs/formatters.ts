@@ -16,6 +16,11 @@ interface ChangeDetailsInput {
     newStockStatus?: boolean;
 }
 
+interface PreorderStateInput {
+    isPreorder?: boolean;
+    preorderEta?: string;
+}
+
 export const formatChangeDetails = (value: ChangeDetailsInput): string => {
     if (value.oldPrice !== undefined || value.newPrice !== undefined) {
         return `${formatPrice(value.oldPrice)} -> ${formatPrice(value.newPrice)}`;
@@ -29,4 +34,12 @@ export const formatChangeDetails = (value: ChangeDetailsInput): string => {
     }
 
     return "State change recorded";
+};
+
+export const formatPreorderState = (value: PreorderStateInput): string => {
+    if (!value.isPreorder) {
+        return "No";
+    }
+
+    return value.preorderEta ? `Preorder (ETA ${value.preorderEta})` : "Preorder";
 };

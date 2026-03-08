@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
+import { classifyPreorder } from "./preorder";
 import type { ParsedProduct, PersistedScrapeStats } from "./types";
 
 const toDecimal = (value: string | undefined): Prisma.Decimal | undefined =>
@@ -8,6 +9,7 @@ const toDecimal = (value: string | undefined): Prisma.Decimal | undefined =>
 interface PersistScrapeResultsInput {
     scrapeRunId: string;
     categoryId: string;
+    categorySlug: string;
     products: ParsedProduct[];
     pagesScraped: number;
     parserWarnings: string[];
@@ -37,9 +39,7 @@ const hasTrackedChanges = (
     );
 };
 
-export const persistScrapeResults = async (
-    input: PersistScrapeResultsInput,
-): Promise<PersistedScrapeStats> => {
+export const persistScrapeResults = async (input: PersistScrapeResultsInput): Promise<PersistedScrapeStats> => {
     const uniqueProducts = new Map<string, ParsedProduct>();
     for (const product of input.products) {
         uniqueProducts.set(product.externalUrl, product);
@@ -59,6 +59,8 @@ export const persistScrapeResults = async (
 
                 const currentPrice = toDecimal(product.currentPrice)!;
                 const originalPrice = toDecimal(product.originalPrice) ?? null;
+                const preorder = classifyPreorder(product, input.categorySlug);
+                const preorderCheckedAt = new Date();
 
                 if (!existing) {
                     const created = await tx.product.create({
@@ -69,6 +71,10 @@ export const persistScrapeResults = async (
                             currentPrice,
                             originalPrice,
                             inStock: product.inStock,
+                            isPreorder: preorder.isPreorder,
+                            preorderEta: preorder.preorderEta,
+                            preorderDetectedFrom: preorder.preorderDetectedFrom,
+                            preorderLastCheckedAt: preorderCheckedAt,
                             firstSeenAt: new Date(),
                             lastSeenAt: new Date(),
                         },
@@ -129,6 +135,10 @@ export const persistScrapeResults = async (
                         currentPrice,
                         originalPrice,
                         inStock: product.inStock,
+                        isPreorder: preorder.isPreorder,
+                        preorderEta: preorder.preorderEta,
+                        preorderDetectedFrom: preorder.preorderDetectedFrom,
+                        preorderLastCheckedAt: preorderCheckedAt,
                         lastSeenAt: new Date(),
                     },
                 });

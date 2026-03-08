@@ -11,18 +11,26 @@ import type { ReportChangeItem } from "./types";
 
 let itemSequence = 0;
 
-const buildItem = (overrides: Partial<ReportChangeItem>): ReportChangeItem => ({
+type ReportChangeItemOverrides = Omit<Partial<ReportChangeItem>, "product"> & {
+    product?: Partial<ReportChangeItem["product"]>;
+};
+
+const buildItem = (overrides: ReportChangeItemOverrides): ReportChangeItem => ({
     id: overrides.id ?? `item-${++itemSequence}`,
     changeType: overrides.changeType ?? ChangeType.NEW_PRODUCT,
     oldPrice: overrides.oldPrice ?? null,
     newPrice: overrides.newPrice ?? null,
     oldStockStatus: overrides.oldStockStatus ?? null,
     newStockStatus: overrides.newStockStatus ?? null,
-    product: overrides.product ?? {
+    product: {
         id: `product-${itemSequence}`,
         name: "Product",
         externalUrl: "https://mabrik.ee/toode/product",
         imageUrl: "https://mabrik.ee/images/product.jpg",
+        isPreorder: false,
+        preorderEta: null,
+        preorderDetectedFrom: null,
+        ...overrides.product,
     },
 });
 

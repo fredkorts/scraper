@@ -1,5 +1,6 @@
 type RunStatusValue = "pending" | "running" | "completed" | "failed";
 type RunChangeTypeValue = "price_increase" | "price_decrease" | "new_product" | "sold_out" | "back_in_stock";
+type PreorderFilterValue = "all" | "only" | "exclude";
 type ChangesSortByValue = "changedAt" | "changeType" | "productName" | "categoryName";
 type ChangesSortOrderValue = "asc" | "desc";
 
@@ -23,6 +24,7 @@ export const defaultRunDetailSectionSearch = {
     changesPage: 1,
     changesPageSize: 10,
     changeType: undefined as RunChangeTypeValue | undefined,
+    preorder: "all" as PreorderFilterValue,
 };
 
 export const defaultChangesListSearch = {
@@ -31,6 +33,7 @@ export const defaultChangesListSearch = {
     sortBy: "changedAt" as ChangesSortByValue,
     sortOrder: "desc" as ChangesSortOrderValue,
     changeType: undefined as RunChangeTypeValue | undefined,
+    preorder: "all" as PreorderFilterValue,
     categoryId: undefined as string | undefined,
     windowDays: 7 as 1 | 7 | 30,
 };

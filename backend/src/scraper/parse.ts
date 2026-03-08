@@ -2,6 +2,7 @@ import * as cheerio from "cheerio";
 import type { AnyNode } from "domhandler";
 import { config } from "../config";
 import { productSelectors } from "./selectors";
+import { extractPreorderEtaDate } from "./preorder";
 import type { ParsedCategoryPage, ParsedProduct } from "./types";
 
 const buildAbsoluteUrl = (value: string): string => new URL(value, config.SCRAPER_BASE_URL).toString();
@@ -35,8 +36,7 @@ const parseProductCard = (element: AnyNode, $: cheerio.CheerioAPI): ParsedProduc
     const card = $(element);
 
     const linkHref =
-        card.find(productSelectors.productLink).first().attr("href") ??
-        card.find("a").first().attr("href");
+        card.find(productSelectors.productLink).first().attr("href") ?? card.find("a").first().attr("href");
     const name = card.find(productSelectors.title).first().text().trim();
     const imageUrl =
         card.find(productSelectors.image).first().attr("data-lazy-src") ??
@@ -85,6 +85,9 @@ const parseProductCard = (element: AnyNode, $: cheerio.CheerioAPI): ParsedProduc
         throw new Error("Unable to determine stock state");
     })();
 
+    const preorderEtaCandidate = extractPreorderEtaDate(card.text()) ?? extractPreorderEtaDate(name);
+    const isPreorderCandidate = preorderEtaCandidate !== null;
+
     return {
         externalUrl: normalizeExternalUrl(linkHref),
         name,
@@ -92,6 +95,9 @@ const parseProductCard = (element: AnyNode, $: cheerio.CheerioAPI): ParsedProduc
         currentPrice: parsePriceToDecimal(effectiveCurrentPrice),
         originalPrice: originalPriceText ? parsePriceToDecimal(originalPriceText) : undefined,
         inStock,
+        isPreorderCandidate,
+        preorderEtaCandidate: preorderEtaCandidate ?? undefined,
+        preorderDetectedFromCandidate: preorderEtaCandidate ? "TITLE" : undefined,
     };
 };
 
@@ -104,7 +110,7 @@ const extractTemplateProductMarkup = ($: cheerio.CheerioAPI): string | undefined
     try {
         return JSON.parse(templateText) as string;
     } catch {
-        return templateText.replace(/^"|"$/g, "").replace(/\\"/g, "\"").replace(/\\\//g, "/");
+        return templateText.replace(/^"|"$/g, "").replace(/\\"/g, '"').replace(/\\\//g, "/");
     }
 };
 
@@ -120,9 +126,7 @@ export const parseCategoryPage = (html: string): ParsedCategoryPage => {
         try {
             products.push(parseProductCard(element, productDom));
         } catch (error) {
-            parserWarnings.push(
-                error instanceof Error ? error.message : "Unknown product parse error",
-            );
+            parserWarnings.push(error instanceof Error ? error.message : "Unknown product parse error");
         }
     });
 

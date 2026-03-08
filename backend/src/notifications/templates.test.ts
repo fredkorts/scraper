@@ -39,6 +39,9 @@ const immediatePayload: ImmediateDeliveryPayload = {
                 name: "Catan & Friends",
                 externalUrl: "https://mabrik.ee/toode/catan-friends",
                 imageUrl: "https://mabrik.ee/images/catan-friends.jpg",
+                isPreorder: false,
+                preorderEta: null,
+                preorderDetectedFrom: null,
             },
         },
     ],
@@ -114,6 +117,7 @@ describe("notification templates", () => {
         expect(email.text).toContain("Category: Lauamängud");
         expect(email.text).toContain("Run time: 2026-03-01 10:05 UTC");
         expect(email.text).toContain("Sections: 3");
+        expect(email.text).toContain("Preorders in this report: 0");
         expect(email.text).toContain("Summary: New products: 1, Back in stock: 1, Price drops: 2");
         expect(email.text).toContain("View all changes in dashboard:");
         expect(email.text).toContain(
@@ -217,6 +221,7 @@ describe("notification templates", () => {
         expect(email.text).toContain("Run time: 2026-03-01 10:05 UTC");
         expect(email.text).toContain("Back in stock (1)");
         expect(email.text).toContain("Price increases (1)");
+        expect(email.text).toContain("Preorders in this report: 0");
         expect(email.html).toContain("View all changes in dashboard");
         expect(email.html).toContain("Open category runs");
     });
@@ -273,6 +278,7 @@ describe("notification templates", () => {
         expect(email.subject).toContain("Lauamängud");
         expect(email.html).toContain("Catan &amp; Friends");
         expect(email.html).toContain("19.99 EUR -> 14.99 EUR");
+        expect(email.html).toContain("Preorders in this report:");
         expect(email.text).toContain("Catan & Friends");
         expect(email.text).toContain("https://mabrik.ee/toode/catan-friends");
     });

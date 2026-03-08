@@ -1,4 +1,4 @@
-import { ScrapeRunStatus } from "@prisma/client";
+import { PreorderDetectionSource, ScrapeRunStatus } from "@prisma/client";
 import type { ProductDetailResponse, ProductHistoryResponse, UserRole } from "@mabrik/shared";
 import { ScrapeStatus } from "@mabrik/shared";
 import { prisma } from "../lib/prisma";
@@ -14,6 +14,13 @@ const statusMap: Record<ScrapeRunStatus, ScrapeStatus> = {
 
 const toNumber = (value: { toString(): string } | null | undefined): number | undefined =>
     value === null || value === undefined ? undefined : Number(value.toString());
+const toDateOnly = (value: Date | null | undefined): string | undefined =>
+    value ? value.toISOString().slice(0, 10) : undefined;
+const preorderSourceMap: Record<PreorderDetectionSource, "category_slug" | "title" | "description"> = {
+    CATEGORY_SLUG: "category_slug",
+    TITLE: "title",
+    DESCRIPTION: "description",
+};
 
 const getAccessibleProductScope = async (userId: string, role: UserRole, productId: string) => {
     const categoryIds = await getAccessibleCategoryIds(userId, role);
@@ -134,6 +141,11 @@ export const getProductDetail = async (
             currentPrice: toNumber(latestSnapshot?.price) ?? Number(product.currentPrice.toString()),
             originalPrice: toNumber(latestSnapshot?.originalPrice) ?? toNumber(product.originalPrice),
             inStock: latestSnapshot?.inStock ?? product.inStock,
+            isPreorder: product.isPreorder,
+            preorderEta: toDateOnly(product.preorderEta),
+            preorderDetectedFrom: product.preorderDetectedFrom
+                ? preorderSourceMap[product.preorderDetectedFrom]
+                : undefined,
             firstSeenAt: earliestSnapshot?.scrapedAt.toISOString() ?? product.firstSeenAt.toISOString(),
             lastSeenAt: latestSnapshot?.scrapedAt.toISOString() ?? product.lastSeenAt.toISOString(),
             historyPointCount,

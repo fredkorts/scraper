@@ -5,6 +5,7 @@ import {
     defaultRunDetailSectionSearch,
     defaultRunsListSearch,
 } from "../../shared/navigation/default-searches";
+import { normalizePreorderFilterValue, preorderFilterValues } from "./hooks/use-preorder-filter";
 
 export const runsSortByValues = ["startedAt", "status", "totalChanges", "totalProducts", "durationMs"] as const;
 export const runsSortOrderValues = ["asc", "desc"] as const;
@@ -18,6 +19,7 @@ export const runChangeTypeValues = [
     "sold_out",
     "back_in_stock",
 ] as const;
+export const preorderFilterSearchValues = preorderFilterValues;
 export const changesWindowValues = [1, 7, 30] as const;
 
 const toOptionalString = (value: unknown): string | undefined => {
@@ -107,6 +109,7 @@ export const parseRunDetailSearch = (
     changesPage: number;
     changesPageSize: number;
     changeType?: (typeof runChangeTypeValues)[number];
+    preorder: (typeof preorderFilterSearchValues)[number];
 } => {
     const changeType = toOptionalString(search.changeType);
 
@@ -125,6 +128,7 @@ export const parseRunDetailSearch = (
         changeType: runChangeTypeValues.includes(changeType as (typeof runChangeTypeValues)[number])
             ? (changeType as (typeof runChangeTypeValues)[number])
             : undefined,
+        preorder: normalizePreorderFilterValue(search.preorder, defaultRunDetailSectionSearch.preorder),
     };
 };
 
@@ -136,6 +140,7 @@ export const parseChangesListSearch = (
     sortBy: (typeof changesSortByValues)[number];
     sortOrder: (typeof changesSortOrderValues)[number];
     changeType?: (typeof runChangeTypeValues)[number];
+    preorder: (typeof preorderFilterSearchValues)[number];
     categoryId?: string;
     windowDays: (typeof changesWindowValues)[number];
 } => {
@@ -165,6 +170,7 @@ export const parseChangesListSearch = (
         changeType: runChangeTypeValues.includes(changeType as (typeof runChangeTypeValues)[number])
             ? (changeType as (typeof runChangeTypeValues)[number])
             : undefined,
+        preorder: normalizePreorderFilterValue(search.preorder, defaultChangesListSearch.preorder),
         categoryId: categoryId && z.string().uuid().safeParse(categoryId).success ? categoryId : undefined,
         windowDays,
     };

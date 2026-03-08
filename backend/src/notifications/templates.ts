@@ -33,6 +33,7 @@ const formatStockStatus = (value: boolean | null): string => {
 };
 
 const formatUtcTimestamp = (value: Date): string => `${value.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+const formatDateOnly = (value: Date): string => value.toISOString().slice(0, 10);
 
 const getRunTimestamp = (payload: ImmediateDeliveryPayload | DigestRecipientPayload["deliveries"][number]): Date =>
     payload.report.scrapeRun.completedAt ?? payload.report.createdAt;
@@ -67,7 +68,12 @@ const buildRunsUrl = (): string =>
     });
 
 const renderItemText = (item: ImmediateDeliveryPayload["changeItems"][number]): string => {
-    const lines = [`- ${item.product.name}`, `  ${item.product.externalUrl}`];
+    const preorderLabel = item.product.isPreorder
+        ? item.product.preorderEta
+            ? ` [Preorder, ETA ${formatDateOnly(item.product.preorderEta)}]`
+            : " [Preorder]"
+        : "";
+    const lines = [`- ${item.product.name}${preorderLabel}`, `  ${item.product.externalUrl}`];
 
     if (item.oldPrice !== null || item.newPrice !== null) {
         lines.push(`  Price: ${formatPrice(item.oldPrice)} -> ${formatPrice(item.newPrice)}`);
@@ -81,6 +87,9 @@ const renderItemText = (item: ImmediateDeliveryPayload["changeItems"][number]): 
 };
 
 const renderItemHtml = (item: ImmediateDeliveryPayload["changeItems"][number]): string => {
+    const preorderRow = item.product.isPreorder
+        ? `<div><strong>Type:</strong> Preorder${item.product.preorderEta ? ` (ETA ${escapeHtml(formatDateOnly(item.product.preorderEta))})` : ""}</div>`
+        : "";
     const priceRow =
         item.oldPrice !== null || item.newPrice !== null
             ? `<div><strong>Price:</strong> ${escapeHtml(formatPrice(item.oldPrice))} -> ${escapeHtml(formatPrice(item.newPrice))}</div>`
@@ -94,10 +103,15 @@ const renderItemHtml = (item: ImmediateDeliveryPayload["changeItems"][number]): 
     return `<li style="margin-bottom:16px;">
         <div><strong>${escapeHtml(item.product.name)}</strong></div>
         <div><a href="${escapeHtml(item.product.externalUrl)}">${escapeHtml(item.product.externalUrl)}</a></div>
+        ${preorderRow}
         ${priceRow}
         ${stockRow}
     </li>`;
 };
+
+const getDistinctPreorderProductCount = (
+    items: ImmediateDeliveryPayload["changeItems"] | DigestRecipientPayload["deliveries"][number]["changeItems"],
+): number => new Set(items.filter((item) => item.product.isPreorder).map((item) => item.product.id)).size;
 
 const IMMEDIATE_SECTION_ITEM_LIMIT = 20;
 const DIGEST_SECTION_ITEM_LIMIT = 10;
@@ -148,6 +162,7 @@ export const renderImmediateEmail = (payload: ImmediateDeliveryPayload) => {
     const categoryRunsUrl = buildCategoryRunsUrl(payload.report.scrapeRun.category.id);
     const dashboardCategoryUrl = buildDashboardCategoryUrl(payload.report.scrapeRun.category.id);
     const runTimestamp = formatUtcTimestamp(getRunTimestamp(payload));
+    const preorderCount = getDistinctPreorderProductCount(payload.changeItems);
     const renderedTextSections = renderTextSections(sectionSummaries, groupedItems, IMMEDIATE_SECTION_ITEM_LIMIT);
     const renderedHtmlSections = renderHtmlSections(sectionSummaries, groupedItems, IMMEDIATE_SECTION_ITEM_LIMIT);
 
@@ -161,6 +176,7 @@ export const renderImmediateEmail = (payload: ImmediateDeliveryPayload) => {
             `Run time: ${runTimestamp}`,
             `Changed products: ${payload.report.totalChanges}`,
             `Sections: ${sectionSummaries.length}`,
+            `Preorders in this report: ${preorderCount}`,
             summaryText ? `Summary: ${summaryText}` : "",
             "",
             "View all changes in dashboard:",
@@ -183,7 +199,8 @@ export const renderImmediateEmail = (payload: ImmediateDeliveryPayload) => {
             <p><strong>Category:</strong> ${escapeHtml(categoryName)}<br />
             <strong>Run time:</strong> ${escapeHtml(runTimestamp)}<br />
             <strong>Changed products:</strong> ${payload.report.totalChanges}<br />
-            <strong>Sections:</strong> ${sectionSummaries.length}</p>
+            <strong>Sections:</strong> ${sectionSummaries.length}<br />
+            <strong>Preorders in this report:</strong> ${preorderCount}</p>
             ${summaryText ? `<p>${escapeHtml(summaryText)}</p>` : ""}
             <p><a href="${escapeHtml(categoryRunsUrl)}"><strong>View all changes in dashboard</strong></a><br />
             <a href="${escapeHtml(dashboardCategoryUrl)}">Open category runs</a></p>
@@ -216,11 +233,13 @@ export const renderDigestEmail = (payload: DigestRecipientPayload) => {
             const categoryRunsUrl = buildCategoryRunsUrl(delivery.report.scrapeRun.category.id);
             const dashboardCategoryUrl = buildDashboardCategoryUrl(delivery.report.scrapeRun.category.id);
             const runTimestamp = formatUtcTimestamp(getRunTimestamp(delivery));
+            const preorderCount = getDistinctPreorderProductCount(delivery.changeItems);
             lines.push(`- Report ${delivery.report.id}: ${delivery.changeItems.length} changes`);
             lines.push(`  Category: ${delivery.report.scrapeRun.category.nameEt}`);
             lines.push(`  Run time: ${runTimestamp}`);
             lines.push(`  Changed products: ${delivery.report.totalChanges}`);
             lines.push(`  Sections: ${sectionSummaries.length}`);
+            lines.push(`  Preorders in this report: ${preorderCount}`);
             lines.push(
                 ...renderTextSections(sectionSummaries, groupedItems, DIGEST_SECTION_ITEM_LIMIT).map((line) =>
                     line ? `  ${line}` : line,
@@ -242,6 +261,7 @@ export const renderDigestEmail = (payload: DigestRecipientPayload) => {
                 const categoryRunsUrl = buildCategoryRunsUrl(delivery.report.scrapeRun.category.id);
                 const dashboardCategoryUrl = buildDashboardCategoryUrl(delivery.report.scrapeRun.category.id);
                 const runTimestamp = formatUtcTimestamp(getRunTimestamp(delivery));
+                const preorderCount = getDistinctPreorderProductCount(delivery.changeItems);
                 const renderedSections = renderHtmlSections(sectionSummaries, groupedItems, DIGEST_SECTION_ITEM_LIMIT);
 
                 return `<div style="margin-bottom:24px;">
@@ -249,7 +269,8 @@ export const renderDigestEmail = (payload: DigestRecipientPayload) => {
                     <p><strong>Category:</strong> ${escapeHtml(delivery.report.scrapeRun.category.nameEt)}<br />
                     <strong>Run time:</strong> ${escapeHtml(runTimestamp)}<br />
                     <strong>Changed products:</strong> ${delivery.report.totalChanges}<br />
-                    <strong>Sections:</strong> ${sectionSummaries.length}</p>
+                    <strong>Sections:</strong> ${sectionSummaries.length}<br />
+                    <strong>Preorders in this report:</strong> ${preorderCount}</p>
                     <p><a href="${escapeHtml(categoryRunsUrl)}"><strong>View all changes in dashboard</strong></a><br />
                     <a href="${escapeHtml(dashboardCategoryUrl)}">Open category runs</a></p>
                     ${renderedSections}

@@ -17,6 +17,8 @@ export enum ChangeType {
     BACK_IN_STOCK = "back_in_stock",
 }
 
+export type PreorderDetectedFrom = "category_slug" | "title" | "description";
+
 export enum NotificationChangeCategory {
     NEW_PRODUCT = "new_product",
     BACK_IN_STOCK = "back_in_stock",
@@ -155,6 +157,9 @@ export interface Product {
     currentPrice: number;
     originalPrice?: number;
     inStock: boolean;
+    isPreorder: boolean;
+    preorderEta?: string;
+    preorderDetectedFrom?: PreorderDetectedFrom;
     firstSeenAt: string;
     lastSeenAt: string;
     updatedAt: string;
@@ -391,6 +396,9 @@ export interface RunProductSnapshot {
     price: number;
     originalPrice?: number;
     inStock: boolean;
+    isPreorder: boolean;
+    preorderEta?: string;
+    preorderDetectedFrom?: PreorderDetectedFrom;
     imageUrl: string;
     externalUrl: string;
     scrapedAt: string;
@@ -410,6 +418,9 @@ export interface RunChangeItem {
         name: string;
         imageUrl: string;
         externalUrl: string;
+        isPreorder: boolean;
+        preorderEta?: string;
+        preorderDetectedFrom?: PreorderDetectedFrom;
     };
 }
 
@@ -493,6 +504,9 @@ export interface ProductDetail {
     currentPrice: number;
     originalPrice?: number;
     inStock: boolean;
+    isPreorder: boolean;
+    preorderEta?: string;
+    preorderDetectedFrom?: PreorderDetectedFrom;
     firstSeenAt: string;
     lastSeenAt: string;
     historyPointCount: number;
