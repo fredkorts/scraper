@@ -12,6 +12,7 @@ import { categoriesQueryOptions } from "../features/categories/queries";
 import { parseProductHistoryControls } from "../features/products/history-controls";
 import { productDetailQueryOptions, productHistoryQueryOptions } from "../features/products/queries";
 import {
+    changesListQueryOptions,
     dashboardHomeQueryOptions,
     runChangesQueryOptions,
     runDetailQueryOptions,
@@ -19,17 +20,16 @@ import {
     runsListQueryOptions,
 } from "../features/runs/queries";
 import {
+    parseChangesListSearch,
     parseDashboardHomeSearch,
     parseRunDetailSearch,
     parseRunsListSearch,
 } from "../features/runs/search";
-import {
-    notificationChannelsQueryOptions,
-    subscriptionsQueryOptions,
-} from "../features/settings/queries";
+import { notificationChannelsQueryOptions, subscriptionsQueryOptions } from "../features/settings/queries";
 import { parseSettingsSearch } from "../features/settings/search";
 import { AppLayout } from "../routes/app-layout";
 import { DashboardHomePage } from "../routes/dashboard-home-page";
+import { ChangesPage } from "../routes/changes-page";
 import { LandingPage } from "../routes/landing-page";
 import { LoginPage } from "../routes/login-page";
 import { ProductDetailRoutePage } from "../routes/product-detail-route";
@@ -120,6 +120,20 @@ const appRunsRoute = createRoute({
     component: RunsPage,
 });
 
+const appChangesRoute = createRoute({
+    getParentRoute: () => appRoute,
+    path: "/changes",
+    validateSearch: (search) => parseChangesListSearch(search),
+    loaderDeps: ({ search }) => search,
+    loader: async ({ context, deps }) => {
+        await Promise.all([
+            context.queryClient.ensureQueryData(changesListQueryOptions(deps)),
+            context.queryClient.ensureQueryData(categoriesQueryOptions()),
+        ]);
+    },
+    component: ChangesPage,
+});
+
 const appRunDetailRoute = createRoute({
     getParentRoute: () => appRoute,
     path: "/runs/$runId",
@@ -179,7 +193,14 @@ const routeTree = rootRoute.addChildren([
     landingRoute,
     loginRoute,
     registerRoute,
-    appRoute.addChildren([appHomeRoute, appRunsRoute, appRunDetailRoute, appProductDetailRoute, appSettingsRoute]),
+    appRoute.addChildren([
+        appHomeRoute,
+        appRunsRoute,
+        appChangesRoute,
+        appRunDetailRoute,
+        appProductDetailRoute,
+        appSettingsRoute,
+    ]),
 ]);
 
 export const createAppRouter = (context: RouterContext, history?: RouterHistory) =>

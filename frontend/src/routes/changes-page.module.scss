@@ -1,0 +1,16 @@
+@use "../styles/components/cards";
+
+.contextSummary {
+    @include cards.card-surface(var(--space-md));
+    display: grid;
+    gap: var(--space-2xs);
+}
+
+.contextSummary p {
+    margin: 0;
+}
+
+.retryRow {
+    display: flex;
+    justify-content: flex-end;
+}

@@ -9,10 +9,7 @@ const paginationShape = {
     pageSize: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(25),
 };
 
-const validatePaginationBounds = (
-    value: { page: number; pageSize: number },
-    context: z.RefinementCtx,
-): void => {
+const validatePaginationBounds = (value: { page: number; pageSize: number }, context: z.RefinementCtx): void => {
     const offset = (value.page - 1) * value.pageSize;
 
     if (offset > MAX_OFFSET) {
@@ -55,13 +52,23 @@ export const runProductsQuerySchema = z
 export const runChangesQuerySchema = z
     .object({
         ...paginationShape,
-        changeType: z
-            .enum(["price_increase", "price_decrease", "new_product", "sold_out", "back_in_stock"])
-            .optional(),
+        changeType: z.enum(["price_increase", "price_decrease", "new_product", "sold_out", "back_in_stock"]).optional(),
+    })
+    .superRefine(validatePaginationBounds);
+
+export const changesListQuerySchema = z
+    .object({
+        ...paginationShape,
+        sortBy: z.enum(["changedAt", "changeType", "productName", "categoryName"]).default("changedAt"),
+        sortOrder: z.enum(["asc", "desc"]).default("desc"),
+        changeType: z.enum(["price_increase", "price_decrease", "new_product", "sold_out", "back_in_stock"]).optional(),
+        categoryId: z.string().uuid().optional(),
+        windowDays: z.coerce.number().int().min(1).max(30).default(7),
     })
     .superRefine(validatePaginationBounds);
 
 export type RunsListQuery = z.infer<typeof runsListQuerySchema>;
 export type RunProductsQuery = z.infer<typeof runProductsQuerySchema>;
 export type RunChangesQuery = z.infer<typeof runChangesQuerySchema>;
+export type ChangesListQuery = z.infer<typeof changesListQuerySchema>;
 export type DashboardHomeQuery = z.infer<typeof dashboardHomeQuerySchema>;

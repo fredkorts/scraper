@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
     RUN_CHANGE_TYPE_FILTER_OPTIONS,
+    RUN_CHANGE_WINDOW_OPTIONS,
     RUN_PAGE_SIZE_OPTIONS,
     RUN_PRODUCT_STOCK_FILTER_OPTIONS,
     RUN_STATUS_FILTER_OPTIONS,
@@ -38,6 +39,14 @@ describe("run filter constants", () => {
         expect(RUN_PRODUCT_STOCK_FILTER_OPTIONS).toEqual([
             { label: "In stock", value: "true" },
             { label: "Out of stock", value: "false" },
+        ]);
+    });
+
+    it("defines run change window options", () => {
+        expect(RUN_CHANGE_WINDOW_OPTIONS).toEqual([
+            { label: "Last 24 hours", value: "1" },
+            { label: "Last 7 days", value: "7" },
+            { label: "Last 30 days", value: "30" },
         ]);
     });
 });

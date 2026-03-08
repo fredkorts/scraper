@@ -16,6 +16,9 @@ export const queryKeys = {
             ["runs", "products", runId, params ?? {}] as const,
         changes: (runId: string, params?: Record<string, unknown>) => ["runs", "changes", runId, params ?? {}] as const,
     },
+    changes: {
+        list: (params?: Record<string, unknown>) => ["changes", "list", params ?? {}] as const,
+    },
     products: {
         detail: (productId: string) => ["products", "detail", productId] as const,
         history: (productId: string, params?: Record<string, unknown>) =>

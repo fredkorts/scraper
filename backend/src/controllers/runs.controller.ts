@@ -1,18 +1,22 @@
 import type { NextFunction, Request, Response } from "express";
 import {
+    changesListQuerySchema,
     dashboardHomeQuerySchema,
     runChangesQuerySchema,
     runIdParamSchema,
     runProductsQuerySchema,
     runsListQuerySchema,
 } from "../schemas/runs";
-import { getDashboardHome, getRunDetail, listRunChanges, listRunProducts, listRuns } from "../services/runs.service";
+import {
+    getDashboardHome,
+    getRunDetail,
+    listChanges,
+    listRunChanges,
+    listRunProducts,
+    listRuns,
+} from "../services/runs.service";
 
-export const getDashboardHomeHandler = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-): Promise<void> => {
+export const getDashboardHomeHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const query = dashboardHomeQuerySchema.parse(req.query);
         const payload = await getDashboardHome(req.auth!.userId, req.auth!.role, query);
@@ -58,6 +62,16 @@ export const listRunChangesHandler = async (req: Request, res: Response, next: N
         const params = runIdParamSchema.parse(req.params);
         const query = runChangesQuerySchema.parse(req.query);
         const payload = await listRunChanges(req.auth!.userId, req.auth!.role, params.id, query);
+        res.status(200).json(payload);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const listChangesHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const query = changesListQuerySchema.parse(req.query);
+        const payload = await listChanges(req.auth!.userId, req.auth!.role, query);
         res.status(200).json(payload);
     } catch (error) {
         next(error);

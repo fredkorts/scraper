@@ -6,6 +6,11 @@ interface HierarchyInputCategory {
     parentId: string | null;
 }
 
+interface CategoryParentLink {
+    id: string;
+    parentId: string | null;
+}
+
 interface HierarchyNode extends HierarchyInputCategory {
     depth: number;
     pathNameEt: string;
@@ -67,4 +72,52 @@ export const buildCategoryHierarchy = <TCategory extends HierarchyInputCategory>
     }
 
     return ordered;
+};
+
+export const collectDescendantCategoryIds = (
+    categories: CategoryParentLink[],
+    rootCategoryId: string,
+    allowedCategoryIds: string[] | null,
+): string[] => {
+    const childIdsByParentId = new Map<string, string[]>();
+    const existingCategoryIds = new Set(categories.map((category) => category.id));
+
+    for (const category of categories) {
+        if (!category.parentId) {
+            continue;
+        }
+
+        const siblings = childIdsByParentId.get(category.parentId) ?? [];
+        siblings.push(category.id);
+        childIdsByParentId.set(category.parentId, siblings);
+    }
+
+    if (!existingCategoryIds.has(rootCategoryId)) {
+        return [];
+    }
+
+    const selectedIds: string[] = [];
+    const pendingIds: string[] = [rootCategoryId];
+    const visitedIds = new Set<string>();
+
+    while (pendingIds.length > 0) {
+        const currentId = pendingIds.pop();
+
+        if (!currentId || visitedIds.has(currentId)) {
+            continue;
+        }
+
+        visitedIds.add(currentId);
+        selectedIds.push(currentId);
+
+        const childIds = childIdsByParentId.get(currentId) ?? [];
+        pendingIds.push(...childIds);
+    }
+
+    if (allowedCategoryIds === null) {
+        return selectedIds;
+    }
+
+    const allowedCategoryIdSet = new Set(allowedCategoryIds);
+    return selectedIds.filter((categoryId) => allowedCategoryIdSet.has(categoryId));
 };

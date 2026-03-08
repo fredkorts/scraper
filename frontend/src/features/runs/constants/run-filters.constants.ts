@@ -21,6 +21,12 @@ export const RUN_CHANGE_TYPE_FILTER_OPTIONS: AppSelectOption[] = [
     { label: "Back in stock", value: "back_in_stock" },
 ];
 
+export const RUN_CHANGE_WINDOW_OPTIONS: AppSelectOption[] = [
+    { label: "Last 24 hours", value: "1" },
+    { label: "Last 7 days", value: "7" },
+    { label: "Last 30 days", value: "30" },
+];
+
 export const RUN_PRODUCT_STOCK_FILTER_OPTIONS: AppSelectOption[] = [
     { label: "In stock", value: "true" },
     { label: "Out of stock", value: "false" },

@@ -3,11 +3,13 @@ import { apiGet } from "../../lib/api/client";
 import { apiEndpoints } from "../../lib/api/endpoints";
 import { queryKeys } from "../../lib/query/query-keys";
 import {
+    changesListResponseSchema,
     dashboardHomeResponseSchema,
     runChangesResponseSchema,
     runDetailResponseSchema,
     runProductsResponseSchema,
     runsListResponseSchema,
+    type ChangesListData,
     type DashboardHomeData,
     type RunChangesData,
     type RunDetailData,
@@ -38,6 +40,16 @@ interface RunChangesParams {
     page: number;
     pageSize: number;
     changeType?: string;
+}
+
+interface ChangesListParams {
+    page: number;
+    pageSize: number;
+    sortBy: string;
+    sortOrder: string;
+    changeType?: string;
+    categoryId?: string;
+    windowDays: number;
 }
 
 const toQueryString = (params: Record<string, string | number | undefined>) => {
@@ -119,8 +131,30 @@ export const runChangesQueryOptions = (runId: string, params: RunChangesParams) 
         placeholderData: keepPreviousData,
     });
 
+export const changesListQueryOptions = (params: ChangesListParams) =>
+    queryOptions<ChangesListData>({
+        queryKey: queryKeys.changes.list({ ...params }),
+        queryFn: () =>
+            apiGet(
+                `${apiEndpoints.changes.list}${toQueryString({
+                    page: params.page,
+                    pageSize: params.pageSize,
+                    sortBy: params.sortBy,
+                    sortOrder: params.sortOrder,
+                    changeType: params.changeType,
+                    categoryId: params.categoryId,
+                    windowDays: params.windowDays,
+                })}`,
+                changesListResponseSchema,
+            ),
+        placeholderData: keepPreviousData,
+    });
+
 export const useDashboardHomeQuery = (params: DashboardHomeParams = {}) => useQuery(dashboardHomeQueryOptions(params));
 export const useRunsListQuery = (params: RunsListParams) => useQuery(runsListQueryOptions(params));
 export const useRunDetailQuery = (runId: string) => useQuery(runDetailQueryOptions(runId));
-export const useRunProductsQuery = (runId: string, params: RunProductsParams) => useQuery(runProductsQueryOptions(runId, params));
-export const useRunChangesQuery = (runId: string, params: RunChangesParams) => useQuery(runChangesQueryOptions(runId, params));
+export const useRunProductsQuery = (runId: string, params: RunProductsParams) =>
+    useQuery(runProductsQueryOptions(runId, params));
+export const useRunChangesQuery = (runId: string, params: RunChangesParams) =>
+    useQuery(runChangesQueryOptions(runId, params));
+export const useChangesListQuery = (params: ChangesListParams) => useQuery(changesListQueryOptions(params));

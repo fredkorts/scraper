@@ -8,12 +8,15 @@ import { useAppNotification } from "../shared/hooks/use-app-notification";
 import { normalizeUserError } from "../shared/utils/normalize-user-error";
 import { PricePulseLogo } from "../components/price-pulse-logo/PricePulseLogo";
 import { AppButton } from "../components/app-button/AppButton";
+import { AppThemeSwitch } from "../components/app-theme-switch/AppThemeSwitch";
+import { useAppTheme } from "../app/theme/context/app-theme-context";
 import styles from "./app-layout.module.scss";
 
 export const AppLayout = () => {
     const navigate = useNavigate();
     const logoutMutation = useLogoutMutation();
     const session = useMeQuery();
+    const theme = useAppTheme();
     const { notify } = useAppNotification();
 
     const onLogout = async () => {
@@ -46,6 +49,7 @@ export const AppLayout = () => {
                     </Link>
                 </nav>
                 <div className={styles.actions}>
+                    <AppThemeSwitch isDarkMode={theme.isDarkMode} onToggle={theme.setDarkMode} />
                     <span>{session.data?.name ?? "User"}</span>
                     <AppButton size="middle" onClick={() => void onLogout()} disabled={logoutMutation.isPending}>
                         {logoutMutation.isPending ? "Signing out..." : "Log out"}

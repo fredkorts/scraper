@@ -415,6 +415,20 @@ export interface RunChangeItem {
 
 export interface RunChangesResponse extends PaginatedResponse<RunChangeItem> {}
 
+export interface ChangesListItem extends RunChangeItem {
+    changedAt: string;
+    category: {
+        id: string;
+        nameEt: string;
+    };
+    run: {
+        id: string;
+        startedAt: string;
+    };
+}
+
+export interface ChangesListResponse extends PaginatedResponse<ChangesListItem> {}
+
 export interface UpdateCategorySettingsRequest {
     scrapeIntervalHours: ScrapeInterval;
 }

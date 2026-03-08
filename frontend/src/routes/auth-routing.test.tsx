@@ -34,11 +34,24 @@ describe("auth routing", () => {
     });
 
     it("renders protected app shell with navigation for authenticated users", async () => {
+        const user = userEvent.setup();
         await renderRouterApp({ initialEntry: "/app", session: mockUser });
 
         expect(await screen.findByRole("navigation", { name: "Main" })).toBeInTheDocument();
         expect(screen.getByText("Example User")).toBeInTheDocument();
         expect(screen.getByRole("link", { name: "Runs" })).toBeInTheDocument();
+
+        const themeSwitch = screen.getByRole("switch", { name: "Toggle dark mode" });
+        expect(themeSwitch).toHaveAttribute("aria-checked", "false");
+
+        const logoutButton = screen.getByRole("button", { name: "Log out" });
+        const actions = logoutButton.parentElement;
+        expect(actions?.children[0]).toBe(themeSwitch);
+        expect(actions?.children[1]).toHaveTextContent("Example User");
+        expect(actions?.children[2]).toBe(logoutButton);
+
+        await user.click(themeSwitch);
+        expect(themeSwitch).toHaveAttribute("aria-checked", "true");
     });
 
     it("supports keyboard focus navigation on login form", async () => {

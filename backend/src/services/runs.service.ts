@@ -1,6 +1,7 @@
 import { ChangeType as PrismaChangeType, Prisma, ScrapeRunStatus as PrismaScrapeRunStatus } from "@prisma/client";
 import {
     ChangeType as SharedChangeType,
+    type ChangesListResponse,
     ScrapeStatus,
     type DashboardHomeResponse,
     type RunChangesResponse,
@@ -10,10 +11,17 @@ import {
     type ScrapeRunFailure,
     type UserRole,
 } from "@mabrik/shared";
-import type { DashboardHomeQuery, RunChangesQuery, RunProductsQuery, RunsListQuery } from "../schemas/runs";
+import type {
+    ChangesListQuery,
+    DashboardHomeQuery,
+    RunChangesQuery,
+    RunProductsQuery,
+    RunsListQuery,
+} from "../schemas/runs";
 import { prisma } from "../lib/prisma";
 import { AppError } from "../lib/errors";
 import { buildCategoryScopeWhere, getAccessibleCategoryIds } from "./access-scope.service";
+import { collectDescendantCategoryIds } from "./category-hierarchy.service";
 
 const DASHBOARD_CHANGE_WINDOW_DAYS = 7;
 const DASHBOARD_LATEST_RUN_LIMIT = 6;
@@ -79,47 +87,7 @@ const getDescendantCategoryIds = async (
         },
     });
 
-    const childIdsByParentId = new Map<string, string[]>();
-    const existingCategoryIds = new Set(categories.map((category) => category.id));
-
-    for (const category of categories) {
-        if (!category.parentId) {
-            continue;
-        }
-
-        const siblings = childIdsByParentId.get(category.parentId) ?? [];
-        siblings.push(category.id);
-        childIdsByParentId.set(category.parentId, siblings);
-    }
-
-    if (!existingCategoryIds.has(rootCategoryId)) {
-        return [];
-    }
-
-    const selectedIds: string[] = [];
-    const pendingIds: string[] = [rootCategoryId];
-    const visitedIds = new Set<string>();
-
-    while (pendingIds.length > 0) {
-        const currentId = pendingIds.pop();
-        if (!currentId || visitedIds.has(currentId)) {
-            continue;
-        }
-
-        visitedIds.add(currentId);
-        selectedIds.push(currentId);
-
-        const childIds = childIdsByParentId.get(currentId) ?? [];
-        pendingIds.push(...childIds);
-    }
-
-    if (allowedCategoryIds === null) {
-        return selectedIds;
-    }
-
-    const allowedCategoryIdSet = new Set(allowedCategoryIds);
-
-    return selectedIds.filter((categoryId) => allowedCategoryIdSet.has(categoryId));
+    return collectDescendantCategoryIds(categories, rootCategoryId, allowedCategoryIds);
 };
 
 const buildRunFailure = (
@@ -198,6 +166,141 @@ const getAccessibleRunOrThrow = async (userId: string, role: UserRole, runId: st
 
 const toTotalPages = (totalItems: number, pageSize: number): number =>
     totalItems === 0 ? 0 : Math.ceil(totalItems / pageSize);
+
+interface ListChangesWithScopeParams {
+    categoryIds: string[] | null;
+    page: number;
+    pageSize: number;
+    sortBy: "changedAt" | "changeType" | "productName" | "categoryName";
+    sortOrder: "asc" | "desc";
+    changeType?: RunChangesQuery["changeType"];
+    categoryId?: string;
+    windowDays?: number;
+    changeReportId?: string;
+}
+
+const listChangesWithScope = async ({
+    categoryIds,
+    page,
+    pageSize,
+    sortBy,
+    sortOrder,
+    changeType,
+    categoryId,
+    windowDays,
+    changeReportId,
+}: ListChangesWithScopeParams) => {
+    const selectedCategoryIds = categoryId ? await getDescendantCategoryIds(categoryId, categoryIds) : null;
+
+    if (categoryId && (selectedCategoryIds?.length ?? 0) === 0) {
+        return {
+            items: [],
+            page,
+            pageSize,
+            totalItems: 0,
+            totalPages: 0,
+        };
+    }
+
+    const changeReportWhere: Prisma.ChangeReportWhereInput = {
+        ...(changeReportId ? { id: changeReportId } : {}),
+        ...(windowDays
+            ? {
+                  createdAt: {
+                      gte: new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000),
+                  },
+              }
+            : {}),
+        ...(changeReportId
+            ? {}
+            : {
+                  scrapeRun: selectedCategoryIds
+                      ? { categoryId: { in: selectedCategoryIds } }
+                      : buildCategoryScopeWhere(categoryIds),
+              }),
+    };
+
+    const where: Prisma.ChangeItemWhereInput = {
+        changeReport: changeReportWhere,
+        ...(changeType ? { changeType: changeTypeInputMap[changeType] } : {}),
+    };
+
+    const orderBy: Prisma.ChangeItemOrderByWithRelationInput[] =
+        sortBy === "changeType"
+            ? [{ changeType: sortOrder }, { id: sortOrder }]
+            : sortBy === "productName"
+              ? [{ product: { name: sortOrder } }, { id: sortOrder }]
+              : sortBy === "categoryName"
+                ? [{ changeReport: { scrapeRun: { category: { nameEt: sortOrder } } } }, { id: sortOrder }]
+                : [{ changeReport: { createdAt: sortOrder } }, { id: sortOrder }];
+
+    const [totalItems, changeItems] = await Promise.all([
+        prisma.changeItem.count({ where }),
+        prisma.changeItem.findMany({
+            where,
+            include: {
+                product: {
+                    select: {
+                        id: true,
+                        name: true,
+                        imageUrl: true,
+                        externalUrl: true,
+                    },
+                },
+                changeReport: {
+                    select: {
+                        createdAt: true,
+                        scrapeRun: {
+                            select: {
+                                id: true,
+                                startedAt: true,
+                                category: {
+                                    select: {
+                                        id: true,
+                                        nameEt: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            orderBy,
+            skip: (page - 1) * pageSize,
+            take: pageSize,
+        }),
+    ]);
+
+    return {
+        items: changeItems.map((item) => ({
+            id: item.id,
+            changeType: changeTypeMap[item.changeType],
+            oldPrice: toNumber(item.oldPrice),
+            newPrice: toNumber(item.newPrice),
+            oldStockStatus: item.oldStockStatus ?? undefined,
+            newStockStatus: item.newStockStatus ?? undefined,
+            product: {
+                id: item.product.id,
+                name: item.product.name,
+                imageUrl: item.product.imageUrl,
+                externalUrl: item.product.externalUrl,
+            },
+            changedAt: item.changeReport.createdAt.toISOString(),
+            category: {
+                id: item.changeReport.scrapeRun.category.id,
+                nameEt: item.changeReport.scrapeRun.category.nameEt,
+            },
+            run: {
+                id: item.changeReport.scrapeRun.id,
+                startedAt: item.changeReport.scrapeRun.startedAt.toISOString(),
+            },
+        })),
+        page,
+        pageSize,
+        totalItems,
+        totalPages: toTotalPages(totalItems, pageSize),
+    };
+};
 
 export const getDashboardHome = async (
     userId: string,
@@ -517,51 +620,55 @@ export const listRunChanges = async (
         };
     }
 
-    const where: Prisma.ChangeItemWhereInput = {
-        changeReportId: run.changeReport.id,
-        ...(query.changeType ? { changeType: changeTypeInputMap[query.changeType] } : {}),
-    };
-
-    const [totalItems, changeItems] = await Promise.all([
-        prisma.changeItem.count({ where }),
-        prisma.changeItem.findMany({
-            where,
-            include: {
-                product: {
-                    select: {
-                        id: true,
-                        name: true,
-                        imageUrl: true,
-                        externalUrl: true,
-                    },
-                },
-            },
-            orderBy: {
-                id: "desc",
-            },
-            skip: (query.page - 1) * query.pageSize,
-            take: query.pageSize,
-        }),
-    ]);
-
-    return {
-        items: changeItems.map((item) => ({
-            id: item.id,
-            changeType: changeTypeMap[item.changeType],
-            oldPrice: toNumber(item.oldPrice),
-            newPrice: toNumber(item.newPrice),
-            oldStockStatus: item.oldStockStatus ?? undefined,
-            newStockStatus: item.newStockStatus ?? undefined,
-            product: {
-                id: item.product.id,
-                name: item.product.name,
-                imageUrl: item.product.imageUrl,
-                externalUrl: item.product.externalUrl,
-            },
-        })),
+    const response = await listChangesWithScope({
+        categoryIds: await getAccessibleCategoryIds(userId, role),
         page: query.page,
         pageSize: query.pageSize,
-        totalItems,
-        totalPages: toTotalPages(totalItems, query.pageSize),
+        sortBy: "changedAt",
+        sortOrder: "desc",
+        changeType: query.changeType,
+        changeReportId: run.changeReport.id,
+    });
+
+    return {
+        ...response,
+        items: response.items.map((item) => ({
+            id: item.id,
+            changeType: item.changeType,
+            oldPrice: item.oldPrice,
+            newPrice: item.newPrice,
+            oldStockStatus: item.oldStockStatus,
+            newStockStatus: item.newStockStatus,
+            product: item.product,
+        })),
     };
+};
+
+export const listChanges = async (
+    userId: string,
+    role: UserRole,
+    query: ChangesListQuery,
+): Promise<ChangesListResponse> => {
+    const categoryIds = await getAccessibleCategoryIds(userId, role);
+
+    if (categoryIds !== null && categoryIds.length === 0) {
+        return {
+            items: [],
+            page: query.page,
+            pageSize: query.pageSize,
+            totalItems: 0,
+            totalPages: 0,
+        };
+    }
+
+    return listChangesWithScope({
+        categoryIds,
+        page: query.page,
+        pageSize: query.pageSize,
+        sortBy: query.sortBy,
+        sortOrder: query.sortOrder,
+        changeType: query.changeType,
+        categoryId: query.categoryId,
+        windowDays: query.windowDays,
+    });
 };

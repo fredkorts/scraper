@@ -13,6 +13,29 @@
     @include cards.card-surface;
     display: grid;
     gap: var(--space-sm);
+    transition:
+        background-color var(--transition-fast),
+        border-color var(--transition-fast);
+}
+
+.cardLink {
+    color: inherit;
+    text-decoration: none;
+}
+
+.cardLink:hover,
+.cardLink:focus-visible,
+.cardLink:active {
+    color: inherit;
+    text-decoration: none;
+}
+
+.cardLink:hover .card {
+    background: var(--color-page);
+}
+
+.cardLink:focus-visible .card {
+    @include mixins.focus-ring;
 }
 
 .eyebrow {

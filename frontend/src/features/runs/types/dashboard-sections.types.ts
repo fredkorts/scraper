@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 export interface DashboardSummaryGridProps {
     summary: DashboardHomeData["recentChangeSummary"];
+    categoryId?: string;
 }
 
 export interface DashboardRunPanelItem {

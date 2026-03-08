@@ -25,6 +25,7 @@ interface RenderRouterOptions {
     apiResponses?: Partial<{
         categories: unknown;
         dashboardHome: unknown;
+        changesList: unknown;
         runsList: unknown;
         runDetail: unknown;
         runProducts: unknown;
@@ -120,6 +121,13 @@ const defaultApiResponses = {
         ],
     },
     runsList: {
+        items: [],
+        page: 1,
+        pageSize: 25,
+        totalItems: 0,
+        totalPages: 0,
+    },
+    changesList: {
         items: [],
         page: 1,
         pageSize: 25,
@@ -327,6 +335,10 @@ export const renderRouterApp = async ({
                 mode: "queued",
                 jobId: "scrape:category:22222222-2222-4222-8222-222222222222",
             });
+        }
+
+        if (url.includes("/api/changes")) {
+            return jsonResponse(mutableResponses.changesList);
         }
 
         if (url.includes("/api/runs/") && url.includes("/products")) {

@@ -1,11 +1,12 @@
 import { ConfigProvider, theme as antdTheme } from "antd";
 import type { ThemeConfig } from "antd";
 import { useMemo } from "react";
-import { useSystemTheme } from "./theme/use-system-theme";
+import { AppThemeContext } from "./theme/context/app-theme-context";
+import { useAppThemePreference } from "./theme/hooks/use-app-theme-preference";
 import type { AppThemeProviderProps } from "./theme/types/theme.types";
 
 export const AppThemeProvider = ({ children }: AppThemeProviderProps) => {
-    const themeState = useSystemTheme();
+    const themeState = useAppThemePreference();
 
     const themeConfig = useMemo<ThemeConfig>(
         () => ({
@@ -51,9 +52,19 @@ export const AppThemeProvider = ({ children }: AppThemeProviderProps) => {
         [themeState],
     );
 
+    const contextValue = useMemo(
+        () => ({
+            isDarkMode: themeState.isDarkMode,
+            themePreference: themeState.themePreference,
+            setDarkMode: themeState.setDarkMode,
+            clearThemePreference: themeState.clearThemePreference,
+        }),
+        [themeState.clearThemePreference, themeState.isDarkMode, themeState.setDarkMode, themeState.themePreference],
+    );
+
     return (
-        <ConfigProvider theme={themeConfig}>
-            {children}
-        </ConfigProvider>
+        <AppThemeContext.Provider value={contextValue}>
+            <ConfigProvider theme={themeConfig}>{children}</ConfigProvider>
+        </AppThemeContext.Provider>
     );
 };

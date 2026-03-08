@@ -131,8 +131,41 @@ export const runChangesResponseSchema = z.object({
     totalPages: z.number(),
 });
 
+export const changesListResponseSchema = z.object({
+    items: z.array(
+        z.object({
+            id: z.string().uuid(),
+            changeType: changeTypeSchema,
+            oldPrice: z.number().optional(),
+            newPrice: z.number().optional(),
+            oldStockStatus: z.boolean().optional(),
+            newStockStatus: z.boolean().optional(),
+            changedAt: z.string(),
+            category: z.object({
+                id: z.string().uuid(),
+                nameEt: z.string(),
+            }),
+            run: z.object({
+                id: z.string().uuid(),
+                startedAt: z.string(),
+            }),
+            product: z.object({
+                id: z.string().uuid(),
+                name: z.string(),
+                imageUrl: z.string(),
+                externalUrl: z.string().url(),
+            }),
+        }),
+    ),
+    page: z.number(),
+    pageSize: z.number(),
+    totalItems: z.number(),
+    totalPages: z.number(),
+});
+
 export type DashboardHomeData = z.infer<typeof dashboardHomeResponseSchema>;
 export type RunsListData = z.infer<typeof runsListResponseSchema>;
 export type RunDetailData = z.infer<typeof runDetailResponseSchema>;
 export type RunProductsData = z.infer<typeof runProductsResponseSchema>;
 export type RunChangesData = z.infer<typeof runChangesResponseSchema>;
+export type ChangesListData = z.infer<typeof changesListResponseSchema>;

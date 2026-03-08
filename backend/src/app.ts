@@ -11,6 +11,7 @@ import { apiReadLimiter, paymentsMutationLimiter } from "./middleware/rate-limit
 import { authRouter } from "./routes/auth";
 import { adminRouter } from "./routes/admin";
 import { categoriesRouter } from "./routes/categories";
+import { changesRouter } from "./routes/changes";
 import { dashboardRouter } from "./routes/dashboard";
 import { notificationsRouter } from "./routes/notifications";
 import { productsRouter } from "./routes/products";
@@ -38,6 +39,7 @@ export const createApp = () => {
     app.use("/api/auth", authRouter);
     app.use("/api/admin", adminRouter);
     app.use("/api/categories", categoriesRouter);
+    app.use("/api/changes", changesRouter);
     app.use("/api/dashboard", dashboardRouter);
     app.use("/api/runs", runsRouter);
     app.use("/api/products", productsRouter);

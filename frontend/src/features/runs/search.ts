@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+    defaultChangesListSearch,
     defaultDashboardHomeSearch,
     defaultRunDetailSectionSearch,
     defaultRunsListSearch,
@@ -7,6 +8,8 @@ import {
 
 export const runsSortByValues = ["startedAt", "status", "totalChanges", "totalProducts", "durationMs"] as const;
 export const runsSortOrderValues = ["asc", "desc"] as const;
+export const changesSortByValues = ["changedAt", "changeType", "productName", "categoryName"] as const;
+export const changesSortOrderValues = ["asc", "desc"] as const;
 export const runStatusValues = ["pending", "running", "completed", "failed"] as const;
 export const runChangeTypeValues = [
     "price_increase",
@@ -15,6 +18,7 @@ export const runChangeTypeValues = [
     "sold_out",
     "back_in_stock",
 ] as const;
+export const changesWindowValues = [1, 7, 30] as const;
 
 const toOptionalString = (value: unknown): string | undefined => {
     if (typeof value !== "string") {
@@ -49,7 +53,7 @@ const toBooleanString = (value: unknown): "true" | "false" | undefined => {
     return undefined;
 };
 
-export { defaultDashboardHomeSearch, defaultRunDetailSectionSearch, defaultRunsListSearch };
+export { defaultChangesListSearch, defaultDashboardHomeSearch, defaultRunDetailSectionSearch, defaultRunsListSearch };
 
 export const parseDashboardHomeSearch = (
     search: Record<string, unknown>,
@@ -121,5 +125,47 @@ export const parseRunDetailSearch = (
         changeType: runChangeTypeValues.includes(changeType as (typeof runChangeTypeValues)[number])
             ? (changeType as (typeof runChangeTypeValues)[number])
             : undefined,
+    };
+};
+
+export const parseChangesListSearch = (
+    search: Record<string, unknown>,
+): {
+    page: number;
+    pageSize: number;
+    sortBy: (typeof changesSortByValues)[number];
+    sortOrder: (typeof changesSortOrderValues)[number];
+    changeType?: (typeof runChangeTypeValues)[number];
+    categoryId?: string;
+    windowDays: (typeof changesWindowValues)[number];
+} => {
+    const sortBy = toOptionalString(search.sortBy);
+    const sortOrder = toOptionalString(search.sortOrder);
+    const changeType = toOptionalString(search.changeType);
+    const categoryId = toOptionalString(search.categoryId);
+    const parsedWindowDays =
+        typeof search.windowDays === "number"
+            ? search.windowDays
+            : typeof search.windowDays === "string"
+              ? Number(search.windowDays)
+              : defaultChangesListSearch.windowDays;
+    const windowDays = changesWindowValues.includes(parsedWindowDays as (typeof changesWindowValues)[number])
+        ? (parsedWindowDays as (typeof changesWindowValues)[number])
+        : defaultChangesListSearch.windowDays;
+
+    return {
+        page: toPositiveInt(search.page, defaultChangesListSearch.page),
+        pageSize: Math.min(toPositiveInt(search.pageSize, defaultChangesListSearch.pageSize), 100),
+        sortBy: changesSortByValues.includes(sortBy as (typeof changesSortByValues)[number])
+            ? (sortBy as (typeof changesSortByValues)[number])
+            : defaultChangesListSearch.sortBy,
+        sortOrder: changesSortOrderValues.includes(sortOrder as (typeof changesSortOrderValues)[number])
+            ? (sortOrder as (typeof changesSortOrderValues)[number])
+            : defaultChangesListSearch.sortOrder,
+        changeType: runChangeTypeValues.includes(changeType as (typeof runChangeTypeValues)[number])
+            ? (changeType as (typeof runChangeTypeValues)[number])
+            : undefined,
+        categoryId: categoryId && z.string().uuid().safeParse(categoryId).success ? categoryId : undefined,
+        windowDays,
     };
 };

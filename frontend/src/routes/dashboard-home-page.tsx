@@ -72,11 +72,7 @@ export const DashboardHomePage = () => {
         startedAt: run.startedAt,
         statusLabel: formatStatusLabel(run.status),
         statusTone: run.status,
-        secondaryMeta: [
-            formatDateTime(run.startedAt),
-            `${run.totalChanges} changes`,
-            `${run.totalProducts} products`,
-        ],
+        secondaryMeta: [formatDateTime(run.startedAt), `${run.totalChanges} changes`, `${run.totalProducts} products`],
         runId: run.id,
         actionLabel: "Open run detail",
     }));
@@ -125,16 +121,18 @@ export const DashboardHomePage = () => {
                         }
                     />
                 </div>
-                {selectedCategoryName ? <span className={styles.subtle}>Filtered to {selectedCategoryName}</span> : null}
+                {selectedCategoryName ? (
+                    <span className={styles.subtle}>Filtered to {selectedCategoryName}</span>
+                ) : null}
             </div>
-            <DashboardSummaryGrid summary={recentChangeSummary} />
+            <DashboardSummaryGrid summary={recentChangeSummary} categoryId={search.categoryId} />
             <div className={dashboardStyles.splitColumns}>
                 <DashboardRunListPanel
                     emptyText="No tracked category runs are available yet."
                     headingId="latest-runs-heading"
                     items={latestRunsPreview}
                     title="Latest Runs"
-                    headerAction={(
+                    headerAction={
                         <Link
                             search={{
                                 ...defaultRunsListSearch,
@@ -144,7 +142,7 @@ export const DashboardHomePage = () => {
                         >
                             View all runs
                         </Link>
-                    )}
+                    }
                 />
 
                 <DashboardRunListPanel

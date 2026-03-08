@@ -5,8 +5,11 @@ import { RouterProvider } from "@tanstack/react-router";
 import "antd/dist/reset.css";
 import { queryClient, router } from "./app/bootstrap";
 import { AppThemeProvider } from "./app/theme-provider";
+import { bootstrapThemeBeforeRender } from "./app/theme/theme-preference";
 import { AppNotificationProvider } from "./shared/notifications/notification-provider";
 import "./styles/main.scss";
+
+bootstrapThemeBeforeRender();
 
 createRoot(document.getElementById("root")!).render(
     <StrictMode>

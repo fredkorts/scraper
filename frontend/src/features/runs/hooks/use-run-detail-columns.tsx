@@ -3,7 +3,7 @@ import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
 import { defaultProductHistoryControls } from "../../products/history-controls";
 import { STOCK_STATUS_LABELS } from "../../../shared/constants/stock.constants";
-import { formatPrice, formatStatusLabel } from "../formatters";
+import { formatChangeDetails, formatPrice, formatStatusLabel } from "../formatters";
 import type { RunChangesData, RunProductsData } from "../schemas";
 import type { UseRunDetailColumnsOptions } from "../types/use-run-detail-columns.types";
 
@@ -92,21 +92,7 @@ export const useRunDetailColumns = ({ productLinkClassName }: UseRunDetailColumn
                 changeColumnHelper.display({
                     id: "details",
                     header: "Details",
-                    cell: (info) => {
-                        const item = info.row.original;
-
-                        if (item.oldPrice !== undefined || item.newPrice !== undefined) {
-                            return `${formatPrice(item.oldPrice)} -> ${formatPrice(item.newPrice)}`;
-                        }
-
-                        if (item.oldStockStatus !== undefined || item.newStockStatus !== undefined) {
-                            return `${item.oldStockStatus ? STOCK_STATUS_LABELS.inStock : STOCK_STATUS_LABELS.outOfStock} -> ${
-                                item.newStockStatus ? STOCK_STATUS_LABELS.inStock : STOCK_STATUS_LABELS.outOfStock
-                            }`;
-                        }
-
-                        return "State change recorded";
-                    },
+                    cell: (info) => formatChangeDetails(info.row.original),
                 }),
                 changeColumnHelper.display({
                     id: "productLink",

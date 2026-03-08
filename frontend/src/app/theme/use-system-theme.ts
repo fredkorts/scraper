@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { readAppThemeState } from "./theme-token-reader";
+import { readSystemPrefersDark } from "./theme-preference";
 import type { AppThemeState } from "./types/theme.types";
 
 export const useSystemTheme = () => {
-    const [themeState, setThemeState] = useState<AppThemeState>(() => readAppThemeState());
+    const [themeState, setThemeState] = useState<AppThemeState>(() => readAppThemeState(readSystemPrefersDark()));
 
     useEffect(() => {
         const updateThemeState = () => {
-            setThemeState(readAppThemeState());
+            setThemeState(readAppThemeState(readSystemPrefersDark()));
         };
 
         updateThemeState();

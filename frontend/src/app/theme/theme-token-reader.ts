@@ -14,20 +14,12 @@ const FALLBACK_COLOR_TOKENS: AppColorTokens = {
     colorError: "var(--color-danger)",
 };
 
-const readIsDarkMode = (): boolean => {
-    if (typeof window === "undefined") {
-        return false;
-    }
-
-    return window.matchMedia("(prefers-color-scheme: dark)").matches;
-};
-
 const readCssVar = (styles: CSSStyleDeclaration, cssVariableName: string, fallback: string): string => {
     const value = styles.getPropertyValue(cssVariableName).trim();
     return value.length > 0 ? value : fallback;
 };
 
-const readAppColorTokens = (): AppColorTokens => {
+export const readAppColorTokens = (): AppColorTokens => {
     if (typeof window === "undefined") {
         return FALLBACK_COLOR_TOKENS;
     }
@@ -49,7 +41,8 @@ const readAppColorTokens = (): AppColorTokens => {
     };
 };
 
-export const readAppThemeState = (): AppThemeState => ({
-    isDarkMode: readIsDarkMode(),
+export const readAppThemeState = (isDarkMode: boolean): AppThemeState => ({
+    isDarkMode,
+    themePreference: null,
     tokens: readAppColorTokens(),
 });

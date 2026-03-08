@@ -22,3 +22,18 @@ export interface RunsTableSectionProps {
     errorMessage?: string;
     onPageChange: (page: number) => void;
 }
+
+export interface ChangesFiltersProps {
+    categoryId?: string;
+    changeType?: "price_increase" | "price_decrease" | "new_product" | "sold_out" | "back_in_stock";
+    pageSize: number;
+    windowDays: number;
+    categoryTreeData: CategoryTreeNode[];
+    onCategoryChange: (value?: string) => void;
+    onChangeTypeChange: (
+        value?: "price_increase" | "price_decrease" | "new_product" | "sold_out" | "back_in_stock",
+    ) => void;
+    onWindowDaysChange: (value: number) => void;
+    onPageSizeChange: (value: string) => void;
+    onReset: () => void;
+}

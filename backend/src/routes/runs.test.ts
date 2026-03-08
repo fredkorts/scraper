@@ -113,9 +113,11 @@ describe("dashboard and runs routes", () => {
 
         const dashboardResponse = await request(app).get("/api/dashboard/home");
         const runsResponse = await request(app).get("/api/runs");
+        const changesResponse = await request(app).get("/api/changes");
 
         expect(dashboardResponse.status).toBe(401);
         expect(runsResponse.status).toBe(401);
+        expect(changesResponse.status).toBe(401);
     });
 
     it("returns dashboard data scoped to the authenticated user's tracked categories", async () => {
@@ -612,5 +614,137 @@ describe("dashboard and runs routes", () => {
         expect(response.body.items[0].product.externalUrl).toBe(soldOutProduct.externalUrl);
         expect(response.body.items[0].oldStockStatus).toBe(true);
         expect(response.body.items[0].newStockStatus).toBe(false);
+    });
+
+    it("lists scoped cross-run changes for accessible categories", async () => {
+        const app = createApp();
+        const { user } = await createUser({ email: "global-changes@example.com" });
+        const visibleCategory = await createCategory("changes-visible", "Changes Visible");
+        const hiddenCategory = await createCategory("changes-hidden", "Changes Hidden");
+
+        await subscribeToCategory(user.id, visibleCategory.id);
+
+        const visibleRun = await createRun(visibleCategory.id, { totalProducts: 1 });
+        const hiddenRun = await createRun(hiddenCategory.id, { totalProducts: 1 });
+        const visibleReport = await prisma.changeReport.create({
+            data: {
+                scrapeRunId: visibleRun.id,
+                totalChanges: 1,
+            },
+        });
+        const hiddenReport = await prisma.changeReport.create({
+            data: {
+                scrapeRunId: hiddenRun.id,
+                totalChanges: 1,
+            },
+        });
+
+        const visibleProduct = await createProduct("changes-visible-product");
+        const hiddenProduct = await createProduct("changes-hidden-product");
+
+        await prisma.changeItem.createMany({
+            data: [
+                {
+                    changeReportId: visibleReport.id,
+                    productId: visibleProduct.id,
+                    changeType: PrismaChangeType.NEW_PRODUCT,
+                },
+                {
+                    changeReportId: hiddenReport.id,
+                    productId: hiddenProduct.id,
+                    changeType: PrismaChangeType.NEW_PRODUCT,
+                },
+            ],
+        });
+
+        const response = await request(app)
+            .get("/api/changes?page=1&pageSize=25&windowDays=30")
+            .set("Cookie", authCookie(user.id, user.email));
+
+        expect(response.status).toBe(200);
+        expect(response.body.totalItems).toBe(1);
+        expect(response.body.items).toHaveLength(1);
+        expect(response.body.items[0].category.id).toBe(visibleCategory.id);
+        expect(response.body.items[0].run.id).toBe(visibleRun.id);
+        expect(response.body.items[0].changedAt).toBeTruthy();
+    });
+
+    it("includes descendant category changes when filtering global changes by a parent category", async () => {
+        const app = createApp();
+        const { user } = await createUser({ email: "global-changes-parent@example.com" });
+        const parentCategory = await createCategory("collectibles", "Collectibles");
+        const childCategory = await createCategory("collectibles/figures", "Figures", parentCategory.id);
+        const siblingCategory = await createCategory("books", "Books");
+
+        await subscribeToCategory(user.id, parentCategory.id);
+        await subscribeToCategory(user.id, childCategory.id);
+        await subscribeToCategory(user.id, siblingCategory.id);
+
+        const parentRun = await createRun(parentCategory.id);
+        const childRun = await createRun(childCategory.id);
+        const siblingRun = await createRun(siblingCategory.id);
+
+        const [parentReport, childReport, siblingReport] = await Promise.all([
+            prisma.changeReport.create({ data: { scrapeRunId: parentRun.id, totalChanges: 1 } }),
+            prisma.changeReport.create({ data: { scrapeRunId: childRun.id, totalChanges: 1 } }),
+            prisma.changeReport.create({ data: { scrapeRunId: siblingRun.id, totalChanges: 1 } }),
+        ]);
+
+        const [parentProduct, childProduct, siblingProduct] = await Promise.all([
+            createProduct("global-parent-product"),
+            createProduct("global-child-product"),
+            createProduct("global-sibling-product"),
+        ]);
+
+        await prisma.changeItem.createMany({
+            data: [
+                {
+                    changeReportId: parentReport.id,
+                    productId: parentProduct.id,
+                    changeType: PrismaChangeType.SOLD_OUT,
+                    oldStockStatus: true,
+                    newStockStatus: false,
+                },
+                {
+                    changeReportId: childReport.id,
+                    productId: childProduct.id,
+                    changeType: PrismaChangeType.SOLD_OUT,
+                    oldStockStatus: true,
+                    newStockStatus: false,
+                },
+                {
+                    changeReportId: siblingReport.id,
+                    productId: siblingProduct.id,
+                    changeType: PrismaChangeType.SOLD_OUT,
+                    oldStockStatus: true,
+                    newStockStatus: false,
+                },
+            ],
+        });
+
+        const response = await request(app)
+            .get(`/api/changes?page=1&pageSize=25&categoryId=${parentCategory.id}&windowDays=30`)
+            .set("Cookie", authCookie(user.id, user.email));
+
+        expect(response.status).toBe(200);
+        expect(response.body.totalItems).toBe(2);
+        expect(response.body.items.map((item: { category: { id: string } }) => item.category.id)).toEqual(
+            expect.arrayContaining([parentCategory.id, childCategory.id]),
+        );
+        expect(
+            response.body.items.some((item: { category: { id: string } }) => item.category.id === siblingCategory.id),
+        ).toBe(false);
+    });
+
+    it("validates global changes query parameters", async () => {
+        const app = createApp();
+        const { user } = await createUser({ email: "global-changes-validation@example.com" });
+
+        const response = await request(app)
+            .get("/api/changes?sortBy=invalid&windowDays=99")
+            .set("Cookie", authCookie(user.id, user.email));
+
+        expect(response.status).toBe(400);
+        expect(response.body.error).toBe("validation_error");
     });
 });

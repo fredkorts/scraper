@@ -8,11 +8,7 @@ afterEach(() => {
     vi.unstubAllGlobals();
 });
 
-const selectAntOption = async (
-    user: ReturnType<typeof userEvent.setup>,
-    label: string,
-    optionText: string,
-) => {
+const selectAntOption = async (user: ReturnType<typeof userEvent.setup>, label: string, optionText: string) => {
     await user.click(screen.getByLabelText(label));
     const titleMatch = await screen.findByTitle(optionText).catch(() => null);
 
@@ -22,8 +18,7 @@ const selectAntOption = async (
     }
 
     const optionMatch = await screen.findByRole("option", { name: optionText }).catch(() => null);
-    const treeItemMatch =
-        optionMatch ?? (await screen.findByRole("treeitem", { name: optionText }).catch(() => null));
+    const treeItemMatch = optionMatch ?? (await screen.findByRole("treeitem", { name: optionText }).catch(() => null));
 
     if (treeItemMatch) {
         await user.click(treeItemMatch);
@@ -102,6 +97,45 @@ describe("scrape views", () => {
         expect(screen.getAllByText("Board Games").length).toBeGreaterThan(0);
         expect(screen.getByRole("link", { name: "Open run detail" })).toBeInTheDocument();
         expect(screen.getByText("The scrape timed out while loading page 31.")).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: "View new products changes (2)" })).toBeInTheDocument();
+    });
+
+    it("routes dashboard summary cards to the changes explorer with prefilled filters", async () => {
+        const user = userEvent.setup();
+        const { router } = await renderRouterApp({
+            initialEntry: "/app?categoryId=22222222-2222-4222-8222-222222222222",
+            session: mockUser,
+            apiResponses: {
+                dashboardHome: {
+                    latestRuns: [],
+                    recentFailures: [],
+                    recentChangeSummary: {
+                        priceIncrease: 1,
+                        priceDecrease: 0,
+                        newProduct: 2,
+                        soldOut: 1,
+                        backInStock: 1,
+                    },
+                },
+                changesList: {
+                    items: [],
+                    page: 1,
+                    pageSize: 25,
+                    totalItems: 0,
+                    totalPages: 0,
+                },
+            },
+        });
+
+        await user.click(await screen.findByRole("link", { name: "View new products changes (2)" }));
+
+        expect(await screen.findByRole("heading", { name: "Changes Explorer" })).toBeInTheDocument();
+        expect(router.state.location.pathname).toBe("/app/changes");
+        expect(router.state.location.search).toMatchObject({
+            changeType: "new_product",
+            windowDays: 7,
+            categoryId: "22222222-2222-4222-8222-222222222222",
+        });
     });
 
     it("caps dashboard latest runs and recent failures panels to five items", async () => {
@@ -201,6 +235,51 @@ describe("scrape views", () => {
         expect(screen.getByText("11 total runs")).toBeInTheDocument();
         expect(screen.getByRole("link", { name: "Open detail" })).toBeInTheDocument();
         expect(screen.getByText("The scrape received HTTP 500 while loading page 4.")).toBeInTheDocument();
+    });
+
+    it("renders changes explorer from URL-backed query state", async () => {
+        await renderRouterApp({
+            initialEntry:
+                "/app/changes?page=2&pageSize=10&sortBy=changedAt&sortOrder=desc&changeType=sold_out&windowDays=30",
+            session: mockUser,
+            apiResponses: {
+                changesList: {
+                    items: [
+                        {
+                            id: "11111111-1111-4111-8111-111111111111",
+                            changeType: "sold_out",
+                            oldStockStatus: true,
+                            newStockStatus: false,
+                            changedAt: new Date().toISOString(),
+                            category: {
+                                id: "22222222-2222-4222-8222-222222222222",
+                                nameEt: "Board Games",
+                            },
+                            run: {
+                                id: "33333333-3333-4333-8333-333333333333",
+                                startedAt: new Date().toISOString(),
+                            },
+                            product: {
+                                id: "44444444-4444-4444-8444-444444444444",
+                                name: "Change Product",
+                                imageUrl: "https://mabrik.ee/images/change-product.jpg",
+                                externalUrl: "https://mabrik.ee/toode/change-product",
+                            },
+                        },
+                    ],
+                    page: 2,
+                    pageSize: 10,
+                    totalItems: 11,
+                    totalPages: 2,
+                },
+            },
+        });
+
+        expect(await screen.findByRole("heading", { name: "Changes Explorer" })).toBeInTheDocument();
+        expect(screen.getByText("Showing:")).toBeInTheDocument();
+        expect(screen.getByText("Change Product")).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: "Open run" })).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: "View product" })).toBeInTheDocument();
     });
 
     it("renders run detail with readable failure metadata for non-admin users", async () => {
@@ -497,7 +576,9 @@ describe("scrape views", () => {
 
         await selectAntOption(user, "Stock filter", "In stock only");
         expect(
-            await screen.findByText("No historical snapshots matched the current controls. Change the filters or reset them."),
+            await screen.findByText(
+                "No historical snapshots matched the current controls. Change the filters or reset them.",
+            ),
         ).toBeInTheDocument();
 
         await selectAntOption(user, "Stock filter", "Out of stock only");
