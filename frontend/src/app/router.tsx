@@ -30,8 +30,11 @@ import { parseSettingsSearch } from "../features/settings/search";
 import { AppLayout } from "../routes/app-layout";
 import { DashboardHomePage } from "../routes/dashboard-home-page";
 import { ChangesPage } from "../routes/changes-page";
+import { ForbiddenPage } from "../routes/forbidden-page";
+import { GlobalErrorPage } from "../routes/global-error-page";
 import { LandingPage } from "../routes/landing-page";
 import { LoginPage } from "../routes/login-page";
+import { NotFoundPage } from "../routes/not-found-page";
 import { ProductDetailRoutePage } from "../routes/product-detail-route";
 import { RegisterPage } from "../routes/register-page";
 import { RunDetailPage } from "../routes/run-detail-page";
@@ -45,6 +48,8 @@ export interface RouterContext {
 
 const rootRoute = createRootRouteWithContext<RouterContext>()({
     component: Outlet,
+    notFoundComponent: NotFoundPage,
+    errorComponent: ({ error, reset }) => <GlobalErrorPage error={error} onRetry={reset} />,
 });
 
 const landingRoute = createRoute({
@@ -77,6 +82,12 @@ const registerRoute = createRoute({
         }
     },
     component: RegisterPage,
+});
+
+const forbiddenRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/forbidden",
+    component: ForbiddenPage,
 });
 
 const appRoute = createRoute({
@@ -194,6 +205,7 @@ const routeTree = rootRoute.addChildren([
     landingRoute,
     loginRoute,
     registerRoute,
+    forbiddenRoute,
     appRoute.addChildren([
         appHomeRoute,
         appRunsRoute,

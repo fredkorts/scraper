@@ -7,6 +7,11 @@ export {
     formatStatusLabel,
 } from "../../shared/formatters/display";
 import { STOCK_STATUS_LABELS } from "../../shared/constants/stock.constants";
+import {
+    PREORDER_BADGE_LABEL,
+    PREORDER_ETA_LABEL,
+    PREORDER_STATE_NO_LABEL,
+} from "../../shared/constants/preorder.constants";
 import { formatPrice } from "../../shared/formatters/display";
 
 interface ChangeDetailsInput {
@@ -38,8 +43,10 @@ export const formatChangeDetails = (value: ChangeDetailsInput): string => {
 
 export const formatPreorderState = (value: PreorderStateInput): string => {
     if (!value.isPreorder) {
-        return "No";
+        return PREORDER_STATE_NO_LABEL;
     }
 
-    return value.preorderEta ? `Preorder (ETA ${value.preorderEta})` : "Preorder";
+    return value.preorderEta
+        ? `${PREORDER_BADGE_LABEL} (${PREORDER_ETA_LABEL} ${value.preorderEta})`
+        : PREORDER_BADGE_LABEL;
 };

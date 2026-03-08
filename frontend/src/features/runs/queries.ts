@@ -16,6 +16,7 @@ import {
     type RunProductsData,
     type RunsListData,
 } from "./schemas";
+import { requestWithPreorderFallback } from "./utils/preorder-request-fallback";
 
 interface RunsListParams {
     page: number;
@@ -121,36 +122,36 @@ export const runProductsQueryOptions = (runId: string, params: RunProductsParams
 export const runChangesQueryOptions = (runId: string, params: RunChangesParams) =>
     queryOptions<RunChangesData>({
         queryKey: queryKeys.runs.changes(runId, { ...params }),
-        queryFn: () =>
-            apiGet(
-                `${apiEndpoints.runs.changes(runId)}${toQueryString({
-                    page: params.page,
-                    pageSize: params.pageSize,
-                    changeType: params.changeType,
-                    preorder: params.preorder,
-                })}`,
-                runChangesResponseSchema,
-            ),
+        queryFn: async () => {
+            const path = `${apiEndpoints.runs.changes(runId)}${toQueryString({
+                page: params.page,
+                pageSize: params.pageSize,
+                changeType: params.changeType,
+                preorder: params.preorder,
+            })}`;
+
+            return requestWithPreorderFallback(path, (requestPath) => apiGet(requestPath, runChangesResponseSchema));
+        },
         placeholderData: keepPreviousData,
     });
 
 export const changesListQueryOptions = (params: ChangesListParams) =>
     queryOptions<ChangesListData>({
         queryKey: queryKeys.changes.list({ ...params }),
-        queryFn: () =>
-            apiGet(
-                `${apiEndpoints.changes.list}${toQueryString({
-                    page: params.page,
-                    pageSize: params.pageSize,
-                    sortBy: params.sortBy,
-                    sortOrder: params.sortOrder,
-                    changeType: params.changeType,
-                    preorder: params.preorder,
-                    categoryId: params.categoryId,
-                    windowDays: params.windowDays,
-                })}`,
-                changesListResponseSchema,
-            ),
+        queryFn: async () => {
+            const path = `${apiEndpoints.changes.list}${toQueryString({
+                page: params.page,
+                pageSize: params.pageSize,
+                sortBy: params.sortBy,
+                sortOrder: params.sortOrder,
+                changeType: params.changeType,
+                preorder: params.preorder,
+                categoryId: params.categoryId,
+                windowDays: params.windowDays,
+            })}`;
+
+            return requestWithPreorderFallback(path, (requestPath) => apiGet(requestPath, changesListResponseSchema));
+        },
         placeholderData: keepPreviousData,
     });
 

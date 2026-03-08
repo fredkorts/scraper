@@ -20,6 +20,8 @@ export interface ChangesTableSectionProps<TItem extends RowData> {
     headerContent?: ReactNode;
     emptyText?: string;
     loadingText?: string;
+    retryLabel?: string;
     paginationAriaLabel: string;
     onPageChange: (page: number) => void;
+    onRetry?: () => void;
 }

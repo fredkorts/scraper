@@ -141,6 +141,7 @@ export const RunDetailPage = () => {
                 }
                 onPreorderChange={(value) => setSearch({ preorder: value, changesPage: 1 })}
                 onPageChange={(nextPage) => setSearch({ changesPage: nextPage })}
+                onRetry={() => void changesQuery.refetch()}
             />
 
             <RunProductsSection

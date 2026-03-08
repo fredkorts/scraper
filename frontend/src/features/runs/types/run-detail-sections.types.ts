@@ -34,6 +34,7 @@ export interface RunChangesSectionProps {
     onChangeTypeChange: (value?: string) => void;
     onPreorderChange: (value: "all" | "only" | "exclude") => void;
     onPageChange: (page: number) => void;
+    onRetry?: () => void;
 }
 
 export interface RunProductsSectionProps {

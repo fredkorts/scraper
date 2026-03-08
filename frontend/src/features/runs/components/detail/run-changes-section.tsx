@@ -1,6 +1,10 @@
 import { AppSelect } from "../../../../components/app-select/AppSelect";
 import { ChangesTableSection } from "../shared/changes-table-section";
 import { RUN_CHANGE_TYPE_FILTER_OPTIONS, RUN_PREORDER_FILTER_OPTIONS } from "../../constants/run-filters.constants";
+import {
+    PREORDER_EMPTY_FILTER_EXCLUDE_MESSAGE,
+    PREORDER_EMPTY_FILTER_ONLY_MESSAGE,
+} from "../../../../shared/constants/preorder.constants";
 import styles from "./run-detail-sections.module.scss";
 import type { RunChangesSectionProps } from "../../types/run-detail-sections.types";
 
@@ -17,11 +21,18 @@ export const RunChangesSection = ({
     onChangeTypeChange,
     onPreorderChange,
     onPageChange,
+    onRetry,
 }: RunChangesSectionProps) => (
     <ChangesTableSection
         columns={changeColumns}
         data={changes}
-        emptyText="No diff items matched the current filter."
+        emptyText={
+            preorder === "only"
+                ? PREORDER_EMPTY_FILTER_ONLY_MESSAGE
+                : preorder === "exclude"
+                  ? PREORDER_EMPTY_FILTER_EXCLUDE_MESSAGE
+                  : "No diff items matched the current filter."
+        }
         errorMessage={errorMessage}
         headingId="changes-heading"
         isFetching={isFetching}
@@ -29,8 +40,10 @@ export const RunChangesSection = ({
         page={page}
         pageSize={pageSize}
         paginationAriaLabel="Run changes pagination"
+        retryLabel="Retry loading diff items"
         title="Diff Items"
         onPageChange={onPageChange}
+        onRetry={onRetry}
         headerContent={
             <div className={styles.filterRow}>
                 <div className={styles.filterGroup}>

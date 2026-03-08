@@ -1,6 +1,11 @@
 import { PreorderDetectionSource } from "@prisma/client";
 import type { ParsedProduct } from "./types";
 
+type PreorderClassificationInput = Pick<
+    ParsedProduct,
+    "name" | "isPreorderCandidate" | "preorderEtaCandidate" | "preorderDetectedFromCandidate"
+>;
+
 const PREORDER_MARKER_PATTERNS = [/\beeltellimus(?:ega|e)?\b/i, /\bpre[\s-]?order\b/i, /\bpreorder\b/i];
 
 const PREORDER_CATEGORY_PATTERNS = [/\beeltellimus(?:ed)?\b/i, /\bpre[\s-]?order\b/i];
@@ -57,7 +62,7 @@ export const extractPreorderEtaDate = (value: string): Date | null => {
     return null;
 };
 
-const hasPreorderMarker = (value: string): boolean => {
+export const hasPreorderMarker = (value: string): boolean => {
     const normalized = normalize(value);
     return PREORDER_MARKER_PATTERNS.some((pattern) => pattern.test(normalized));
 };
@@ -71,7 +76,10 @@ export interface PreorderClassification {
     preorderDetectedFrom: PreorderDetectionSource | null;
 }
 
-export const classifyPreorder = (product: ParsedProduct, categorySlug: string): PreorderClassification => {
+export const classifyPreorder = (
+    product: PreorderClassificationInput,
+    categorySlug: string,
+): PreorderClassification => {
     if (product.isPreorderCandidate) {
         return {
             isPreorder: true,

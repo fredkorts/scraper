@@ -2,6 +2,11 @@ import { Badge, Card, Col, Descriptions, Image, Row, Space, Statistic, Tag, Typo
 import { AppButton } from "../../../../components/app-button/AppButton";
 import { formatPrice } from "../../../../shared/formatters/display";
 import { PRODUCT_IMAGE_FALLBACK_DATA_URL } from "../../constants/product-detail.constants";
+import {
+    PREORDER_ETA_LABEL,
+    PREORDER_STATE_NO_LABEL,
+    PREORDER_STATE_YES_LABEL,
+} from "../../../../shared/constants/preorder.constants";
 import { STOCK_STATUS_LABELS } from "../../../../shared/constants/stock.constants";
 import styles from "../product-detail-view.module.scss";
 import type { ProductCriticalOverviewProps } from "../../types/product-detail-sections.types";
@@ -87,8 +92,8 @@ export const ProductCriticalOverview = ({ discount, product }: ProductCriticalOv
                             <Descriptions.Item label="Product ID">{product.id}</Descriptions.Item>
                             <Descriptions.Item label="Preorder">
                                 {product.isPreorder
-                                    ? `Yes${product.preorderEta ? ` (ETA ${product.preorderEta})` : ""}`
-                                    : "No"}
+                                    ? `${PREORDER_STATE_YES_LABEL}${product.preorderEta ? ` (${PREORDER_ETA_LABEL} ${product.preorderEta})` : ""}`
+                                    : PREORDER_STATE_NO_LABEL}
                             </Descriptions.Item>
                             <Descriptions.Item label="Source URL">{product.externalUrl}</Descriptions.Item>
                         </Descriptions>

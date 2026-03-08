@@ -65,6 +65,20 @@ describe("auth routing", () => {
         expect(screen.getByLabelText("Password")).toHaveFocus();
     });
 
+    it("renders dedicated 404 page for unknown routes", async () => {
+        await renderRouterApp({ initialEntry: "/this-route-does-not-exist", session: null });
+
+        expect(await screen.findByRole("heading", { name: "Page not found" })).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: "Go to landing page" })).toBeInTheDocument();
+    });
+
+    it("renders dedicated 403 page", async () => {
+        await renderRouterApp({ initialEntry: "/forbidden", session: null });
+
+        expect(await screen.findByRole("heading", { name: "Access denied" })).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: "Back to dashboard" })).toBeInTheDocument();
+    });
+
     it("shows notification feedback when logout fails", async () => {
         const user = userEvent.setup();
         await renderRouterApp({ initialEntry: "/app", session: mockUser, logoutShouldFail: true });

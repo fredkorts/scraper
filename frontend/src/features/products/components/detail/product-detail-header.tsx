@@ -1,6 +1,7 @@
 import { Alert, Breadcrumb, Flex, Space, Tag, Typography } from "antd";
 import { Link } from "@tanstack/react-router";
 import { formatDateTime } from "../../../../shared/formatters/display";
+import { PREORDER_BADGE_LABEL, PREORDER_ETA_LABEL } from "../../../../shared/constants/preorder.constants";
 import { defaultDashboardHomeSearch, defaultRunsListSearch } from "../../../../shared/navigation/default-searches";
 import styles from "../product-detail-view.module.scss";
 import type { ProductDetailHeaderProps } from "../../types/product-detail-sections.types";
@@ -29,7 +30,10 @@ export const ProductDetailHeader = ({ freshness, product }: ProductDetailHeaderP
         <div className={styles.headerStack}>
             <Typography.Title level={1}>{product.name}</Typography.Title>
             {product.isPreorder ? (
-                <Tag color="gold">Preorder{product.preorderEta ? ` (ETA ${product.preorderEta})` : ""}</Tag>
+                <Tag color="gold">
+                    {PREORDER_BADGE_LABEL}
+                    {product.preorderEta ? ` (${PREORDER_ETA_LABEL} ${product.preorderEta})` : ""}
+                </Tag>
             ) : null}
         </div>
         <Flex gap="small" wrap>

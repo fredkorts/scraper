@@ -117,6 +117,11 @@
     @include empty-states.state-panel-error;
 }
 
+.errorBlock {
+    display: grid;
+    gap: var(--space-sm);
+}
+
 .failureMeta {
     display: grid;
     gap: var(--space-sm);

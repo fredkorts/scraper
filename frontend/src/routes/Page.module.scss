@@ -19,3 +19,8 @@
     gap: var(--space-md);
     flex-wrap: wrap;
 }
+
+.errorMessage {
+    margin: 0;
+    color: var(--color-danger);
+}

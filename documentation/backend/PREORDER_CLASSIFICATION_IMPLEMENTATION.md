@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented (Phase 1 complete).
+Implemented (Phase 1 complete; operational hardening pending).
 
 ## Summary
 
@@ -21,7 +21,14 @@ The feature will classify preorder state from scraped data and expose it as stru
 2. Preorder metadata is recalculated on every scrape snapshot and stale flags are cleared when signals disappear.
 3. API/query support includes `preorder=all|only|exclude` for run changes and cross-run changes.
 4. Email notifications now include preorder markers and distinct preorder summary counts.
-5. Phase 2 detail-page enrichment and dedicated reclassification job remain deferred.
+5. One-time backfill is mandatory for environments with legacy data.
+6. Phase 2 detail-page enrichment remains deferred.
+
+## Locked Decisions (Updated)
+
+1. One-time backfill is required in each environment after migration.
+2. ETA is a calendar date, not a timestamp.
+3. Phase 2 enrichment must run behind a feature flag/kill switch and be independently disable-able.
 
 ## Goals
 
@@ -65,7 +72,7 @@ Reason:
 Add to `Product`:
 
 1. `isPreorder Boolean @default(false) @map("is_preorder")`
-2. `preorderEta DateTime? @map("preorder_eta")` (stored from a date-only source)
+2. `preorderEta DateTime? @db.Date @map("preorder_eta")` (stored as date-only, no timezone semantics)
 3. `preorderDetectedFrom PreorderDetectionSource? @map("preorder_detected_from")`
 4. optional `preorderLastCheckedAt DateTime? @map("preorder_last_checked_at")`
 
@@ -78,6 +85,7 @@ Backfill:
 
 1. Existing rows default to `isPreorder=false`.
 2. ETA null unless parsed.
+3. One-time backfill execution is mandatory before considering rollout complete.
 
 Migration:
 
@@ -154,7 +162,8 @@ Source precedence:
 
 1. Add one-time classification command for existing products using phase-1 heuristics.
 2. Run updates in batches to avoid long transactions.
-3. Add rolling reclassification for products not seen recently to clear stale flags.
+3. One-time backfill is required for rollout completion in every environment.
+4. Rolling reclassification for products not seen recently is optional follow-up, not a release gate.
 
 ## Backend Implementation Steps
 
@@ -199,7 +208,7 @@ Update shared contracts and frontend schemas:
 2. frontend runtime schemas for:
     1. product detail
     2. run changes list
-    3. dashboard views where product rows are shown
+    3. cross-run changes list (`/app/changes`)
 
 Contract ownership lock:
 
@@ -219,6 +228,9 @@ Query filter contract:
     1. `preorder=all|only|exclude`
 2. Filtering is backend-driven so pagination/sorting counts stay correct.
 3. Frontend query keys must include preorder filter value.
+4. Mixed-deploy compatibility is required:
+    1. backend deployment and migration must be completed before frontend rollout.
+    2. frontend should gracefully recover if an older backend rejects `preorder` (fallback request without the filter).
 
 ## Frontend UX Changes
 
@@ -251,6 +263,17 @@ Frontend state architecture lock:
 1. Add one shared hook for preorder filter search-state mapping in the runs feature (or shared hooks if reused across features).
 2. Components remain presentation-focused; query/search mapping logic must stay in hooks/utilities.
 3. Avoid duplicate filter parsing in multiple routes/components.
+4. Preorder filter options/labels must be defined in one shared constants file and reused by all preorder filter UIs.
+5. Preorder UI copy must come from shared constants (badge text, ETA label, empty-state text) to avoid wording drift.
+
+Frontend behavior lock:
+
+1. Define explicit loading/empty/error states for preorder-filtered tables on `/app/changes` and run detail changes.
+2. Empty state when `preorder=only` and no rows:
+    1. show a specific no-preorder-results message.
+3. Error state:
+    1. preserve current filter selection in URL.
+    2. show retry action and normalized user-facing error text.
 
 ## Reliability and Performance
 
@@ -264,6 +287,19 @@ Frontend state architecture lock:
     1. robots checks
     2. adaptive delays
     3. host-level concurrency limits
+5. Phase 2 enrichment execution must be guarded by a runtime feature flag so operators can disable it without redeploy.
+
+## Observability Requirements
+
+1. Emit classification counters:
+    1. total classified products
+    2. flagged preorder products
+    3. classification source distribution (`category_slug|title|description|none`)
+2. Emit ETA parsing counters:
+    1. ETA parsed successfully
+    2. ETA parse failed
+3. Track preorder ratio by category over time to detect regex drift/false positives.
+4. Include preorder summary counts in notification pipeline logs for delivery sanity checks.
 
 ## Testing Plan
 
@@ -303,17 +339,21 @@ Frontend state architecture lock:
 4. preorder filter round-trips through URL search params (`back/forward/reload` stable)
 5. query key includes preorder filter (no stale cache collision)
 6. filter control has accessible label and keyboard-operable behavior
+7. mixed-deploy fallback works when backend rejects `preorder` filter on first request
+8. preorder-only empty-state copy renders correctly
+9. error state keeps URL filter state and exposes retry affordance
 
 ## Rollout Plan
 
-1. Ship schema + phase 1 parser + API fields.
-2. Deploy and run migration.
-3. Run one-time backfill classification command.
-4. Validate on live runs for known preorder products.
-5. Enable UI badge/filter.
-6. Enable notification preorder summary.
-7. Evaluate precision/recall for one week.
-8. If needed, implement phase 2 detail-page extraction.
+1. Deploy backend first to target environment.
+2. Run database migration.
+3. Run mandatory one-time backfill classification command.
+4. Validate backend endpoints with preorder fields/filters.
+5. Deploy frontend after backend validation passes.
+6. Validate known preorder products in DB, API, and UI.
+7. Validate notification preorder summary and sample deliveries.
+8. Monitor observability metrics for one week and tune regexes if needed.
+9. If needed, implement phase 2 detail-page extraction behind a feature flag.
 
 ## Risks and Mitigations
 
@@ -321,7 +361,9 @@ Frontend state architecture lock:
     1. Mitigation: source precedence + conservative regex + tests.
 2. ETA date format variance.
     1. Mitigation: fallback to null ETA when parse uncertain.
-3. Performance impact if detail fetch enabled.
+3. Date drift from timestamp semantics.
+    1. Mitigation: store ETA as date-only type and expose `YYYY-MM-DD` consistently.
+4. Performance impact if detail fetch enabled.
     1. Mitigation: phase gating, concurrency caps, cache window.
 
 ## Acceptance Criteria
@@ -333,3 +375,6 @@ Frontend state architecture lock:
 5. Lint/test/build pass for touched workspaces.
 6. Preorder state is recalculated per scrape and stale flags are cleared.
 7. ETA is exposed as date-only (`YYYY-MM-DD`) consistently.
+8. Mandatory one-time backfill has been executed in target environment.
+9. Observability metrics/logs for preorder classification are available in production.
+10. Frontend handles mixed deploys safely (no hard failure on unsupported preorder filter).

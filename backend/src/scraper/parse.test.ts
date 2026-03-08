@@ -4,10 +4,7 @@ import { describe, expect, it } from "vitest";
 import { normalizeExternalUrl, parseCategoryPage, parsePriceToDecimal } from "./parse";
 
 const fixture = readFileSync(join(import.meta.dirname, "__fixtures__", "category-page.html"), "utf8");
-const templateFixture = readFileSync(
-    join(import.meta.dirname, "__fixtures__", "category-page-template.html"),
-    "utf8",
-);
+const templateFixture = readFileSync(join(import.meta.dirname, "__fixtures__", "category-page-template.html"), "utf8");
 const liveTemplateFixture = readFileSync(
     join(import.meta.dirname, "__fixtures__", "mabrik-live-category-snippet.html"),
     "utf8",
@@ -22,9 +19,7 @@ describe("scraper parse helpers", () => {
 
     it("normalizes relative product URLs", () => {
         expect(normalizeExternalUrl("/toode/test-game/")).toBe("https://mabrik.ee/toode/test-game");
-        expect(normalizeExternalUrl("https://mabrik.ee/toode/test-game/")).toBe(
-            "https://mabrik.ee/toode/test-game",
-        );
+        expect(normalizeExternalUrl("https://mabrik.ee/toode/test-game/")).toBe("https://mabrik.ee/toode/test-game");
     });
 
     it("parses product cards and next page link", () => {
@@ -88,6 +83,29 @@ describe("scraper parse helpers", () => {
             name: "Enemies & Lovers: The Crown of Elfhame",
             currentPrice: "36.90",
             inStock: true,
+        });
+    });
+
+    it("marks preorder candidate from listing card text marker", () => {
+        const html = `
+            <ul class="products">
+                <li class="product instock">
+                    <a href="/toode/preorder-test">
+                        <img src="https://mabrik.ee/image.jpg" />
+                        <h2 class="woocommerce-loop-product__title">Test Product</h2>
+                    </a>
+                    <span class="price"><span class="amount">19,90 €</span></span>
+                    <p>Tegemist on eeltellimusega!</p>
+                </li>
+            </ul>
+        `;
+
+        const result = parseCategoryPage(html);
+
+        expect(result.products).toHaveLength(1);
+        expect(result.products[0]).toMatchObject({
+            isPreorderCandidate: true,
+            preorderDetectedFromCandidate: "DESCRIPTION",
         });
     });
 });

@@ -1,6 +1,5 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef } from "react";
-import { AppButton } from "../components/app-button/AppButton";
 import { buildCategoryTreeData, getCategoryLabelById } from "../features/categories/options";
 import { useCategoriesQuery } from "../features/categories/queries";
 import { ChangesFilters } from "../features/runs/components/list/changes-filters";
@@ -16,6 +15,10 @@ import { useChangesListQuery } from "../features/runs/queries";
 import { defaultChangesListSearch } from "../features/runs/search";
 import { useClampedPage } from "../shared/hooks/use-clamped-page";
 import { useRouteSearchUpdater } from "../shared/hooks/use-route-search-updater";
+import {
+    PREORDER_EMPTY_FILTER_EXCLUDE_MESSAGE,
+    PREORDER_EMPTY_FILTER_ONLY_MESSAGE,
+} from "../shared/constants/preorder.constants";
 import styles from "./scrape-views.module.scss";
 import pageStyles from "./changes-page.module.scss";
 
@@ -137,21 +140,17 @@ export const ChangesPage = () => {
                 </p>
             </div>
 
-            {changesQuery.isError ? (
-                <div className={pageStyles.retryRow}>
-                    <AppButton intent="secondary" onClick={() => void changesQuery.refetch()}>
-                        Retry
-                    </AppButton>
-                </div>
-            ) : null}
-
             <ChangesTableSection
                 columns={columns}
                 data={changesQuery.data}
                 emptyText={
-                    search.changeType || search.categoryId
-                        ? "No changes matched the current filters. Adjust filters or reset all filters."
-                        : "No changes were recorded for the selected window."
+                    search.preorder === "only"
+                        ? PREORDER_EMPTY_FILTER_ONLY_MESSAGE
+                        : search.preorder === "exclude"
+                          ? PREORDER_EMPTY_FILTER_EXCLUDE_MESSAGE
+                          : search.changeType || search.categoryId
+                            ? "No changes matched the current filters. Adjust filters or reset all filters."
+                            : "No changes were recorded for the selected window."
                 }
                 errorMessage={changesQuery.isError ? changesQuery.error.message : undefined}
                 headingId="changes-table-heading"
@@ -160,8 +159,10 @@ export const ChangesPage = () => {
                 page={search.page}
                 pageSize={search.pageSize}
                 paginationAriaLabel="Changes pagination"
+                retryLabel="Retry loading changes"
                 title="Change Results"
                 onPageChange={(nextPage) => setSearch({ page: nextPage })}
+                onRetry={() => void changesQuery.refetch()}
             />
 
             {showEmptyMismatchHelper ? (

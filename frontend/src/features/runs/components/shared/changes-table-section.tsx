@@ -1,5 +1,6 @@
 import { DataTable } from "../../../../components/data-table/DataTable";
 import { PaginationControls } from "../../../../components/pagination/PaginationControls";
+import { AppButton } from "../../../../components/app-button/AppButton";
 import styles from "../detail/run-detail-sections.module.scss";
 import type { ChangesTableSectionProps } from "../../types/changes-table-section.types";
 
@@ -16,8 +17,10 @@ export const ChangesTableSection = <TItem extends object>({
     errorMessage,
     emptyText = "No changes matched the current filters.",
     loadingText = "Loading changes...",
+    retryLabel = "Retry",
     paginationAriaLabel,
     onPageChange,
+    onRetry,
 }: ChangesTableSectionProps<TItem>) => (
     <section aria-labelledby={headingId} className={styles.section}>
         <div className={styles.sectionHeader}>
@@ -28,9 +31,14 @@ export const ChangesTableSection = <TItem extends object>({
         </div>
 
         {errorMessage ? (
-            <p className={styles.errorState} role="alert">
-                {errorMessage}
-            </p>
+            <div className={styles.errorBlock} role="alert">
+                <p className={styles.errorState}>{errorMessage}</p>
+                {onRetry ? (
+                    <AppButton intent="secondary" size="medium" onClick={onRetry}>
+                        {retryLabel}
+                    </AppButton>
+                ) : null}
+            </div>
         ) : data ? (
             <>
                 {data.items.length === 0 ? (

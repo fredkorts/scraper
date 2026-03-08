@@ -2,7 +2,7 @@ import * as cheerio from "cheerio";
 import type { AnyNode } from "domhandler";
 import { config } from "../config";
 import { productSelectors } from "./selectors";
-import { extractPreorderEtaDate } from "./preorder";
+import { extractPreorderEtaDate, hasPreorderMarker } from "./preorder";
 import type { ParsedCategoryPage, ParsedProduct } from "./types";
 
 const buildAbsoluteUrl = (value: string): string => new URL(value, config.SCRAPER_BASE_URL).toString();
@@ -85,8 +85,19 @@ const parseProductCard = (element: AnyNode, $: cheerio.CheerioAPI): ParsedProduc
         throw new Error("Unable to determine stock state");
     })();
 
-    const preorderEtaCandidate = extractPreorderEtaDate(card.text()) ?? extractPreorderEtaDate(name);
-    const isPreorderCandidate = preorderEtaCandidate !== null;
+    const cardText = card.text();
+    const cardEtaCandidate = extractPreorderEtaDate(cardText);
+    const titleEtaCandidate = cardEtaCandidate ? null : extractPreorderEtaDate(name);
+    const preorderEtaCandidate = cardEtaCandidate ?? titleEtaCandidate;
+    const hasCardPreorderMarker = hasPreorderMarker(cardText);
+    const hasTitlePreorderMarker = hasPreorderMarker(name);
+    const isPreorderCandidate = preorderEtaCandidate !== null || hasCardPreorderMarker || hasTitlePreorderMarker;
+    const preorderDetectedFromCandidate =
+        cardEtaCandidate || hasCardPreorderMarker
+            ? "DESCRIPTION"
+            : titleEtaCandidate || hasTitlePreorderMarker
+              ? "TITLE"
+              : undefined;
 
     return {
         externalUrl: normalizeExternalUrl(linkHref),
@@ -97,7 +108,7 @@ const parseProductCard = (element: AnyNode, $: cheerio.CheerioAPI): ParsedProduc
         inStock,
         isPreorderCandidate,
         preorderEtaCandidate: preorderEtaCandidate ?? undefined,
-        preorderDetectedFromCandidate: preorderEtaCandidate ? "TITLE" : undefined,
+        preorderDetectedFromCandidate,
     };
 };
 
