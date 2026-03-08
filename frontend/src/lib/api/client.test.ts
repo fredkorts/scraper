@@ -21,6 +21,11 @@ describe("api client 401 handling", () => {
             const url = String(input);
             const method = init?.method ?? "GET";
 
+            if (url.endsWith("/api/auth/csrf") && method === "GET") {
+                document.cookie = "csrf_token=test-csrf-token; path=/";
+                return jsonResponse(200, { success: true });
+            }
+
             if (url.endsWith("/api/categories") && method === "GET") {
                 categoriesCalls += 1;
                 if (categoriesCalls === 1) {
@@ -54,6 +59,11 @@ describe("api client 401 handling", () => {
         const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
             const url = String(input);
             const method = init?.method ?? "GET";
+
+            if (url.endsWith("/api/auth/csrf") && method === "GET") {
+                document.cookie = "csrf_token=test-csrf-token; path=/";
+                return jsonResponse(200, { success: true });
+            }
 
             if (url.endsWith("/api/categories") && method === "GET") {
                 categoriesCalls += 1;
@@ -90,6 +100,11 @@ describe("api client 401 handling", () => {
             const url = String(input);
             const method = init?.method ?? "GET";
 
+            if (url.endsWith("/api/auth/csrf") && method === "GET") {
+                document.cookie = "csrf_token=test-csrf-token; path=/";
+                return jsonResponse(200, { success: true });
+            }
+
             if (url.endsWith("/api/notifications/channels") && method === "POST") {
                 return jsonResponse(401, { error: "unauthorized", message: "Unauthorized" });
             }
@@ -114,6 +129,11 @@ describe("api client 401 handling", () => {
         const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
             const url = String(input);
             const method = init?.method ?? "GET";
+
+            if (url.endsWith("/api/auth/csrf") && method === "GET") {
+                document.cookie = "csrf_token=test-csrf-token; path=/";
+                return jsonResponse(200, { success: true });
+            }
 
             if (url.endsWith("/api/auth/login") && method === "GET") {
                 return jsonResponse(401, { error: "unauthorized", message: "Unauthorized" });

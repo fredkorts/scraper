@@ -14,6 +14,7 @@ export const mockUser: AuthUser = {
     name: "Example User",
     role: "free",
     isActive: true,
+    mfaEnabled: false,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
 };
@@ -294,6 +295,11 @@ export const renderRouterApp = async ({
             return JSON.parse(init.body);
         };
 
+        if (url.includes("/api/auth/csrf")) {
+            document.cookie = "csrf_token=test-csrf-token; path=/";
+            return jsonResponse({ success: true });
+        }
+
         if (url.includes("/api/categories")) {
             if (method === "PATCH") {
                 const body = await parseBody();
@@ -454,6 +460,26 @@ export const renderRouterApp = async ({
             return jsonResponse(payload);
         }
 
+        if (url.includes("/api/auth/sessions")) {
+            if (method === "GET") {
+                return jsonResponse({
+                    sessions: [
+                        {
+                            id: "session-1",
+                            createdAt: new Date().toISOString(),
+                            lastUsedAt: new Date().toISOString(),
+                            expiresAt: new Date(Date.now() + 60_000).toISOString(),
+                            createdByIp: "127.0.0.1",
+                            createdByUserAgent: "Vitest",
+                            isCurrent: true,
+                        },
+                    ],
+                });
+            }
+
+            return jsonResponse({ success: true });
+        }
+
         if (url.includes("/api/auth/me") && method === "PATCH") {
             const body = await parseBody();
             const updatedUser = {
@@ -461,6 +487,26 @@ export const renderRouterApp = async ({
                 name: (body as { name: string }).name,
             };
             return jsonResponse({ user: updatedUser });
+        }
+
+        if (url.includes("/api/auth/email-verification/resend")) {
+            return jsonResponse({ success: true });
+        }
+
+        if (url.includes("/api/auth/mfa/setup/start")) {
+            return jsonResponse({ secret: "SECRET", otpauthUri: "otpauth://test" });
+        }
+
+        if (url.includes("/api/auth/mfa/setup/confirm")) {
+            return jsonResponse({ recoveryCodes: ["AAAAA-BBBBB"] });
+        }
+
+        if (url.includes("/api/auth/mfa/disable")) {
+            return jsonResponse({ success: true });
+        }
+
+        if (url.includes("/api/auth/mfa/recovery-codes/regenerate")) {
+            return jsonResponse({ recoveryCodes: ["CCCCC-DDDDD"] });
         }
 
         if (url.includes("/api/auth/logout") && method === "POST") {

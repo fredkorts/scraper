@@ -44,6 +44,11 @@
     gap: var(--space-md);
 }
 
+.stack {
+    display: grid;
+    gap: var(--space-sm);
+}
+
 .sectionHeader {
     display: flex;
     justify-content: space-between;

@@ -8,6 +8,7 @@ import {
     type RouterHistory,
 } from "@tanstack/react-router";
 import type { AuthUser } from "@mabrik/shared";
+import { sessionsQueryOptions } from "../features/auth/queries";
 import { categoriesQueryOptions } from "../features/categories/queries";
 import { parseProductHistoryControls } from "../features/products/history-controls";
 import { productDetailQueryOptions, productHistoryQueryOptions } from "../features/products/queries";
@@ -31,15 +32,18 @@ import { AppLayout } from "../routes/app-layout";
 import { DashboardHomePage } from "../routes/dashboard-home-page";
 import { ChangesPage } from "../routes/changes-page";
 import { ForbiddenPage } from "../routes/forbidden-page";
+import { ForgotPasswordPage } from "../routes/forgot-password-page";
 import { GlobalErrorPage } from "../routes/global-error-page";
 import { LandingPage } from "../routes/landing-page";
 import { LoginPage } from "../routes/login-page";
 import { NotFoundPage } from "../routes/not-found-page";
 import { ProductDetailRoutePage } from "../routes/product-detail-route";
 import { RegisterPage } from "../routes/register-page";
+import { ResetPasswordPage } from "../routes/reset-password-page";
 import { RunDetailPage } from "../routes/run-detail-page";
 import { RunsPage } from "../routes/runs-page";
 import { SettingsPage } from "../routes/settings-page";
+import { VerifyEmailPage } from "../routes/verify-email-page";
 
 export interface RouterContext {
     queryClient: QueryClient;
@@ -82,6 +86,30 @@ const registerRoute = createRoute({
         }
     },
     component: RegisterPage,
+});
+
+const forgotPasswordRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/forgot-password",
+    component: ForgotPasswordPage,
+});
+
+const resetPasswordRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/reset-password",
+    validateSearch: (search: Record<string, unknown>) => ({
+        token: typeof search.token === "string" ? search.token : undefined,
+    }),
+    component: ResetPasswordPage,
+});
+
+const verifyEmailRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/verify-email",
+    validateSearch: (search: Record<string, unknown>) => ({
+        token: typeof search.token === "string" ? search.token : undefined,
+    }),
+    component: VerifyEmailPage,
 });
 
 const forbiddenRoute = createRoute({
@@ -196,6 +224,7 @@ const appSettingsRoute = createRoute({
             context.queryClient.ensureQueryData(subscriptionsQueryOptions()),
             context.queryClient.ensureQueryData(notificationChannelsQueryOptions()),
             context.queryClient.ensureQueryData(categoriesQueryOptions("all")),
+            context.queryClient.ensureQueryData(sessionsQueryOptions()),
         ]);
     },
     component: SettingsPage,
@@ -205,6 +234,9 @@ const routeTree = rootRoute.addChildren([
     landingRoute,
     loginRoute,
     registerRoute,
+    forgotPasswordRoute,
+    resetPasswordRoute,
+    verifyEmailRoute,
     forbiddenRoute,
     appRoute.addChildren([
         appHomeRoute,

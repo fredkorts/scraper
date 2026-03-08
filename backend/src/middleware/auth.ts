@@ -2,6 +2,8 @@ import type { NextFunction, Request, Response } from "express";
 import { authCookieNames } from "../lib/cookies";
 import { AppError } from "../lib/errors";
 import { verifyAccessToken } from "../lib/jwt";
+import { config } from "../config";
+import { prisma } from "../lib/prisma";
 
 export const requireAuth = (req: Request, _res: Response, next: NextFunction): void => {
     try {
@@ -47,4 +49,30 @@ export const requireAdmin = (req: Request, _res: Response, next: NextFunction): 
     }
 
     next();
+};
+
+export const requireVerifiedEmail = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+    try {
+        if (!config.AUTH_REQUIRE_VERIFIED_EMAIL) {
+            next();
+            return;
+        }
+
+        if (!req.auth) {
+            throw new AppError(401, "unauthorized", "Authentication required");
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { id: req.auth.userId },
+            select: { emailVerifiedAt: true },
+        });
+
+        if (!user?.emailVerifiedAt) {
+            throw new AppError(403, "forbidden", "Email verification is required");
+        }
+
+        next();
+    } catch (error) {
+        next(error);
+    }
 };

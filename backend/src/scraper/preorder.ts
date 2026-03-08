@@ -88,19 +88,19 @@ export const classifyPreorder = (
         };
     }
 
-    if (hasPreorderMarker(product.name)) {
-        return {
-            isPreorder: true,
-            preorderEta: extractPreorderEtaDate(product.name),
-            preorderDetectedFrom: PreorderDetectionSource.TITLE,
-        };
-    }
-
     if (categorySuggestsPreorder(categorySlug)) {
         return {
             isPreorder: true,
             preorderEta: null,
             preorderDetectedFrom: PreorderDetectionSource.CATEGORY_SLUG,
+        };
+    }
+
+    if (hasPreorderMarker(product.name)) {
+        return {
+            isPreorder: true,
+            preorderEta: extractPreorderEtaDate(product.name),
+            preorderDetectedFrom: PreorderDetectionSource.TITLE,
         };
     }
 

@@ -2,6 +2,7 @@ import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../app";
 import { authCookieNames } from "../lib/cookies";
+import { config } from "../config";
 import { prisma } from "../lib/prisma";
 import { signAccessToken } from "../lib/jwt";
 import { useTestDatabase } from "../test/db";
@@ -11,10 +12,12 @@ import { extractCookieValue } from "../test/http";
 useTestDatabase();
 
 describe("auth routes", () => {
+    const trustedOrigin = new URL(config.FRONTEND_URL).origin;
+
     it("registers a user and sets auth cookies", async () => {
         const app = createApp();
 
-        const response = await request(app).post("/api/auth/register").send({
+        const response = await request(app).post("/api/auth/register").set("Origin", trustedOrigin).send({
             email: "routeuser@example.com",
             password: "Password123",
             name: "Route User",
@@ -24,9 +27,7 @@ describe("auth routes", () => {
         expect(response.body.user.email).toBe("routeuser@example.com");
         expect(response.body.user).not.toHaveProperty("passwordHash");
 
-        const setCookies = Array.isArray(response.headers["set-cookie"])
-            ? response.headers["set-cookie"]
-            : [];
+        const setCookies = Array.isArray(response.headers["set-cookie"]) ? response.headers["set-cookie"] : [];
         expect(extractCookieValue(setCookies, authCookieNames.accessToken)).toBeTruthy();
         expect(extractCookieValue(setCookies, authCookieNames.refreshToken)).toBeTruthy();
     });
@@ -34,13 +35,13 @@ describe("auth routes", () => {
     it("rejects duplicate registration", async () => {
         const app = createApp();
 
-        await request(app).post("/api/auth/register").send({
+        await request(app).post("/api/auth/register").set("Origin", trustedOrigin).send({
             email: "duplicate@example.com",
             password: "Password123",
             name: "First User",
         });
 
-        const response = await request(app).post("/api/auth/register").send({
+        const response = await request(app).post("/api/auth/register").set("Origin", trustedOrigin).send({
             email: "duplicate@example.com",
             password: "Password123",
             name: "Second User",
@@ -56,7 +57,7 @@ describe("auth routes", () => {
             email: "login@example.com",
         });
 
-        const response = await request(app).post("/api/auth/login").send({
+        const response = await request(app).post("/api/auth/login").set("Origin", trustedOrigin).send({
             email: user.email,
             password,
         });
@@ -72,7 +73,7 @@ describe("auth routes", () => {
             email: "failed-login@example.com",
         });
 
-        const response = await request(app).post("/api/auth/login").send({
+        const response = await request(app).post("/api/auth/login").set("Origin", trustedOrigin).send({
             email: "failed-login@example.com",
             password: "WrongPassword123",
         });
@@ -105,6 +106,11 @@ describe("auth routes", () => {
         const { user } = await createUser({
             email: "profile-update@example.com",
         });
+        const csrfResponse = await request(app).get("/api/auth/csrf");
+        const csrfSetCookie = Array.isArray(csrfResponse.headers["set-cookie"])
+            ? csrfResponse.headers["set-cookie"]
+            : [];
+        const csrfCookie = extractCookieValue(csrfSetCookie, authCookieNames.csrfToken)!;
         const accessToken = signAccessToken({
             sub: user.id,
             email: user.email,
@@ -113,7 +119,12 @@ describe("auth routes", () => {
 
         const response = await request(app)
             .patch("/api/auth/me")
-            .set("Cookie", `${authCookieNames.accessToken}=${accessToken}`)
+            .set("Cookie", [
+                `${authCookieNames.accessToken}=${accessToken}`,
+                `${authCookieNames.csrfToken}=${csrfCookie}`,
+            ])
+            .set("Origin", trustedOrigin)
+            .set("x-csrf-token", csrfCookie)
             .send({
                 name: "Updated Profile Name",
             });
@@ -128,10 +139,20 @@ describe("auth routes", () => {
             email: "refresh@example.com",
         });
         const token = await createRefreshTokenRecord({ userId: user.id });
+        const csrfResponse = await request(app).get("/api/auth/csrf");
+        const csrfSetCookie = Array.isArray(csrfResponse.headers["set-cookie"])
+            ? csrfResponse.headers["set-cookie"]
+            : [];
+        const csrfCookie = extractCookieValue(csrfSetCookie, authCookieNames.csrfToken)!;
 
         const response = await request(app)
             .post("/api/auth/refresh")
-            .set("Cookie", `${authCookieNames.refreshToken}=${token.rawToken}`);
+            .set("Origin", trustedOrigin)
+            .set("x-csrf-token", csrfCookie)
+            .set("Cookie", [
+                `${authCookieNames.refreshToken}=${token.rawToken}`,
+                `${authCookieNames.csrfToken}=${csrfCookie}`,
+            ]);
 
         expect(response.status).toBe(200);
 
@@ -149,10 +170,20 @@ describe("auth routes", () => {
             email: "logout@example.com",
         });
         const token = await createRefreshTokenRecord({ userId: user.id });
+        const csrfResponse = await request(app).get("/api/auth/csrf");
+        const csrfSetCookie = Array.isArray(csrfResponse.headers["set-cookie"])
+            ? csrfResponse.headers["set-cookie"]
+            : [];
+        const csrfCookie = extractCookieValue(csrfSetCookie, authCookieNames.csrfToken)!;
 
         const response = await request(app)
             .post("/api/auth/logout")
-            .set("Cookie", `${authCookieNames.refreshToken}=${token.rawToken}`);
+            .set("Origin", trustedOrigin)
+            .set("x-csrf-token", csrfCookie)
+            .set("Cookie", [
+                `${authCookieNames.refreshToken}=${token.rawToken}`,
+                `${authCookieNames.csrfToken}=${csrfCookie}`,
+            ]);
 
         expect(response.status).toBe(200);
         expect(response.body.success).toBe(true);

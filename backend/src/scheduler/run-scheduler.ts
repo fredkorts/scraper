@@ -6,12 +6,14 @@ import { logger } from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { createScrapeQueue } from "../queue/queues";
 import { enqueueDueCategories } from "./enqueue-due-categories";
+import { cleanupExpiredAuthTokens } from "../services/auth.service";
 
 const runScheduler = async (): Promise<void> => {
     await prisma.$connect();
     const queue = createScrapeQueue();
 
     let isTickRunning = false;
+    let lastCleanupAt = 0;
 
     const tick = async () => {
         if (isTickRunning) {
@@ -25,6 +27,14 @@ const runScheduler = async (): Promise<void> => {
             logger.info("scheduler_tick_completed", {
                 ...result,
             });
+
+            const now = Date.now();
+            const cleanupIntervalMs = 24 * 60 * 60 * 1000;
+            if (now - lastCleanupAt >= cleanupIntervalMs) {
+                const cleanupResult = await cleanupExpiredAuthTokens();
+                logger.info("scheduler_auth_token_cleanup_completed", cleanupResult);
+                lastCleanupAt = now;
+            }
         } catch (error) {
             logger.error("scheduler_tick_failed", {
                 error,

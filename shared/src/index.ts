@@ -244,6 +244,9 @@ export interface AuthUser {
     name: string;
     role: UserRole;
     isActive: boolean;
+    emailVerifiedAt?: string;
+    mfaEnabled: boolean;
+    mfaEnabledAt?: string;
     createdAt: string;
     updatedAt: string;
 }
@@ -259,6 +262,14 @@ export interface LoginRequest {
     password: string;
 }
 
+export interface MfaChallengeResponse {
+    mfaRequired: true;
+    challengeToken: string;
+    user: AuthUser;
+}
+
+export type LoginResponse = AuthResponse | MfaChallengeResponse;
+
 export interface AuthResponse {
     user: AuthUser;
 }
@@ -273,6 +284,76 @@ export interface UpdateProfileResponse {
 
 export interface LogoutResponse {
     success: true;
+}
+
+export interface SuccessResponse {
+    success: true;
+}
+
+export interface ForgotPasswordRequest {
+    email: string;
+}
+
+export interface ResetPasswordRequest {
+    token: string;
+    password: string;
+}
+
+export interface VerifyEmailRequest {
+    token: string;
+}
+
+export interface MfaVerifyLoginRequest {
+    challengeToken: string;
+    code?: string;
+    recoveryCode?: string;
+}
+
+export interface MfaSetupStartResponse {
+    secret: string;
+    otpauthUri: string;
+}
+
+export interface MfaSetupConfirmRequest {
+    code: string;
+}
+
+export interface MfaDisableRequest {
+    currentPassword?: string;
+    mfaCode?: string;
+    recoveryCode?: string;
+}
+
+export interface MfaRecoveryCodesResponse {
+    recoveryCodes: string[];
+}
+
+export interface AuthSession {
+    id: string;
+    createdAt: string;
+    lastUsedAt?: string;
+    expiresAt: string;
+    revokedAt?: string;
+    createdByIp?: string;
+    createdByUserAgent?: string;
+    label?: string;
+    isCurrent: boolean;
+}
+
+export interface AuthSessionListResponse {
+    sessions: AuthSession[];
+}
+
+export interface SessionRevokeRequest {
+    currentPassword?: string;
+    mfaCode?: string;
+    recoveryCode?: string;
+}
+
+export interface SessionRevokeOthersRequest {
+    currentPassword?: string;
+    mfaCode?: string;
+    recoveryCode?: string;
 }
 
 export interface ErrorResponse {

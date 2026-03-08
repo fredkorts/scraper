@@ -18,6 +18,7 @@ const AUTH_ENDPOINT_EXCLUSIONS = new Set([
 ]);
 
 let refreshPromise: Promise<void> | null = null;
+let csrfPromise: Promise<void> | null = null;
 
 const toAbsoluteUrl = (path: string): string => {
     if (path.startsWith("http://") || path.startsWith("https://")) {
@@ -47,12 +48,62 @@ const parseResponseBody = async (response: Response): Promise<unknown> => {
 const shouldRefreshOnUnauthorized = (method: HttpMethod, path: string): boolean =>
     method === "GET" && !AUTH_ENDPOINT_EXCLUSIONS.has(path);
 
+const getCookieValue = (name: string): string | null => {
+    if (typeof document === "undefined") {
+        return null;
+    }
+
+    const encodedName = `${encodeURIComponent(name)}=`;
+    const values = document.cookie.split(";");
+
+    for (const rawValue of values) {
+        const value = rawValue.trim();
+        if (value.startsWith(encodedName)) {
+            return decodeURIComponent(value.slice(encodedName.length));
+        }
+    }
+
+    return null;
+};
+
+const fetchCsrfToken = async (): Promise<void> => {
+    const response = await fetch(toAbsoluteUrl("/api/auth/csrf"), {
+        method: "GET",
+        credentials: "include",
+        headers: {
+            Accept: "application/json",
+        },
+    });
+
+    if (!response.ok) {
+        const payload = await parseResponseBody(response);
+        throw new ApiError(normalizeApiError(response.status, payload));
+    }
+};
+
+const ensureCsrfToken = async (): Promise<void> => {
+    if (getCookieValue("csrf_token")) {
+        return;
+    }
+
+    if (!csrfPromise) {
+        csrfPromise = fetchCsrfToken().finally(() => {
+            csrfPromise = null;
+        });
+    }
+
+    await csrfPromise;
+};
+
 const refreshSession = async (): Promise<void> => {
+    await ensureCsrfToken();
+    const csrfToken = getCookieValue("csrf_token");
     const response = await fetch(toAbsoluteUrl("/api/auth/refresh"), {
         method: "POST",
         credentials: "include",
         headers: {
             Accept: "application/json",
+            ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
         },
     });
 
@@ -79,20 +130,36 @@ export const apiRequest = async <TResponse, TBody = unknown>(
 ): Promise<TResponse> => {
     const method = options.method ?? "GET";
     const url = toAbsoluteUrl(path);
+    const isMutation = method !== "GET";
 
-    const request = async (): Promise<Response> =>
-        fetch(url, {
+    if (isMutation) {
+        await ensureCsrfToken();
+    }
+
+    const request = async (): Promise<Response> => {
+        const csrfToken = getCookieValue("csrf_token");
+        return fetch(url, {
             method,
             credentials: "include",
             headers: {
                 Accept: "application/json",
                 ...(options.body !== undefined ? { "Content-Type": "application/json" } : {}),
+                ...(isMutation && csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
             },
             body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
             signal: options.signal,
         });
+    };
 
     let response = await request();
+
+    if (response.status === 403 && isMutation) {
+        csrfPromise = fetchCsrfToken().finally(() => {
+            csrfPromise = null;
+        });
+        await csrfPromise;
+        response = await request();
+    }
 
     if (response.status === 401 && shouldRefreshOnUnauthorized(method, path)) {
         await refreshSessionSingleFlight();
@@ -127,5 +194,8 @@ export const apiPatch = <TResponse, TBody = unknown>(
     schema?: ZodType<TResponse>,
 ): Promise<TResponse> => apiRequest(path, { method: "PATCH", body }, schema);
 
-export const apiDelete = <TResponse>(path: string, schema?: ZodType<TResponse>): Promise<TResponse> =>
-    apiRequest(path, { method: "DELETE" }, schema);
+export const apiDelete = <TResponse, TBody = unknown>(
+    path: string,
+    body?: TBody,
+    schema?: ZodType<TResponse>,
+): Promise<TResponse> => apiRequest(path, { method: "DELETE", body }, schema);

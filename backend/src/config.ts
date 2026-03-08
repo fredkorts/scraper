@@ -36,8 +36,19 @@ const envSchema = z
         JWT_REFRESH_SECRET: z.string().min(32),
         JWT_ISSUER: z.string().min(1).default("mabrik-backend"),
         JWT_AUDIENCE: z.string().min(1).default("mabrik-app"),
-        ACCESS_TOKEN_TTL: z.string().regex(/^\d+[smhd]$/).default("15m"),
+        ACCESS_TOKEN_TTL: z
+            .string()
+            .regex(/^\d+[smhd]$/)
+            .default("15m"),
         REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
+        AUTH_REQUIRE_VERIFIED_EMAIL: booleanStringSchema.default(false),
+        AUTH_ENABLE_MFA: booleanStringSchema.default(false),
+        AUTH_ENABLE_SESSION_MANAGEMENT: booleanStringSchema.default(true),
+        AUTH_MFA_ENCRYPTION_KEY: z.string().min(32).optional(),
+        AUTH_CSRF_TOKEN_TTL_HOURS: z.coerce.number().int().positive().default(24),
+        AUTH_EMAIL_VERIFICATION_TTL_HOURS: z.coerce.number().int().positive().default(24),
+        AUTH_PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().positive().default(30),
+        AUTH_MFA_CHALLENGE_TTL_MINUTES: z.coerce.number().int().positive().default(10),
         BCRYPT_ROUNDS: z.coerce.number().int().min(10).max(14).default(12),
         SCRAPER_BASE_URL: z.string().url().default("https://mabrik.ee"),
         SCRAPER_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
@@ -68,6 +79,14 @@ const envSchema = z
                 code: z.ZodIssueCode.custom,
                 message: "RESEND_API_KEY is required when EMAIL_PROVIDER=resend",
                 path: ["RESEND_API_KEY"],
+            });
+        }
+
+        if (value.AUTH_ENABLE_MFA && !value.AUTH_MFA_ENCRYPTION_KEY) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "AUTH_MFA_ENCRYPTION_KEY is required when AUTH_ENABLE_MFA=true",
+                path: ["AUTH_MFA_ENCRYPTION_KEY"],
             });
         }
     });

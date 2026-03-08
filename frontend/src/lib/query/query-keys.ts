@@ -1,6 +1,7 @@
 export const queryKeys = {
     auth: {
         me: () => ["auth", "me"] as const,
+        sessions: () => ["auth", "sessions"] as const,
     },
     dashboard: {
         home: () => ["dashboard", "home"] as const,

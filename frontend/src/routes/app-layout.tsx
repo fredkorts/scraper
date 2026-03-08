@@ -1,8 +1,12 @@
+import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { useMeQuery } from "../features/auth/queries";
 import { useLogoutMutation } from "../features/auth/mutations";
+import { subscribeAuthEvents } from "../features/auth/auth-events";
 import { defaultDashboardHomeSearch, defaultRunsListSearch } from "../features/runs/search";
 import { defaultSettingsSearch } from "../features/settings/search";
+import { queryKeys } from "../lib/query/query-keys";
 import { NOTIFICATION_MESSAGES } from "../shared/constants/notification-messages";
 import { useAppNotification } from "../shared/hooks/use-app-notification";
 import { normalizeUserError } from "../shared/utils/normalize-user-error";
@@ -14,10 +18,21 @@ import styles from "./app-layout.module.scss";
 
 export const AppLayout = () => {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const logoutMutation = useLogoutMutation();
     const session = useMeQuery();
     const theme = useAppTheme();
     const { notify } = useAppNotification();
+
+    useEffect(() => {
+        const unsubscribe = subscribeAuthEvents(() => {
+            queryClient.setQueryData(queryKeys.auth.me(), null);
+            queryClient.removeQueries();
+            void navigate({ to: "/login" });
+        });
+
+        return unsubscribe;
+    }, [navigate, queryClient]);
 
     const onLogout = async () => {
         try {

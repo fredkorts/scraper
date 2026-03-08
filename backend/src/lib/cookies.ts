@@ -1,5 +1,6 @@
 import type { Response } from "express";
 import { config } from "../config";
+import { generateOneTimeToken } from "./hash";
 
 const secure = config.NODE_ENV === "production";
 const sameSite = config.NODE_ENV === "production" ? ("none" as const) : ("strict" as const);
@@ -33,6 +34,7 @@ const parseAccessTokenTtlMs = (ttl: string): number => {
 export const authCookieNames = {
     accessToken: "access_token",
     refreshToken: "refresh_token",
+    csrfToken: "csrf_token",
 };
 
 export const setAuthCookies = (res: Response, accessToken: string, refreshToken: string): void => {
@@ -47,7 +49,23 @@ export const setAuthCookies = (res: Response, accessToken: string, refreshToken:
     });
 };
 
+export const setCsrfCookie = (res: Response, csrfToken = generateOneTimeToken()): string => {
+    res.cookie(authCookieNames.csrfToken, csrfToken, {
+        httpOnly: false,
+        sameSite,
+        secure,
+        path: "/",
+        maxAge: config.AUTH_CSRF_TOKEN_TTL_HOURS * 60 * 60 * 1000,
+    });
+
+    return csrfToken;
+};
+
 export const clearAuthCookies = (res: Response): void => {
     res.clearCookie(authCookieNames.accessToken, baseCookieOptions);
     res.clearCookie(authCookieNames.refreshToken, baseCookieOptions);
+    res.clearCookie(authCookieNames.csrfToken, {
+        ...baseCookieOptions,
+        httpOnly: false,
+    });
 };

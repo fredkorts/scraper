@@ -18,6 +18,7 @@ vi.mock("../queue/queues", () => ({
 
 vi.mock("../queue/enqueue", () => ({
     enqueueScrapeCategoryJob: (...args: unknown[]) => enqueueScrapeCategoryJob(...args),
+    buildCategoryScrapeJobId: (categoryId: string) => `scrape:category:${categoryId}`,
 }));
 
 useTestDatabase();

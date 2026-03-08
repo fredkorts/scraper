@@ -8,11 +8,14 @@ useTestDatabase();
 
 describe("auth.service", () => {
     it("registers a user, notification channel, and refresh token in one flow", async () => {
-        const result = await register({
-            email: "newuser@example.com",
-            password: "Password123",
-            name: "New User",
-        });
+        const result = await register(
+            {
+                email: "newuser@example.com",
+                password: "Password123",
+                name: "New User",
+            },
+            {},
+        );
 
         expect(result.user.email).toBe("newuser@example.com");
 
@@ -37,10 +40,13 @@ describe("auth.service", () => {
         await createUser();
 
         await expect(
-            login({
-                email: "user@example.com",
-                password: "WrongPassword123",
-            }),
+            login(
+                {
+                    email: "user@example.com",
+                    password: "WrongPassword123",
+                },
+                {},
+            ),
         ).rejects.toMatchObject({
             statusCode: 401,
             code: "unauthorized",
@@ -49,17 +55,24 @@ describe("auth.service", () => {
 
     it("rotates refresh tokens and links the replacement token", async () => {
         const { user, password } = await createUser();
-        const loginResult = await login({
-            email: user.email,
-            password,
-        });
+        const loginResult = await login(
+            {
+                email: user.email,
+                password,
+            },
+            {},
+        );
 
         const beforeRefresh = await prisma.refreshToken.findFirstOrThrow({
             where: { userId: user.id },
             orderBy: { createdAt: "desc" },
         });
 
-        const refreshResult = await refreshSession(loginResult.refreshToken);
+        if ("mfaRequired" in loginResult) {
+            throw new Error("Unexpected MFA challenge in test");
+        }
+
+        const refreshResult = await refreshSession(loginResult.refreshToken, {});
 
         expect(refreshResult.user.id).toBe(user.id);
 
@@ -89,7 +102,7 @@ describe("auth.service", () => {
             },
         });
 
-        await expect(refreshSession(first.rawToken)).rejects.toMatchObject({
+        await expect(refreshSession(first.rawToken, {})).rejects.toMatchObject({
             statusCode: 401,
             code: "unauthorized",
         });
