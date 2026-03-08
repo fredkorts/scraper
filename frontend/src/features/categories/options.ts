@@ -24,6 +24,7 @@ export const buildCategoryOptions = (categories: CategoriesData["categories"]): 
 interface BuildCategoryTreeDataOptions {
     includeCategoryIds?: ReadonlySet<string>;
     disableCategoryIds?: ReadonlySet<string>;
+    disableExcludedCategories?: boolean;
 }
 
 const getIncludedCategoryIds = (
@@ -60,6 +61,7 @@ export const buildCategoryTreeData = (
     options: BuildCategoryTreeDataOptions = {},
 ): CategoryTreeNode[] => {
     const includedCategoryIds = getIncludedCategoryIds(categories, options.includeCategoryIds);
+    const disableExcludedCategories = options.disableExcludedCategories ?? true;
     const categoryNodesById = new Map<string, CategoryTreeNode>();
     const roots: CategoryTreeNode[] = [];
 
@@ -70,7 +72,8 @@ export const buildCategoryTreeData = (
 
         const isIncludedCategory = options.includeCategoryIds?.has(category.id) ?? true;
         const isDisabledByRule = options.disableCategoryIds?.has(category.id) ?? false;
-        const isDisabled = isDisabledByRule || !isIncludedCategory;
+        const isDisabledByExclusion = disableExcludedCategories && !isIncludedCategory;
+        const isDisabled = isDisabledByRule || isDisabledByExclusion;
 
         categoryNodesById.set(category.id, {
             key: category.id,

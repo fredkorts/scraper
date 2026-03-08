@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-    buildCategoryOptions,
-    buildCategoryTreeData,
-    getCategoryDisplayLabel,
-    getCategoryLabelById,
-} from "./options";
+import { buildCategoryOptions, buildCategoryTreeData, getCategoryDisplayLabel, getCategoryLabelById } from "./options";
 
 const categories = [
     {
@@ -93,6 +88,33 @@ describe("category option helpers", () => {
                 title: "Lauamangud",
                 disabled: true,
                 selectable: false,
+                children: [
+                    {
+                        key: "33333333-3333-4333-8333-333333333333",
+                        value: "33333333-3333-4333-8333-333333333333",
+                        title: "Strateegia",
+                        disabled: false,
+                        selectable: true,
+                        children: [],
+                    },
+                ],
+            },
+        ]);
+    });
+
+    it("keeps included ancestors selectable when exclude disabling is turned off", () => {
+        expect(
+            buildCategoryTreeData(categories, {
+                includeCategoryIds: new Set(["33333333-3333-4333-8333-333333333333"]),
+                disableExcludedCategories: false,
+            }),
+        ).toEqual([
+            {
+                key: "22222222-2222-4222-8222-222222222222",
+                value: "22222222-2222-4222-8222-222222222222",
+                title: "Lauamangud",
+                disabled: false,
+                selectable: true,
                 children: [
                     {
                         key: "33333333-3333-4333-8333-333333333333",

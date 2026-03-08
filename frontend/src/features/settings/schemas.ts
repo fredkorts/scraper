@@ -61,6 +61,26 @@ export const triggerRunResponseSchema = z.object({
     jobId: z.string().optional(),
 });
 
+export const adminSchedulerStateResponseSchema = z.object({
+    items: z.array(
+        z.object({
+            categoryId: z.string().uuid(),
+            categorySlug: z.string(),
+            categoryNameEt: z.string(),
+            categoryPathNameEt: z.string(),
+            isActive: z.boolean(),
+            scrapeIntervalHours: z.union([z.literal(6), z.literal(12), z.literal(24), z.literal(48)]),
+            nextRunAt: z.string().optional(),
+            activeSubscriberCount: z.number().int().nonnegative(),
+            eligibilityStatus: z.enum(["eligible", "inactive_category", "no_active_subscribers", "not_due_yet"]),
+            queueStatus: z.enum(["idle", "queued", "active"]),
+            lastRunAt: z.string().optional(),
+            lastRunStatus: z.enum(["pending", "running", "completed", "failed"]).optional(),
+        }),
+    ),
+    generatedAt: z.string(),
+});
+
 export const settingsSummarySchema = z.object({
     user: authUserSchema,
     subscriptions: subscriptionsResponseSchema,

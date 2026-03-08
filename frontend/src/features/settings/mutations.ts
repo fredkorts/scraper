@@ -24,7 +24,11 @@ export const useUpdateProfileMutation = () => {
 
     return useMutation({
         mutationFn: (payload: UpdateProfileRequest) =>
-            apiPatch(apiEndpoints.auth.updateMe, updateProfileRequestSchema.parse(payload), updateProfileResponseSchema),
+            apiPatch(
+                apiEndpoints.auth.updateMe,
+                updateProfileRequestSchema.parse(payload),
+                updateProfileResponseSchema,
+            ),
         onSuccess: (result) => {
             queryClient.setQueryData(queryKeys.auth.me(), result.user);
         },
@@ -51,7 +55,8 @@ export const useDeleteSubscriptionMutation = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (subscriptionId: string) => apiDelete(apiEndpoints.subscriptions.detail(subscriptionId), successResponseSchema),
+        mutationFn: (subscriptionId: string) =>
+            apiDelete(apiEndpoints.subscriptions.detail(subscriptionId), successResponseSchema),
         onSuccess: async () => {
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: queryKeys.settings.subscriptions() }),
@@ -104,7 +109,10 @@ export const useUpdateCategorySettingsMutation = () => {
         mutationFn: ({ id, payload }: { id: string; payload: UpdateCategorySettingsRequest }) =>
             apiPatch(apiEndpoints.categories.settings(id), payload, updateCategorySettingsResponseSchema),
         onSuccess: async () => {
-            await queryClient.invalidateQueries({ queryKey: ["categories", "list"] });
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: queryKeys.categories.list("all") }),
+                queryClient.invalidateQueries({ queryKey: queryKeys.settings.adminSchedulerState() }),
+            ]);
         },
     });
 };
@@ -113,11 +121,13 @@ export const useTriggerRunMutation = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (payload: TriggerRunRequest) => apiPost(apiEndpoints.runs.trigger, payload, triggerRunResponseSchema),
+        mutationFn: (payload: TriggerRunRequest) =>
+            apiPost(apiEndpoints.runs.trigger, payload, triggerRunResponseSchema),
         onSuccess: async () => {
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.home() }),
                 queryClient.invalidateQueries({ queryKey: queryKeys.runs.list() }),
+                queryClient.invalidateQueries({ queryKey: queryKeys.settings.adminSchedulerState() }),
             ]);
         },
     });

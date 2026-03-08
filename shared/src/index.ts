@@ -49,12 +49,27 @@ export const MABRIK_CATEGORIES: CategoryDef[] = [
     { slug: "kodu-ja-kollektsioon", nameEt: "Kodu ja kollektsioon", nameEn: "Home & Collectibles", productCount: 992 },
     { slug: "funko", nameEt: "Funko tooted", nameEn: "Funko Products", productCount: 468 },
     { slug: "miniatuurid", nameEt: "Miniatuurimängud", nameEn: "Miniature Games", productCount: 497 },
-    { slug: "riided-ja-aksessuaarid", nameEt: "Riided ja aksessuaarid", nameEn: "Clothing & Accessories", productCount: 237 },
-    { slug: "varvid-ja-hobitooted", nameEt: "Värvid ja hobitooted", nameEn: "Paints & Hobby Supplies", productCount: 1071 },
+    {
+        slug: "riided-ja-aksessuaarid",
+        nameEt: "Riided ja aksessuaarid",
+        nameEn: "Clothing & Accessories",
+        productCount: 237,
+    },
+    {
+        slug: "varvid-ja-hobitooted",
+        nameEt: "Värvid ja hobitooted",
+        nameEn: "Paints & Hobby Supplies",
+        productCount: 1071,
+    },
     { slug: "rollimangud", nameEt: "Rollimängud", nameEn: "Role-Playing Games", productCount: 519 },
     { slug: "kaardimangud", nameEt: "Kaardimängud", nameEn: "Card Games", productCount: 511 },
     { slug: "raamatud-ja-koomiksid", nameEt: "Raamatud ja koomiksid", nameEn: "Books & Comics", productCount: 966 },
-    { slug: "kodu-ja-kollektsioon/figuurid-ja-manguasjad", nameEt: "Figuurid ja mänguasjad", nameEn: "Figures & Toys", productCount: 410 },
+    {
+        slug: "kodu-ja-kollektsioon/figuurid-ja-manguasjad",
+        nameEt: "Figuurid ja mänguasjad",
+        nameEn: "Figures & Toys",
+        productCount: 410,
+    },
     { slug: "lopumuuk", nameEt: "Lõpumüük", nameEn: "Clearance Sale", productCount: 876 },
 ];
 
@@ -392,6 +407,30 @@ export interface RunChangesResponse extends PaginatedResponse<RunChangeItem> {}
 
 export interface UpdateCategorySettingsRequest {
     scrapeIntervalHours: ScrapeInterval;
+}
+
+export type SchedulerEligibilityStatus = "eligible" | "inactive_category" | "no_active_subscribers" | "not_due_yet";
+
+export type SchedulerQueueStatus = "idle" | "queued" | "active";
+
+export interface AdminSchedulerStateItem {
+    categoryId: string;
+    categorySlug: string;
+    categoryNameEt: string;
+    categoryPathNameEt: string;
+    isActive: boolean;
+    scrapeIntervalHours: ScrapeInterval;
+    nextRunAt?: string;
+    activeSubscriberCount: number;
+    eligibilityStatus: SchedulerEligibilityStatus;
+    queueStatus: SchedulerQueueStatus;
+    lastRunAt?: string;
+    lastRunStatus?: ScrapeStatus;
+}
+
+export interface AdminSchedulerStateResponse {
+    items: AdminSchedulerStateItem[];
+    generatedAt: string;
 }
 
 export interface TriggerRunRequest {

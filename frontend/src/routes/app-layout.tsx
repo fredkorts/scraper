@@ -7,6 +7,7 @@ import { NOTIFICATION_MESSAGES } from "../shared/constants/notification-messages
 import { useAppNotification } from "../shared/hooks/use-app-notification";
 import { normalizeUserError } from "../shared/utils/normalize-user-error";
 import { PricePulseLogo } from "../components/price-pulse-logo/PricePulseLogo";
+import { AppButton } from "../components/app-button/AppButton";
 import styles from "./app-layout.module.scss";
 
 export const AppLayout = () => {
@@ -46,9 +47,9 @@ export const AppLayout = () => {
                 </nav>
                 <div className={styles.actions}>
                     <span>{session.data?.name ?? "User"}</span>
-                    <button onClick={() => void onLogout()} disabled={logoutMutation.isPending}>
+                    <AppButton size="middle" onClick={() => void onLogout()} disabled={logoutMutation.isPending}>
                         {logoutMutation.isPending ? "Signing out..." : "Log out"}
-                    </button>
+                    </AppButton>
                 </div>
             </header>
             <Outlet />

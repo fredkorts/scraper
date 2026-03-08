@@ -9,6 +9,7 @@ import { logger, requestContextMiddleware } from "./lib/logger";
 import { prisma } from "./lib/prisma";
 import { apiReadLimiter, paymentsMutationLimiter } from "./middleware/rate-limit";
 import { authRouter } from "./routes/auth";
+import { adminRouter } from "./routes/admin";
 import { categoriesRouter } from "./routes/categories";
 import { dashboardRouter } from "./routes/dashboard";
 import { notificationsRouter } from "./routes/notifications";
@@ -35,6 +36,7 @@ export const createApp = () => {
     app.use("/api", apiReadLimiter);
     app.use("/api/payments", paymentsMutationLimiter);
     app.use("/api/auth", authRouter);
+    app.use("/api/admin", adminRouter);
     app.use("/api/categories", categoriesRouter);
     app.use("/api/dashboard", dashboardRouter);
     app.use("/api/runs", runsRouter);

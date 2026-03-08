@@ -68,6 +68,60 @@ const buildEmptyChangeSummary = (): DashboardChangeSummary => ({
     backInStock: 0,
 });
 
+const getDescendantCategoryIds = async (
+    rootCategoryId: string,
+    allowedCategoryIds: string[] | null,
+): Promise<string[]> => {
+    const categories = await prisma.category.findMany({
+        select: {
+            id: true,
+            parentId: true,
+        },
+    });
+
+    const childIdsByParentId = new Map<string, string[]>();
+    const existingCategoryIds = new Set(categories.map((category) => category.id));
+
+    for (const category of categories) {
+        if (!category.parentId) {
+            continue;
+        }
+
+        const siblings = childIdsByParentId.get(category.parentId) ?? [];
+        siblings.push(category.id);
+        childIdsByParentId.set(category.parentId, siblings);
+    }
+
+    if (!existingCategoryIds.has(rootCategoryId)) {
+        return [];
+    }
+
+    const selectedIds: string[] = [];
+    const pendingIds: string[] = [rootCategoryId];
+    const visitedIds = new Set<string>();
+
+    while (pendingIds.length > 0) {
+        const currentId = pendingIds.pop();
+        if (!currentId || visitedIds.has(currentId)) {
+            continue;
+        }
+
+        visitedIds.add(currentId);
+        selectedIds.push(currentId);
+
+        const childIds = childIdsByParentId.get(currentId) ?? [];
+        pendingIds.push(...childIds);
+    }
+
+    if (allowedCategoryIds === null) {
+        return selectedIds;
+    }
+
+    const allowedCategoryIdSet = new Set(allowedCategoryIds);
+
+    return selectedIds.filter((categoryId) => allowedCategoryIdSet.has(categoryId));
+};
+
 const buildRunFailure = (
     run: {
         status: PrismaScrapeRunStatus;
@@ -160,7 +214,9 @@ export const getDashboardHome = async (
         };
     }
 
-    if (query.categoryId && categoryIds !== null && !categoryIds.includes(query.categoryId)) {
+    const selectedCategoryIds = query.categoryId ? await getDescendantCategoryIds(query.categoryId, categoryIds) : null;
+
+    if (query.categoryId && (selectedCategoryIds?.length ?? 0) === 0) {
         return {
             latestRuns: [],
             recentFailures: [],
@@ -168,7 +224,9 @@ export const getDashboardHome = async (
         };
     }
 
-    const categoryScope = query.categoryId ? { categoryId: query.categoryId } : buildCategoryScopeWhere(categoryIds);
+    const categoryScope = selectedCategoryIds
+        ? { categoryId: { in: selectedCategoryIds } }
+        : buildCategoryScopeWhere(categoryIds);
     const changeWindowStart = new Date(Date.now() - DASHBOARD_CHANGE_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
     const [latestRuns, recentFailures, recentChanges] = await Promise.all([
@@ -282,7 +340,9 @@ export const listRuns = async (userId: string, role: UserRole, query: RunsListQu
         };
     }
 
-    if (query.categoryId && categoryIds !== null && !categoryIds.includes(query.categoryId)) {
+    const selectedCategoryIds = query.categoryId ? await getDescendantCategoryIds(query.categoryId, categoryIds) : null;
+
+    if (query.categoryId && (selectedCategoryIds?.length ?? 0) === 0) {
         return {
             items: [],
             page: query.page,
@@ -293,7 +353,7 @@ export const listRuns = async (userId: string, role: UserRole, query: RunsListQu
     }
 
     const where: Prisma.ScrapeRunWhereInput = {
-        ...(query.categoryId ? { categoryId: query.categoryId } : buildCategoryScopeWhere(categoryIds)),
+        ...(selectedCategoryIds ? { categoryId: { in: selectedCategoryIds } } : buildCategoryScopeWhere(categoryIds)),
         ...(query.status ? { status: statusInputMap[query.status] } : {}),
     };
 

@@ -1,8 +1,5 @@
 import type { z } from "zod";
-import {
-    notificationChannelsResponseSchema,
-    notificationChannelSchema,
-} from "../../../lib/api/schemas";
+import { notificationChannelsResponseSchema, notificationChannelSchema } from "../../../lib/api/schemas";
 import {
     settingsTabSchema,
     subscriptionsResponseSchema,
@@ -10,6 +7,7 @@ import {
     updateProfileResponseSchema,
     triggerRunResponseSchema,
     updateCategorySettingsResponseSchema,
+    adminSchedulerStateResponseSchema,
 } from "../schemas";
 
 export type SettingsTab = z.infer<typeof settingsTabSchema>;
@@ -19,4 +17,6 @@ export type UpdateProfileRequestData = z.infer<typeof updateProfileRequestSchema
 export type UpdateProfileResponseData = z.infer<typeof updateProfileResponseSchema>;
 export type TriggerRunResponseData = z.infer<typeof triggerRunResponseSchema>;
 export type CategorySettingsResponseData = z.infer<typeof updateCategorySettingsResponseSchema>;
+export type AdminSchedulerStateData = z.infer<typeof adminSchedulerStateResponseSchema>;
+export type AdminSchedulerStateItemData = AdminSchedulerStateData["items"][number];
 export type ChannelData = z.infer<typeof notificationChannelSchema>;

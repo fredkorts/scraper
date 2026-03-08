@@ -31,6 +31,7 @@ interface RenderRouterOptions {
         runChanges: unknown;
         productDetail: unknown;
         productHistory: unknown;
+        adminSchedulerState: unknown;
         subscriptions: unknown;
         notificationChannels: unknown;
     }>;
@@ -53,6 +54,39 @@ const defaultApiResponses = {
             soldOut: 0,
             backInStock: 0,
         },
+    },
+    adminSchedulerState: {
+        items: [
+            {
+                categoryId: "22222222-2222-4222-8222-222222222222",
+                categorySlug: "lauamangud",
+                categoryNameEt: "Lauamangud",
+                categoryPathNameEt: "Lauamangud",
+                isActive: true,
+                scrapeIntervalHours: 12,
+                nextRunAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+                activeSubscriberCount: 1,
+                eligibilityStatus: "not_due_yet",
+                queueStatus: "idle",
+                lastRunAt: new Date().toISOString(),
+                lastRunStatus: "completed",
+            },
+            {
+                categoryId: "33333333-3333-4333-8333-333333333333",
+                categorySlug: "lauamangud/strateegia",
+                categoryNameEt: "Strateegia",
+                categoryPathNameEt: "Lauamangud / Strateegia",
+                isActive: true,
+                scrapeIntervalHours: 12,
+                nextRunAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+                activeSubscriberCount: 1,
+                eligibilityStatus: "eligible",
+                queueStatus: "queued",
+                lastRunAt: new Date().toISOString(),
+                lastRunStatus: "running",
+            },
+        ],
+        generatedAt: new Date().toISOString(),
     },
     categories: {
         categories: [
@@ -239,7 +273,7 @@ export const renderRouterApp = async ({
 
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
-        const method = input instanceof Request ? input.method : init?.method ?? "GET";
+        const method = input instanceof Request ? input.method : (init?.method ?? "GET");
         const parseBody = async (): Promise<unknown> => {
             if (input instanceof Request) {
                 return input.json();
@@ -256,7 +290,8 @@ export const renderRouterApp = async ({
             if (method === "PATCH") {
                 const body = await parseBody();
                 const id = url.split("/api/categories/")[1]?.split("/settings")[0];
-                const categories = (mutableResponses.categories as { categories: Array<Record<string, unknown>> }).categories;
+                const categories = (mutableResponses.categories as { categories: Array<Record<string, unknown>> })
+                    .categories;
                 const category = categories.find((item) => item.id === id);
 
                 if (category) {
@@ -267,6 +302,10 @@ export const renderRouterApp = async ({
             }
 
             return jsonResponse(mutableResponses.categories);
+        }
+
+        if (url.includes("/api/admin/scheduler/state")) {
+            return jsonResponse(mutableResponses.adminSchedulerState);
         }
 
         if (url.includes("/api/dashboard/home")) {
@@ -317,9 +356,9 @@ export const renderRouterApp = async ({
             if (method === "POST") {
                 const body = await parseBody();
                 const categoryId = (body as { categoryId: string }).categoryId;
-                const category = (mutableResponses.categories as { categories: Array<Record<string, unknown>> }).categories.find(
-                    (item) => item.id === categoryId,
-                );
+                const category = (
+                    mutableResponses.categories as { categories: Array<Record<string, unknown>> }
+                ).categories.find((item) => item.id === categoryId);
 
                 if (category) {
                     payload.items.push({
@@ -358,7 +397,9 @@ export const renderRouterApp = async ({
 
             if (method === "POST") {
                 const body = await parseBody();
-                const destination = String((body as { destination: string }).destination).trim().toLowerCase();
+                const destination = String((body as { destination: string }).destination)
+                    .trim()
+                    .toLowerCase();
                 const created = {
                     id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
                     userId: session?.id ?? mockUser.id,

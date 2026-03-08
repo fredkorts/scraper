@@ -1,94 +1,143 @@
 import { Link } from "@tanstack/react-router";
 import { SCRAPE_INTERVALS } from "@mabrik/shared";
+import { SettingOutlined, ThunderboltOutlined } from "@ant-design/icons";
+import { AppButton } from "../../../components/app-button/AppButton";
 import { AppSelect } from "../../../components/app-select/AppSelect";
-import { CategoryTreeSelect } from "../../../features/categories/components/category-tree-select";
 import { defaultRunDetailSectionSearch } from "../../runs/search";
 import { getSettingsPanelId, getSettingsTabId } from "../constants/settings-tab-a11y.constants";
+import { AdminSchedulerStateTable } from "./admin-scheduler-state-table";
 import type { SettingsAdminTabProps } from "../types/settings-ui.types";
 import styles from "./settings-shared.module.scss";
 
 export const SettingsAdminTab = ({
-    categoryTreeData,
-    selectedCategoryId,
+    schedulerStateItems,
+    schedulerStateCategoryTreeData,
+    schedulerStateGeneratedAt,
+    schedulerStateError,
+    isSchedulerStateLoading,
+    intervalCategoryOptions,
+    triggerCategoryOptions,
+    selectedIntervalCategoryId,
+    selectedTriggerCategoryId,
     selectedScrapeInterval,
     triggerRunResult,
     isSavingInterval,
     isTriggeringRun,
-    onSelectCategory,
+    onRetrySchedulerState,
+    onSelectIntervalCategory,
+    onSelectTriggerCategory,
     onSelectScrapeInterval,
+    onEditIntervalFromTable,
     onSaveScrapeInterval,
     onTriggerRun,
-}: SettingsAdminTabProps) => (
-    <section
-        id={getSettingsPanelId("admin")}
-        className={styles.section}
-        role="tabpanel"
-        aria-labelledby={getSettingsTabId("admin")}
-    >
-        <article className={styles.card}>
-            <h2 className={styles.sectionTitle}>Admin Controls</h2>
-            <div className={styles.inlineForm}>
-                <label className={styles.field}>
-                    <span className={styles.label}>Category</span>
-                    <CategoryTreeSelect
-                        ariaLabel="Category"
-                        className={styles.select}
-                        treeData={categoryTreeData}
-                        value={selectedCategoryId || undefined}
-                        onChange={(value) => onSelectCategory(value ?? "")}
-                    />
-                </label>
-                <label className={styles.field}>
-                    <span className={styles.label}>Scrape interval</span>
-                    <AppSelect
-                        ariaLabel="Scrape interval"
-                        className={styles.select}
-                        options={SCRAPE_INTERVALS.map((interval) => ({
-                            label: `${interval} hours`,
-                            value: String(interval),
-                        }))}
-                        value={String(selectedScrapeInterval)}
-                        onChange={(value) => {
-                            if (!value) {
-                                return;
-                            }
+    getTriggerDisabledReasonByCategoryId,
+}: SettingsAdminTabProps) => {
+    const selectedTriggerDisabledReason = getTriggerDisabledReasonByCategoryId(selectedTriggerCategoryId);
 
-                            onSelectScrapeInterval(Number(value) as (typeof SCRAPE_INTERVALS)[number]);
-                        }}
-                    />
-                </label>
-                <button
-                    type="button"
-                    onClick={() => void onSaveScrapeInterval()}
-                    disabled={!selectedCategoryId || isSavingInterval}
-                >
-                    {isSavingInterval ? "Saving..." : "Save interval"}
-                </button>
-            </div>
-        </article>
-        <article className={styles.card}>
-            <h3 className={styles.cardTitle}>Manual scrape trigger</h3>
-            <div className={styles.inlineForm}>
-                <button
-                    type="button"
-                    onClick={() => void onTriggerRun()}
-                    disabled={!selectedCategoryId || isTriggeringRun}
-                >
-                    {isTriggeringRun ? "Triggering..." : "Scrape now"}
-                </button>
-                {triggerRunResult?.jobId ? (
-                    <span className={styles.subtle}>Queued job {triggerRunResult.jobId}</span>
-                ) : null}
-                {triggerRunResult?.scrapeRunId ? (
-                    <Link
-                        params={{ runId: triggerRunResult.scrapeRunId }}
-                        search={defaultRunDetailSectionSearch}
-                        to="/app/runs/$runId"
+    return (
+        <section
+            id={getSettingsPanelId("admin")}
+            className={styles.section}
+            role="tabpanel"
+            aria-labelledby={getSettingsTabId("admin")}
+        >
+            <AdminSchedulerStateTable
+                items={schedulerStateItems}
+                categoryTreeData={schedulerStateCategoryTreeData}
+                generatedAt={schedulerStateGeneratedAt}
+                isLoading={isSchedulerStateLoading}
+                error={schedulerStateError}
+                isTriggeringRun={isTriggeringRun}
+                onRetry={onRetrySchedulerState}
+                onEditInterval={onEditIntervalFromTable}
+                onTriggerRun={onTriggerRun}
+                getTriggerDisabledReason={(item) => getTriggerDisabledReasonByCategoryId(item.categoryId)}
+            />
+            <article className={styles.card}>
+                <h3 className={styles.cardTitle}>Interval update</h3>
+                <div className={styles.inlineForm}>
+                    <label className={styles.field}>
+                        <span className={styles.label}>Category</span>
+                        <AppSelect
+                            ariaLabel="Category"
+                            className={styles.select}
+                            options={intervalCategoryOptions}
+                            value={selectedIntervalCategoryId || undefined}
+                            onChange={(value) => onSelectIntervalCategory(value ?? "")}
+                        />
+                    </label>
+                    <label className={styles.field}>
+                        <span className={styles.label}>Scrape interval</span>
+                        <AppSelect
+                            ariaLabel="Scrape interval"
+                            className={styles.select}
+                            options={SCRAPE_INTERVALS.map((interval) => ({
+                                label: `${interval} hours`,
+                                value: String(interval),
+                            }))}
+                            value={String(selectedScrapeInterval)}
+                            onChange={(value) => {
+                                if (!value) {
+                                    return;
+                                }
+
+                                onSelectScrapeInterval(Number(value) as (typeof SCRAPE_INTERVALS)[number]);
+                            }}
+                        />
+                    </label>
+                    <AppButton
+                        intent="secondary"
+                        icon={<SettingOutlined />}
+                        size="large"
+                        isLoading={isSavingInterval}
+                        onClick={() => void onSaveScrapeInterval()}
+                        disabled={!selectedIntervalCategoryId}
                     >
-                        Open run detail
-                    </Link>
-                ) : null}
-            </div>
-        </article>
-    </section>
-);
+                        Save interval
+                    </AppButton>
+                </div>
+            </article>
+            <article className={styles.card}>
+                <h3 className={styles.cardTitle}>Manual scrape trigger</h3>
+                <div className={styles.inlineForm}>
+                    <label className={styles.field}>
+                        <span className={styles.label}>Category</span>
+                        <AppSelect
+                            ariaLabel="Trigger category"
+                            className={styles.select}
+                            options={triggerCategoryOptions}
+                            value={selectedTriggerCategoryId || undefined}
+                            onChange={(value) => onSelectTriggerCategory(value ?? "")}
+                        />
+                    </label>
+                    <AppButton
+                        intent="warning"
+                        icon={<ThunderboltOutlined />}
+                        size="large"
+                        isLoading={isTriggeringRun}
+                        title={selectedTriggerDisabledReason ?? undefined}
+                        disabled={!selectedTriggerCategoryId || selectedTriggerDisabledReason !== null}
+                        onClick={() => void onTriggerRun()}
+                    >
+                        Scrape now
+                    </AppButton>
+                    {triggerRunResult?.jobId ? (
+                        <span className={styles.subtle}>Queued job {triggerRunResult.jobId}</span>
+                    ) : null}
+                    {triggerRunResult?.scrapeRunId ? (
+                        <Link
+                            params={{ runId: triggerRunResult.scrapeRunId }}
+                            search={defaultRunDetailSectionSearch}
+                            to="/app/runs/$runId"
+                        >
+                            Open run detail
+                        </Link>
+                    ) : null}
+                    {selectedTriggerCategoryId && selectedTriggerDisabledReason ? (
+                        <span className={styles.subtle}>{selectedTriggerDisabledReason}</span>
+                    ) : null}
+                </div>
+            </article>
+        </section>
+    );
+};

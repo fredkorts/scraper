@@ -10,6 +10,9 @@ export const apiEndpoints = {
     dashboard: {
         home: "/api/dashboard/home",
     },
+    admin: {
+        schedulerState: "/api/admin/scheduler/state",
+    },
     categories: {
         list: "/api/categories",
         settings: (id: string) => `/api/categories/${id}/settings`,

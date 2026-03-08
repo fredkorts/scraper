@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderRouterApp, mockUser } from "../test/router-utils";
 
@@ -133,8 +133,13 @@ describe("settings page", () => {
         });
 
         expect(await screen.findByRole("tab", { name: "Admin" })).toHaveAttribute("aria-selected", "true");
-        await user.click(screen.getByRole("button", { name: "Save interval" }));
-        await user.click(screen.getByRole("button", { name: "Scrape now" }));
+        expect(screen.getByRole("heading", { name: "Category Schedule State" })).toBeInTheDocument();
+        expect(screen.getAllByRole("button", { name: /edit interval for/i }).length).toBeGreaterThan(0);
+        await user.click(screen.getByRole("button", { name: /save interval/i }));
+
+        const manualTriggerSection = screen.getByRole("heading", { name: "Manual scrape trigger" }).closest("article");
+        expect(manualTriggerSection).not.toBeNull();
+        await user.click(within(manualTriggerSection!).getByRole("button", { name: /scrape now/i }));
         expect(await screen.findByText(/Queued job/i)).toBeInTheDocument();
 
         await user.click(screen.getByRole("tab", { name: "Notifications" }));

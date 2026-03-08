@@ -20,12 +20,13 @@ const authCookie = (userId: string, email: string, role: "free" | "paid" | "admi
     return `${authCookieNames.accessToken}=${token}`;
 };
 
-const createCategory = async (slug: string, nameEt: string) =>
+const createCategory = async (slug: string, nameEt: string, parentId?: string) =>
     prisma.category.create({
         data: {
             slug,
             nameEt,
             nameEn: `${nameEt} EN`,
+            parentId,
         },
     });
 
@@ -37,27 +38,30 @@ const subscribeToCategory = async (userId: string, categoryId: string) =>
         },
     });
 
-const createRun = async (categoryId: string, overrides: Partial<{
-    id: string;
-    status: ScrapeRunStatus;
-    totalProducts: number;
-    newProducts: number;
-    priceChanges: number;
-    soldOut: number;
-    backInStock: number;
-    pagesScraped: number;
-    durationMs: number;
-    errorMessage: string;
-    failureCode: string;
-    failurePhase: string;
-    failurePageUrl: string;
-    failurePageNumber: number;
-    failureIsRetryable: boolean;
-    failureTechnicalMessage: string;
-    failureSummary: string;
-    startedAt: Date;
-    completedAt: Date;
-}> = {}) =>
+const createRun = async (
+    categoryId: string,
+    overrides: Partial<{
+        id: string;
+        status: ScrapeRunStatus;
+        totalProducts: number;
+        newProducts: number;
+        priceChanges: number;
+        soldOut: number;
+        backInStock: number;
+        pagesScraped: number;
+        durationMs: number;
+        errorMessage: string;
+        failureCode: string;
+        failurePhase: string;
+        failurePageUrl: string;
+        failurePageNumber: number;
+        failureIsRetryable: boolean;
+        failureTechnicalMessage: string;
+        failureSummary: string;
+        startedAt: Date;
+        completedAt: Date;
+    }> = {},
+) =>
     prisma.scrapeRun.create({
         data: {
             ...(overrides.id ? { id: overrides.id } : {}),
@@ -83,12 +87,15 @@ const createRun = async (categoryId: string, overrides: Partial<{
         },
     });
 
-const createProduct = async (suffix: string, overrides: Partial<{
-    name: string;
-    currentPrice: string;
-    originalPrice: string | null;
-    inStock: boolean;
-}> = {}) =>
+const createProduct = async (
+    suffix: string,
+    overrides: Partial<{
+        name: string;
+        currentPrice: string;
+        originalPrice: string | null;
+        inStock: boolean;
+    }> = {},
+) =>
     prisma.product.create({
         data: {
             externalUrl: `https://mabrik.ee/toode/${suffix}`,
@@ -182,13 +189,13 @@ describe("dashboard and runs routes", () => {
             ],
         });
 
-        const response = await request(app)
-            .get("/api/dashboard/home")
-            .set("Cookie", authCookie(user.id, user.email));
+        const response = await request(app).get("/api/dashboard/home").set("Cookie", authCookie(user.id, user.email));
 
         expect(response.status).toBe(200);
         expect(response.body.latestRuns).toHaveLength(2);
-        expect(response.body.latestRuns.every((run: { categoryId: string }) => run.categoryId === categoryA.id)).toBe(true);
+        expect(response.body.latestRuns.every((run: { categoryId: string }) => run.categoryId === categoryA.id)).toBe(
+            true,
+        );
         expect(response.body.recentFailures).toHaveLength(1);
         expect(response.body.recentFailures[0].failure).toEqual({
             summary: "The scrape timed out while loading page 31.",
@@ -244,6 +251,73 @@ describe("dashboard and runs routes", () => {
         expect(response.body.latestRuns).toHaveLength(1);
         expect(response.body.latestRuns[0].categoryId).toBe(categoryB.id);
         expect(response.body.latestRuns[0].id).toBe(runB.id);
+    });
+
+    it("includes descendant category runs when filtering dashboard by a parent category", async () => {
+        const app = createApp();
+        const { user } = await createUser({ email: "dashboard-parent-filter@example.com" });
+        const parentCategory = await createCategory("comics/marvel", "Marvel Comics");
+        const childCategory = await createCategory("comics/marvel/deadpool", "Deadpool", parentCategory.id);
+        const siblingCategory = await createCategory("comics/dc", "DC Comics");
+
+        await subscribeToCategory(user.id, parentCategory.id);
+        await subscribeToCategory(user.id, childCategory.id);
+        await subscribeToCategory(user.id, siblingCategory.id);
+
+        const parentRun = await createRun(parentCategory.id, { totalProducts: 3 });
+        const childRun = await createRun(childCategory.id, { totalProducts: 9 });
+        const siblingRun = await createRun(siblingCategory.id, { totalProducts: 15 });
+
+        await prisma.changeReport.createMany({
+            data: [
+                { scrapeRunId: parentRun.id, totalChanges: 1 },
+                { scrapeRunId: childRun.id, totalChanges: 2 },
+                { scrapeRunId: siblingRun.id, totalChanges: 4 },
+            ],
+        });
+
+        const response = await request(app)
+            .get(`/api/dashboard/home?categoryId=${parentCategory.id}`)
+            .set("Cookie", authCookie(user.id, user.email));
+
+        expect(response.status).toBe(200);
+        expect(response.body.latestRuns).toHaveLength(2);
+        expect(response.body.latestRuns.map((run: { categoryId: string }) => run.categoryId)).toEqual(
+            expect.arrayContaining([parentCategory.id, childCategory.id]),
+        );
+        expect(
+            response.body.latestRuns.some((run: { categoryId: string }) => run.categoryId === siblingCategory.id),
+        ).toBe(false);
+    });
+
+    it("includes descendant category runs when filtering runs list by a parent category", async () => {
+        const app = createApp();
+        const { user } = await createUser({ email: "runs-parent-filter@example.com" });
+        const parentCategory = await createCategory("books/marvel", "Marvel Books");
+        const childCategory = await createCategory("books/marvel/deadpool", "Deadpool Books", parentCategory.id);
+        const siblingCategory = await createCategory("books/dc", "DC Books");
+
+        await subscribeToCategory(user.id, parentCategory.id);
+        await subscribeToCategory(user.id, childCategory.id);
+        await subscribeToCategory(user.id, siblingCategory.id);
+
+        await createRun(parentCategory.id, { totalProducts: 1 });
+        const childRun = await createRun(childCategory.id, { totalProducts: 2 });
+        await createRun(siblingCategory.id, { totalProducts: 3 });
+
+        const response = await request(app)
+            .get(`/api/runs?page=1&pageSize=10&categoryId=${parentCategory.id}`)
+            .set("Cookie", authCookie(user.id, user.email));
+
+        expect(response.status).toBe(200);
+        expect(response.body.totalItems).toBe(2);
+        expect(response.body.items.map((item: { categoryId: string }) => item.categoryId)).toEqual(
+            expect.arrayContaining([parentCategory.id, childCategory.id]),
+        );
+        expect(response.body.items.some((item: { categoryId: string }) => item.categoryId === siblingCategory.id)).toBe(
+            false,
+        );
+        expect(response.body.items.some((item: { id: string }) => item.id === childRun.id)).toBe(true);
     });
 
     it("lists only runs for subscribed categories for non-admin users", async () => {
@@ -383,9 +457,7 @@ describe("dashboard and runs routes", () => {
             failureSummary: "The scrape timed out while loading page 31.",
         });
 
-        const response = await request(app)
-            .get(`/api/runs/${run.id}`)
-            .set("Cookie", authCookie(user.id, user.email));
+        const response = await request(app).get(`/api/runs/${run.id}`).set("Cookie", authCookie(user.id, user.email));
 
         expect(response.status).toBe(200);
         expect(response.body.run.failure).toEqual({

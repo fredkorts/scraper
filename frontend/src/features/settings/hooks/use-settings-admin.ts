@@ -1,53 +1,127 @@
 import { SCRAPE_INTERVALS, type ScrapeInterval } from "@mabrik/shared";
+import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { buildCategoryOptions, buildCategoryTreeData } from "../../categories/options";
-import { useCategoriesQuery } from "../../categories/queries";
 import type { UseSettingsAdminResult } from "../types/use-settings-admin.types";
 import { useTriggerRunMutation, useUpdateCategorySettingsMutation } from "../mutations";
 import { NOTIFICATION_MESSAGES } from "../../../shared/constants/notification-messages";
 import { useAppNotification } from "../../../shared/hooks/use-app-notification";
 import { normalizeUserError } from "../../../shared/utils/normalize-user-error";
+import { useAdminSchedulerStateQuery } from "../queries";
+import type { AdminSchedulerStateItemData } from "../types/settings-schema.types";
+import { buildCategoryTreeData } from "../../categories/options";
+import { categoriesQueryOptions } from "../../categories/queries";
 
-export const useSettingsAdmin = (): UseSettingsAdminResult => {
-    const categoriesQuery = useCategoriesQuery("all");
+export const useSettingsAdmin = (enabled: boolean): UseSettingsAdminResult => {
+    const categoriesQuery = useQuery({ ...categoriesQueryOptions("all"), enabled });
+    const schedulerStateQuery = useAdminSchedulerStateQuery(enabled);
     const updateCategorySettingsMutation = useUpdateCategorySettingsMutation();
     const triggerRunMutation = useTriggerRunMutation();
     const { notify } = useAppNotification();
-    const [selectedCategoryId, setSelectedCategoryId] = useState("");
+    const [selectedIntervalCategoryId, setSelectedIntervalCategoryId] = useState("");
+    const [selectedTriggerCategoryId, setSelectedTriggerCategoryId] = useState("");
     const [selectedScrapeInterval, setSelectedScrapeInterval] = useState<ScrapeInterval | null>(null);
 
-    const categoryOptions = useMemo(
-        () => buildCategoryOptions(categoriesQuery.data?.categories ?? []),
-        [categoriesQuery.data?.categories],
+    const schedulerStateItems = useMemo(() => schedulerStateQuery.data?.items ?? [], [schedulerStateQuery.data?.items]);
+    const schedulerStateItemsById = useMemo(
+        () => new Map(schedulerStateItems.map((item) => [item.categoryId, item])),
+        [schedulerStateItems],
     );
-    const categoryTreeData = useMemo(
-        () => buildCategoryTreeData(categoriesQuery.data?.categories ?? []),
-        [categoriesQuery.data?.categories],
+    const schedulerStateCategoryIds = useMemo(
+        () => new Set(schedulerStateItems.map((item) => item.categoryId)),
+        [schedulerStateItems],
     );
-    const effectiveCategoryId = selectedCategoryId || categoryOptions[0]?.id || "";
-    const selectedCategory = useMemo(
-        () => categoriesQuery.data?.categories.find((category) => category.id === effectiveCategoryId) ?? null,
-        [categoriesQuery.data?.categories, effectiveCategoryId],
+    const schedulerStateCategoryTreeData = useMemo(
+        () =>
+            buildCategoryTreeData(categoriesQuery.data?.categories ?? [], {
+                includeCategoryIds: schedulerStateCategoryIds,
+                disableExcludedCategories: false,
+            }),
+        [categoriesQuery.data?.categories, schedulerStateCategoryIds],
     );
-    const effectiveScrapeInterval = selectedScrapeInterval ?? selectedCategory?.scrapeIntervalHours ?? SCRAPE_INTERVALS[1];
+    const intervalCategoryOptions = useMemo(
+        () =>
+            schedulerStateItems.map((item) => ({
+                value: item.categoryId,
+                label: item.categoryPathNameEt,
+            })),
+        [schedulerStateItems],
+    );
+    const triggerCategoryOptions = useMemo(
+        () =>
+            schedulerStateItems
+                .filter((item) => item.isActive)
+                .map((item) => ({
+                    value: item.categoryId,
+                    label: item.categoryPathNameEt,
+                })),
+        [schedulerStateItems],
+    );
+    const effectiveIntervalCategoryId = selectedIntervalCategoryId || intervalCategoryOptions[0]?.value || "";
+    const effectiveTriggerCategoryId = selectedTriggerCategoryId || triggerCategoryOptions[0]?.value || "";
+    const selectedIntervalCategory = schedulerStateItemsById.get(effectiveIntervalCategoryId);
+    const effectiveScrapeInterval =
+        selectedScrapeInterval ?? selectedIntervalCategory?.scrapeIntervalHours ?? SCRAPE_INTERVALS[1];
 
-    const onSelectCategory = (categoryId: string) => {
-        setSelectedCategoryId(categoryId);
-        const nextCategory = categoriesQuery.data?.categories.find((category) => category.id === categoryId);
+    const onSelectIntervalCategory = (categoryId: string) => {
+        setSelectedIntervalCategoryId(categoryId);
+        const nextCategory = schedulerStateItemsById.get(categoryId);
 
         if (nextCategory) {
             setSelectedScrapeInterval(nextCategory.scrapeIntervalHours);
         }
     };
 
+    const onSelectTriggerCategory = (categoryId: string) => {
+        setSelectedTriggerCategoryId(categoryId);
+    };
+
+    const prefillIntervalFromTable = (categoryId: string) => {
+        const category = schedulerStateItemsById.get(categoryId);
+        if (!category) {
+            return;
+        }
+
+        setSelectedIntervalCategoryId(categoryId);
+        setSelectedScrapeInterval(category.scrapeIntervalHours);
+        notify({
+            variant: "info",
+            message: "Interval editor prefilled",
+            description: `Ready to update ${category.categoryPathNameEt}.`,
+            key: "settings:admin:prefill-interval",
+        });
+    };
+
+    const getTriggerDisabledReason = (item: AdminSchedulerStateItemData | undefined): string | null => {
+        if (!item) {
+            return "Select a category to trigger a scrape.";
+        }
+
+        if (!item.isActive) {
+            return "This category is inactive and cannot be scraped.";
+        }
+
+        if (item.queueStatus === "queued") {
+            return "A scrape job is already queued for this category.";
+        }
+
+        if (item.queueStatus === "active") {
+            return "A scrape job is currently running for this category.";
+        }
+
+        return null;
+    };
+
+    const getTriggerDisabledReasonByCategoryId = (categoryId: string): string | null =>
+        getTriggerDisabledReason(schedulerStateItemsById.get(categoryId));
+
     const onSaveScrapeInterval = async () => {
-        if (!effectiveCategoryId) {
+        if (!effectiveIntervalCategoryId) {
             return;
         }
 
         try {
             await updateCategorySettingsMutation.mutateAsync({
-                id: effectiveCategoryId,
+                id: effectiveIntervalCategoryId,
                 payload: {
                     scrapeIntervalHours: effectiveScrapeInterval,
                 },
@@ -68,13 +142,25 @@ export const useSettingsAdmin = (): UseSettingsAdminResult => {
         }
     };
 
-    const onTriggerRun = async () => {
-        if (!effectiveCategoryId) {
+    const onTriggerRun = async (categoryId?: string) => {
+        const targetCategoryId = categoryId ?? effectiveTriggerCategoryId;
+        if (!targetCategoryId) {
+            return;
+        }
+
+        const disabledReason = getTriggerDisabledReasonByCategoryId(targetCategoryId);
+        if (disabledReason) {
+            notify({
+                variant: "info",
+                message: "Scrape not queued",
+                description: disabledReason,
+                key: `settings:admin:trigger-run:${targetCategoryId}`,
+            });
             return;
         }
 
         try {
-            const result = await triggerRunMutation.mutateAsync({ categoryId: effectiveCategoryId });
+            const result = await triggerRunMutation.mutateAsync({ categoryId: targetCategoryId });
             notify({
                 variant: "info",
                 message: NOTIFICATION_MESSAGES.settings.runTriggered.message,
@@ -95,16 +181,25 @@ export const useSettingsAdmin = (): UseSettingsAdminResult => {
     };
 
     return {
-        categoriesQuery,
-        categoryTreeData,
-        selectedCategoryId: effectiveCategoryId,
+        schedulerStateQuery,
+        schedulerStateItems,
+        schedulerStateCategoryTreeData,
+        schedulerStateGeneratedAt: schedulerStateQuery.data?.generatedAt,
+        intervalCategoryOptions,
+        triggerCategoryOptions,
+        selectedIntervalCategoryId: effectiveIntervalCategoryId,
+        selectedTriggerCategoryId: effectiveTriggerCategoryId,
         selectedScrapeInterval: effectiveScrapeInterval,
         triggerRunResult: triggerRunMutation.data,
         isSavingInterval: updateCategorySettingsMutation.isPending,
         isTriggeringRun: triggerRunMutation.isPending,
-        setSelectedCategoryId: onSelectCategory,
+        setSelectedIntervalCategoryId: onSelectIntervalCategory,
+        setSelectedTriggerCategoryId: onSelectTriggerCategory,
         setSelectedScrapeInterval,
+        prefillIntervalFromTable,
         onSaveScrapeInterval,
         onTriggerRun,
+        getTriggerDisabledReason,
+        getTriggerDisabledReasonByCategoryId,
     };
 };

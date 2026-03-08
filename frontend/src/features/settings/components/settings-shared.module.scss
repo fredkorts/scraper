@@ -2,6 +2,7 @@
 @use "../../../styles/components/cards";
 @use "../../../styles/components/empty-states";
 @use "../../../styles/components/forms";
+@use "../../../styles/components/status-badges";
 
 .summaryShell {
     display: grid;
@@ -23,6 +24,19 @@
 .subtle {
     color: var(--color-text-muted);
     font-size: var(--font-size-sm);
+}
+
+.inlineLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.tableMetaGroup {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
 }
 
 .section {
@@ -137,6 +151,20 @@
     white-space: nowrap;
 }
 
+.pageSizeSelect {
+    width: 5rem;
+}
+
+.schedulerFilterSelect {
+    min-width: 16rem;
+}
+
+.iconActionRow {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+}
+
 .metaGrid {
     display: grid;
     gap: var(--space-sm);
@@ -146,6 +174,37 @@
 .errorText {
     color: var(--color-danger-text);
     font-size: var(--font-size-sm);
+}
+
+.errorPanel {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    align-items: center;
+}
+
+.statusBadge {
+    @include status-badges.status-badge-base;
+}
+
+.statusBadge[data-status="danger"] {
+    @include status-badges.status-badge-tone("danger");
+}
+
+.statusBadge[data-status="success"] {
+    @include status-badges.status-badge-tone("success");
+}
+
+.statusBadge[data-status="info"] {
+    @include status-badges.status-badge-tone("info");
+}
+
+.statusBadge[data-status="warning"] {
+    @include status-badges.status-badge-tone("warning");
+}
+
+.statusBadge[data-status="neutral"] {
+    @include status-badges.status-badge-tone("neutral");
 }
 
 .emptyState {

@@ -18,9 +18,9 @@ export const SettingsPage = () => {
     const account = useSettingsAccount();
     const tracking = useSettingsTracking();
     const notifications = useSettingsNotifications();
-    const admin = useSettingsAdmin();
     const role = account.session.data?.role ?? "free";
     const isAdmin = role === "admin";
+    const admin = useSettingsAdmin(isAdmin);
     const { activeTab, visibleTabs, setTab } = useSettingsTabs(isAdmin);
 
     useEffect(() => {
@@ -111,16 +111,27 @@ export const SettingsPage = () => {
 
             {activeTab === "admin" && isAdmin ? (
                 <SettingsAdminTab
-                    categoryTreeData={admin.categoryTreeData}
-                    selectedCategoryId={admin.selectedCategoryId}
+                    schedulerStateItems={admin.schedulerStateItems}
+                    schedulerStateCategoryTreeData={admin.schedulerStateCategoryTreeData}
+                    schedulerStateGeneratedAt={admin.schedulerStateGeneratedAt}
+                    schedulerStateError={admin.schedulerStateQuery.error ? "Unable to load scheduler state." : null}
+                    isSchedulerStateLoading={admin.schedulerStateQuery.isLoading}
+                    intervalCategoryOptions={admin.intervalCategoryOptions}
+                    triggerCategoryOptions={admin.triggerCategoryOptions}
+                    selectedIntervalCategoryId={admin.selectedIntervalCategoryId}
+                    selectedTriggerCategoryId={admin.selectedTriggerCategoryId}
                     selectedScrapeInterval={admin.selectedScrapeInterval}
                     triggerRunResult={admin.triggerRunResult}
                     isSavingInterval={admin.isSavingInterval}
                     isTriggeringRun={admin.isTriggeringRun}
-                    onSelectCategory={admin.setSelectedCategoryId}
+                    onRetrySchedulerState={() => void admin.schedulerStateQuery.refetch()}
+                    onSelectIntervalCategory={admin.setSelectedIntervalCategoryId}
+                    onSelectTriggerCategory={admin.setSelectedTriggerCategoryId}
                     onSelectScrapeInterval={admin.setSelectedScrapeInterval}
+                    onEditIntervalFromTable={admin.prefillIntervalFromTable}
                     onSaveScrapeInterval={admin.onSaveScrapeInterval}
                     onTriggerRun={admin.onTriggerRun}
+                    getTriggerDisabledReasonByCategoryId={admin.getTriggerDisabledReasonByCategoryId}
                 />
             ) : null}
         </section>
