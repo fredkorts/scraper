@@ -121,8 +121,15 @@ Preferred approach:
     - `npx prisma migrate deploy --schema backend/prisma/schema.prisma`
 2. Seed reference data once:
     - `npm run seed --workspace=backend`
+3. Populate full live category tree (recommended after initial seed):
+    - `npm run categories:refresh --workspace=backend -- --apply`
 
 Do not run `prisma migrate dev` in production.
+
+Note:
+
+1. `seed` inserts only baseline categories from shared constants.
+2. `categories:refresh --apply` is what loads the full current parent/subcategory structure from mabrik.ee.
 
 ## Deployment Sequence
 

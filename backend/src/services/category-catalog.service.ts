@@ -49,7 +49,10 @@ export const normalizeCategorySlug = (href: string): string | null => {
         return null;
     }
 
-    const slug = decodedPath.slice(CATEGORY_PATH_PREFIX.length).replace(/^\/+|\/+$/g, "").toLowerCase();
+    const slug = decodedPath
+        .slice(CATEGORY_PATH_PREFIX.length)
+        .replace(/^\/+|\/+$/g, "")
+        .toLowerCase();
 
     return slug || null;
 };
@@ -212,7 +215,7 @@ export const refreshCategoryCatalog = async (
         }
 
         const existingParentSlug = existing.parentId
-            ? existingCategories.find((category) => category.id === existing.parentId)?.slug ?? null
+            ? (existingCategories.find((category) => category.id === existing.parentId)?.slug ?? null)
             : null;
 
         if (existingParentSlug !== discovered.parentSlug) {
@@ -221,54 +224,62 @@ export const refreshCategoryCatalog = async (
     }
 
     if (apply) {
-        await prisma.$transaction(async (tx) => {
-            const categoryIdsBySlug = new Map<string, string>();
+        await prisma.$transaction(
+            async (tx) => {
+                const categoryIdsBySlug = new Map<string, string>();
 
-            for (const discovered of discoveredCategories) {
-                const existing = existingBySlug.get(discovered.slug);
-                const record = await tx.category.upsert({
-                    where: { slug: discovered.slug },
-                    update: {
-                        nameEt: discovered.nameEt,
-                        nameEn: existing
-                            ? deriveUpdatedEnglishName(existing.nameEt, existing.nameEn, discovered.nameEt)
-                            : discovered.nameEt,
-                        isActive: true,
-                    },
-                    create: {
-                        slug: discovered.slug,
-                        nameEt: discovered.nameEt,
-                        nameEn: discovered.nameEt,
-                        isActive: true,
-                        scrapeIntervalHours: existing?.scrapeIntervalHours ?? DEFAULT_SCRAPE_INTERVAL,
-                    },
-                });
-
-                categoryIdsBySlug.set(discovered.slug, record.id);
-            }
-
-            for (const discovered of discoveredCategories) {
-                await tx.category.update({
-                    where: { slug: discovered.slug },
-                    data: {
-                        parentId: discovered.parentSlug ? categoryIdsBySlug.get(discovered.parentSlug) ?? null : null,
-                    },
-                });
-            }
-
-            if (categoriesToDeactivate.length > 0) {
-                await tx.category.updateMany({
-                    where: {
-                        slug: {
-                            in: categoriesToDeactivate.map((category) => category.slug),
+                for (const discovered of discoveredCategories) {
+                    const existing = existingBySlug.get(discovered.slug);
+                    const record = await tx.category.upsert({
+                        where: { slug: discovered.slug },
+                        update: {
+                            nameEt: discovered.nameEt,
+                            nameEn: existing
+                                ? deriveUpdatedEnglishName(existing.nameEt, existing.nameEn, discovered.nameEt)
+                                : discovered.nameEt,
+                            isActive: true,
                         },
-                    },
-                    data: {
-                        isActive: false,
-                    },
-                });
-            }
-        });
+                        create: {
+                            slug: discovered.slug,
+                            nameEt: discovered.nameEt,
+                            nameEn: discovered.nameEt,
+                            isActive: true,
+                            scrapeIntervalHours: existing?.scrapeIntervalHours ?? DEFAULT_SCRAPE_INTERVAL,
+                        },
+                    });
+
+                    categoryIdsBySlug.set(discovered.slug, record.id);
+                }
+
+                for (const discovered of discoveredCategories) {
+                    await tx.category.update({
+                        where: { slug: discovered.slug },
+                        data: {
+                            parentId: discovered.parentSlug
+                                ? (categoryIdsBySlug.get(discovered.parentSlug) ?? null)
+                                : null,
+                        },
+                    });
+                }
+
+                if (categoriesToDeactivate.length > 0) {
+                    await tx.category.updateMany({
+                        where: {
+                            slug: {
+                                in: categoriesToDeactivate.map((category) => category.slug),
+                            },
+                        },
+                        data: {
+                            isActive: false,
+                        },
+                    });
+                }
+            },
+            {
+                maxWait: 10_000,
+                timeout: 120_000,
+            },
+        );
     }
 
     return {
