@@ -26,10 +26,16 @@ Required Vercel project settings:
 4. Output Directory: `frontend/dist`
 5. Environment variable: `HUSKY=0`
 6. Environment variable: `VITE_API_BASE_URL=https://<your-railway-api-domain>`
+7. Ensure SPA rewrite fallback exists (repo root `vercel.json`) so hard-refresh on `/app/*` routes resolves to `index.html`.
 
 If Root Directory is set to `frontend`, commands using `--workspace=shared` fail with:
 
 1. `npm error No workspaces found: --workspace=shared`
+
+If hard refresh on a client route returns `404 NOT_FOUND`:
+
+1. verify `vercel.json` rewrite fallback is present in the deployed commit
+2. redeploy frontend
 
 ## Service Architecture on Railway
 
