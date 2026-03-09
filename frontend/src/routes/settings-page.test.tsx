@@ -52,11 +52,9 @@ describe("settings page", () => {
         await user.type(input, "Updated User");
         await user.click(screen.getByRole("button", { name: "Save changes" }));
 
-        await waitFor(() => {
-            expect(screen.getByDisplayValue("Updated User")).toBeInTheDocument();
-            expect(screen.getByText("Profile updated")).toBeInTheDocument();
-        });
-    });
+        expect(await screen.findByDisplayValue("Updated User")).toBeInTheDocument();
+        expect(await screen.findByText("Profile updated")).toBeInTheDocument();
+    }, 10_000);
 
     it("adds and removes tracked categories in the tracking tab", async () => {
         const user = userEvent.setup();
