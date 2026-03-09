@@ -4,6 +4,7 @@ import { runDiffEngine } from "../diff/run";
 import { isMainModule } from "../lib/is-main-module";
 import { logger } from "../lib/logger";
 import { prisma } from "../lib/prisma";
+import { acquireCategoryScrapeLock } from "./category-lock";
 import { buildCategoryUrl, fetchCategoryPage, waitBetweenRequests } from "./fetch";
 import { ScrapeExecutionError } from "./execution-error";
 import { mapScrapeFailure, type ScrapeFailurePhase } from "./failure";
@@ -14,7 +15,16 @@ import type { ParsedProduct, ScrapeCategoryResult } from "./types";
 
 const PARSER_WARNING_LIMIT = 5;
 
-export const scrapeCategory = async (categoryIdOrSlug: string): Promise<ScrapeCategoryResult> => {
+interface ScrapeCategoryOptions {
+    skipDiff?: boolean;
+    isReconciliation?: boolean;
+    reconciliationReason?: string;
+}
+
+export const scrapeCategory = async (
+    categoryIdOrSlug: string,
+    options: ScrapeCategoryOptions = {},
+): Promise<ScrapeCategoryResult> => {
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(categoryIdOrSlug);
 
     const category = isUuid
@@ -29,21 +39,37 @@ export const scrapeCategory = async (categoryIdOrSlug: string): Promise<ScrapeCa
         throw new Error(`Category not found: ${categoryIdOrSlug}`);
     }
 
+    const lock = await acquireCategoryScrapeLock(category.id);
+    const skipDiff = options.skipDiff ?? false;
+    const isReconciliation = options.isReconciliation ?? false;
+    const reconciliationReason = isReconciliation
+        ? options.reconciliationReason?.trim() || "manual_reconciliation"
+        : undefined;
     const startedAt = Date.now();
-    const scrapeRun = await prisma.scrapeRun.create({
-        data: {
-            categoryId: category.id,
-            status: ScrapeRunStatus.RUNNING,
-        },
-    });
-    const scrapeLogger = logger.child({
+    let scrapeRunId: string | undefined;
+    let scrapeLogger = logger.child({
         categoryId: category.id,
-        scrapeRunId: scrapeRun.id,
     });
     let currentPageUrl: string | undefined;
     let currentPhase: ScrapeFailurePhase | undefined;
 
     try {
+        lock.assertHealthy();
+        const scrapeRun = await prisma.scrapeRun.create({
+            data: {
+                categoryId: category.id,
+                status: ScrapeRunStatus.RUNNING,
+                skipDiff,
+                isReconciliation,
+                reconciliationReason,
+            },
+        });
+        scrapeRunId = scrapeRun.id;
+        scrapeLogger = logger.child({
+            categoryId: category.id,
+            scrapeRunId: scrapeRun.id,
+        });
+
         const productsByUrl = new Map<string, ParsedProduct>();
         const parserWarnings: string[] = [];
         const visitedPageUrls = new Set<string>();
@@ -55,6 +81,7 @@ export const scrapeCategory = async (categoryIdOrSlug: string): Promise<ScrapeCa
         currentPhase = undefined;
 
         while (nextPageUrl) {
+            lock.assertHealthy();
             currentPageUrl = nextPageUrl;
             currentPhase = "fetch";
 
@@ -94,6 +121,7 @@ export const scrapeCategory = async (categoryIdOrSlug: string): Promise<ScrapeCa
         }
 
         currentPhase = "persist";
+        lock.assertHealthy();
 
         const persisted = await persistScrapeResults({
             scrapeRunId: scrapeRun.id,
@@ -128,12 +156,16 @@ export const scrapeCategory = async (categoryIdOrSlug: string): Promise<ScrapeCa
         });
 
         currentPhase = undefined;
-        await runDiffEngine(scrapeRun.id);
+        if (!skipDiff) {
+            await runDiffEngine(scrapeRun.id);
+        }
         scrapeLogger.info("scrape_completed", {
             status: "completed",
             totalProducts: persisted.totalProducts,
             pagesScraped: persisted.pagesScraped,
             parserWarnings: persisted.parserWarnings.length,
+            skipDiff,
+            isReconciliation,
         });
 
         return {
@@ -142,13 +174,17 @@ export const scrapeCategory = async (categoryIdOrSlug: string): Promise<ScrapeCa
             ...persisted,
         };
     } catch (error) {
+        if (!scrapeRunId) {
+            throw error;
+        }
+
         const failure = mapScrapeFailure(error, {
             pageUrl: currentPageUrl,
             phase: currentPhase,
         });
 
         await prisma.scrapeRun.update({
-            where: { id: scrapeRun.id },
+            where: { id: scrapeRunId },
             data: {
                 status: ScrapeRunStatus.FAILED,
                 errorMessage: failure.summary,
@@ -173,10 +209,20 @@ export const scrapeCategory = async (categoryIdOrSlug: string): Promise<ScrapeCa
         });
 
         throw new ScrapeExecutionError({
-            scrapeRunId: scrapeRun.id,
+            scrapeRunId,
             failure,
             cause: error,
         });
+    } finally {
+        try {
+            await lock.release();
+        } catch (error) {
+            logger.error("category_lock_release_failed", {
+                categoryId: category.id,
+                categoryIdOrSlug,
+                error,
+            });
+        }
     }
 };
 

@@ -3,6 +3,7 @@ import type { ProductDetailResponse, ProductHistoryResponse, UserRole } from "@m
 import { ScrapeStatus } from "@mabrik/shared";
 import { prisma } from "../lib/prisma";
 import { AppError } from "../lib/errors";
+import type { ProductDetailQuery, ProductHistoryQuery } from "../schemas/products";
 import { buildCategoryScopeWhere, getAccessibleCategoryIds } from "./access-scope.service";
 
 const statusMap: Record<ScrapeRunStatus, ScrapeStatus> = {
@@ -20,6 +21,12 @@ const preorderSourceMap: Record<PreorderDetectionSource, "category_slug" | "titl
     CATEGORY_SLUG: "category_slug",
     TITLE: "title",
     DESCRIPTION: "description",
+};
+
+const assertIncludeSystemNoiseAccess = (role: UserRole, includeSystemNoise: boolean): void => {
+    if (includeSystemNoise && role !== "admin") {
+        throw new AppError(403, "forbidden", "includeSystemNoise is only available to admin users");
+    }
 };
 
 const getAccessibleProductScope = async (userId: string, role: UserRole, productId: string) => {
@@ -85,9 +92,14 @@ export const getProductDetail = async (
     userId: string,
     role: UserRole,
     productId: string,
+    query: ProductDetailQuery,
 ): Promise<ProductDetailResponse> => {
+    assertIncludeSystemNoiseAccess(role, query.includeSystemNoise);
     const { product, categoryIds } = await getAccessibleProductScope(userId, role, productId);
-    const runScope = buildCategoryScopeWhere(categoryIds);
+    const runScope = {
+        ...buildCategoryScopeWhere(categoryIds),
+        ...(query.includeSystemNoise ? {} : { isSystemNoise: false }),
+    };
 
     const [latestSnapshot, earliestSnapshot, historyPointCount, recentRuns] = await Promise.all([
         prisma.productSnapshot.findFirst({
@@ -171,13 +183,18 @@ export const getProductHistory = async (
     userId: string,
     role: UserRole,
     productId: string,
+    query: ProductHistoryQuery,
 ): Promise<ProductHistoryResponse> => {
+    assertIncludeSystemNoiseAccess(role, query.includeSystemNoise);
     const { categoryIds } = await getAccessibleProductScope(userId, role, productId);
 
     const snapshots = await prisma.productSnapshot.findMany({
         where: {
             productId,
-            scrapeRun: buildCategoryScopeWhere(categoryIds),
+            scrapeRun: {
+                ...buildCategoryScopeWhere(categoryIds),
+                ...(query.includeSystemNoise ? {} : { isSystemNoise: false }),
+            },
         },
         include: {
             scrapeRun: {

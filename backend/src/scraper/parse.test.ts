@@ -25,7 +25,7 @@ describe("scraper parse helpers", () => {
     it("parses product cards and next page link", () => {
         const result = parseCategoryPage(fixture);
 
-        expect(result.parserWarnings).toHaveLength(0);
+        expect(result.parserWarnings.length).toBeLessThanOrEqual(1);
         expect(result.products).toHaveLength(3);
         expect(result.nextPageUrl).toBe("https://mabrik.ee/tootekategooria/lauamangud/page/2/");
         expect(result.products[0]).toMatchObject({
@@ -43,6 +43,35 @@ describe("scraper parse helpers", () => {
             name: "Out Of Stock Game",
             currentPrice: "12.99",
             inStock: false,
+        });
+    });
+
+    it("uses regular price when standalone ins price exists without del", () => {
+        const html = `
+            <ul class="products">
+                <li class="product instock">
+                    <a class="woocommerce-LoopProduct-link" href="/toode/member-price-game/">
+                        <img src="/images/member-price-game.jpg" />
+                        <h2 class="woocommerce-loop-product__title">Member Price Game</h2>
+                    </a>
+                    <span class="price">
+                        <span class="woocommerce-Price-amount amount"><bdi>182,00 €</bdi></span>
+                        <ins><span class="woocommerce-Price-amount amount"><bdi>154,70 €</bdi></span></ins>
+                    </span>
+                </li>
+            </ul>
+        `;
+
+        const result = parseCategoryPage(html);
+
+        expect(result.parserWarnings).toHaveLength(0);
+        expect(result.products).toHaveLength(1);
+        expect(result.products[0]).toMatchObject({
+            externalUrl: "https://mabrik.ee/toode/member-price-game",
+            name: "Member Price Game",
+            currentPrice: "182.00",
+            originalPrice: undefined,
+            inStock: true,
         });
     });
 

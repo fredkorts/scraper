@@ -118,6 +118,13 @@ Recommended production hardening vars:
 1. `TRUST_PROXY_HOPS=1`
 2. `RATE_LIMIT_REDIS_ENABLED=true`
 3. `LOG_LEVEL=info`
+4. `SCRAPER_CATEGORY_LOCK_TTL_SECONDS=900`
+5. `SCRAPER_CATEGORY_LOCK_HEARTBEAT_SECONDS=30`
+6. `SCRAPER_PRICE_ANOMALY_MIN_DECREASE_COUNT=20`
+7. `SCRAPER_PRICE_ANOMALY_DECREASE_RATIO_THRESHOLD=0.60`
+8. `SCRAPER_PRICE_ANOMALY_MEDIAN_MIN=0.12`
+9. `SCRAPER_PRICE_ANOMALY_MEDIAN_MAX=0.18`
+10. `SCRAPER_PRICE_ANOMALY_STDDEV_MAX=0.02`
 
 ## Database Migration Strategy on Railway
 
@@ -129,6 +136,11 @@ Preferred approach:
     - `npm run seed --workspace=backend`
 3. Populate full live category tree (recommended after initial seed):
     - `npm run categories:refresh --workspace=backend -- --apply`
+4. If parser noise incident reconciliation is required:
+    - dry-run:
+        - `npm run scrape:reconcile-system-noise --workspace=backend -- --run-ids=<id1,id2,...>`
+    - apply:
+        - `npm run scrape:reconcile-system-noise --workspace=backend -- --apply --run-ids=<id1,id2,...> --reconciliation-reason=parser_false_drop_incident`
 
 Do not run `prisma migrate dev` in production.
 

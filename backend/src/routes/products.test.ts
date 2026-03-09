@@ -67,9 +67,7 @@ describe("categories and products routes", () => {
 
         await subscribeToCategory(user.id, visibleCategory.id);
 
-        const response = await request(app)
-            .get("/api/categories")
-            .set("Cookie", authCookie(user.id, user.email));
+        const response = await request(app).get("/api/categories").set("Cookie", authCookie(user.id, user.email));
 
         expect(response.status).toBe(200);
         expect(response.body.categories).toHaveLength(1);
@@ -91,7 +89,10 @@ describe("categories and products routes", () => {
             .set("Cookie", authCookie(user.id, user.email, "admin"));
 
         expect(response.status).toBe(200);
-        expect(response.body.categories.map((category: { id: string }) => category.id)).toEqual([categoryA.id, categoryB.id]);
+        expect(response.body.categories.map((category: { id: string }) => category.id)).toEqual([
+            categoryA.id,
+            categoryB.id,
+        ]);
     });
 
     it("scopes product detail and history to the authenticated user's tracked categories", async () => {
@@ -205,5 +206,104 @@ describe("categories and products routes", () => {
 
         expect(response.status).toBe(404);
         expect(response.body.error).toBe("not_found");
+    });
+
+    it("hides system-noise product history by default and allows admin opt-in", async () => {
+        const app = createApp();
+        const { user } = await createUser({ email: "product-noise-admin@example.com", role: UserRole.ADMIN });
+        const category = await createCategory("product-noise", "Product Noise");
+        const product = await createProduct("product-noise");
+
+        await prisma.productCategory.create({
+            data: {
+                productId: product.id,
+                categoryId: category.id,
+            },
+        });
+
+        const normalRun = await prisma.scrapeRun.create({
+            data: {
+                categoryId: category.id,
+                status: "COMPLETED",
+                pagesScraped: 1,
+                startedAt: new Date("2026-03-01T10:00:00.000Z"),
+                completedAt: new Date("2026-03-01T10:03:00.000Z"),
+            },
+        });
+        const noisyRun = await prisma.scrapeRun.create({
+            data: {
+                categoryId: category.id,
+                status: "COMPLETED",
+                pagesScraped: 1,
+                startedAt: new Date("2026-03-02T10:00:00.000Z"),
+                completedAt: new Date("2026-03-02T10:03:00.000Z"),
+                isSystemNoise: true,
+                systemNoiseReason: "parser_false_drop_incident",
+            },
+        });
+
+        await prisma.productSnapshot.createMany({
+            data: [
+                {
+                    scrapeRunId: normalRun.id,
+                    productId: product.id,
+                    name: product.name,
+                    price: "39.99",
+                    originalPrice: null,
+                    inStock: true,
+                    imageUrl: product.imageUrl,
+                    scrapedAt: new Date("2026-03-01T10:02:00.000Z"),
+                },
+                {
+                    scrapeRunId: noisyRun.id,
+                    productId: product.id,
+                    name: product.name,
+                    price: "29.99",
+                    originalPrice: null,
+                    inStock: false,
+                    imageUrl: product.imageUrl,
+                    scrapedAt: new Date("2026-03-02T10:02:00.000Z"),
+                },
+            ],
+        });
+
+        const detailDefault = await request(app)
+            .get(`/api/products/${product.id}`)
+            .set("Cookie", authCookie(user.id, user.email, "admin"));
+        const detailIncluded = await request(app)
+            .get(`/api/products/${product.id}?includeSystemNoise=true`)
+            .set("Cookie", authCookie(user.id, user.email, "admin"));
+        const historyIncluded = await request(app)
+            .get(`/api/products/${product.id}/history?includeSystemNoise=true`)
+            .set("Cookie", authCookie(user.id, user.email, "admin"));
+
+        expect(detailDefault.status).toBe(200);
+        expect(detailDefault.body.product.currentPrice).toBe(39.99);
+        expect(detailIncluded.status).toBe(200);
+        expect(detailIncluded.body.product.currentPrice).toBe(29.99);
+        expect(historyIncluded.status).toBe(200);
+        expect(historyIncluded.body.items).toHaveLength(2);
+    });
+
+    it("rejects includeSystemNoise on product endpoints for non-admin users", async () => {
+        const app = createApp();
+        const { user } = await createUser({ email: "product-noise-user@example.com" });
+        const category = await createCategory("product-noise-user", "Product Noise User");
+        const product = await createProduct("product-noise-user");
+
+        await subscribeToCategory(user.id, category.id);
+        await prisma.productCategory.create({
+            data: {
+                productId: product.id,
+                categoryId: category.id,
+            },
+        });
+
+        const response = await request(app)
+            .get(`/api/products/${product.id}?includeSystemNoise=true`)
+            .set("Cookie", authCookie(user.id, user.email));
+
+        expect(response.status).toBe(403);
+        expect(response.body.error).toBe("forbidden");
     });
 });

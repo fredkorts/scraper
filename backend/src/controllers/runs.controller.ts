@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import {
     changesListQuerySchema,
     dashboardHomeQuerySchema,
+    runDetailQuerySchema,
     runChangesQuerySchema,
     runIdParamSchema,
     runProductsQuerySchema,
@@ -39,7 +40,8 @@ export const listRunsHandler = async (req: Request, res: Response, next: NextFun
 export const getRunDetailHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const params = runIdParamSchema.parse(req.params);
-        const payload = await getRunDetail(req.auth!.userId, req.auth!.role, params.id);
+        const query = runDetailQuerySchema.parse(req.query);
+        const payload = await getRunDetail(req.auth!.userId, req.auth!.role, params.id, query);
         res.status(200).json(payload);
     } catch (error) {
         next(error);

@@ -17,6 +17,7 @@
         "test:db:migrate": "tsx src/test/migrate-test-db.ts",
         "categories:refresh": "tsx src/categories/refresh.ts",
         "scrape:category": "tsx src/scraper/run.ts",
+        "scrape:reconcile-system-noise": "tsx src/scraper/reconcile-system-noise.ts",
         "preorder:backfill": "tsx src/scraper/backfill-preorder.ts",
         "scrape:cleanup-stale-runs": "tsx src/scraper/cleanup-stale-runs.ts",
         "diff:run": "tsx src/diff/run.ts",

@@ -1,5 +1,6 @@
 import { AxiosError } from "axios";
 import { config } from "../config";
+import { CategoryScrapeLockError } from "./category-lock";
 import { RobotsDisallowedError, RobotsPolicyUnavailableError } from "./robots";
 
 export type ScrapeFailurePhase = "robots" | "fetch" | "parse" | "persist";
@@ -81,12 +82,10 @@ const extractPageNumber = (pageUrl: string | undefined): number | undefined => {
 const buildPagePhrase = (pageNumber: number | undefined): string =>
     pageNumber ? `page ${pageNumber}` : "the category page";
 
-const isRetryableHttpStatus = (status: number): boolean => status === 408 || status === 425 || status === 429 || status >= 500;
+const isRetryableHttpStatus = (status: number): boolean =>
+    status === 408 || status === 425 || status === 429 || status >= 500;
 
-export const mapScrapeFailure = (
-    error: unknown,
-    context: ScrapeFailureContext = {},
-): ScrapeFailureInfo => {
+export const mapScrapeFailure = (error: unknown, context: ScrapeFailureContext = {}): ScrapeFailureInfo => {
     const pageUrl = normalizeFailurePageUrl(context.pageUrl);
     const pageNumber = extractPageNumber(pageUrl);
     const technicalMessage = sanitizeTechnicalMessage(error instanceof Error ? error.message : String(error));
@@ -141,6 +140,18 @@ export const mapScrapeFailure = (
                 isRetryable: isRetryableHttpStatus(status),
             };
         }
+    }
+
+    if (error instanceof CategoryScrapeLockError) {
+        return {
+            summary: "The scrape could not acquire the category execution lock.",
+            technicalMessage,
+            code: "category_lock_unavailable",
+            phase: context.phase,
+            pageUrl,
+            pageNumber,
+            isRetryable: error.retryable,
+        };
     }
 
     const message = error instanceof Error ? error.message : String(error);

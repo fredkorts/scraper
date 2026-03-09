@@ -10,6 +10,10 @@ const paginationShape = {
 };
 
 const preorderFilterSchema = z.enum(["all", "only", "exclude"]).default("all");
+const includeSystemNoiseSchema = z
+    .union([z.boolean(), z.enum(["true", "false"])])
+    .transform((value) => (typeof value === "boolean" ? value : value === "true"))
+    .default(false);
 
 const validatePaginationBounds = (value: { page: number; pageSize: number }, context: z.RefinementCtx): void => {
     const offset = (value.page - 1) * value.pageSize;
@@ -27,6 +31,10 @@ export const runIdParamSchema = z.object({
     id: z.string().uuid(),
 });
 
+export const runDetailQuerySchema = z.object({
+    includeSystemNoise: includeSystemNoiseSchema,
+});
+
 export const dashboardHomeQuerySchema = z.object({
     categoryId: z.string().uuid().optional(),
 });
@@ -38,6 +46,7 @@ export const runsListQuerySchema = z
         sortOrder: z.enum(["asc", "desc"]).default("desc"),
         status: z.enum(["pending", "running", "completed", "failed"]).optional(),
         categoryId: z.string().uuid().optional(),
+        includeSystemNoise: includeSystemNoiseSchema,
     })
     .superRefine(validatePaginationBounds);
 
@@ -48,6 +57,7 @@ export const runProductsQuerySchema = z
             .union([z.boolean(), z.enum(["true", "false"])])
             .transform((value) => (typeof value === "boolean" ? value : value === "true"))
             .optional(),
+        includeSystemNoise: includeSystemNoiseSchema,
     })
     .superRefine(validatePaginationBounds);
 
@@ -56,6 +66,7 @@ export const runChangesQuerySchema = z
         ...paginationShape,
         changeType: z.enum(["price_increase", "price_decrease", "new_product", "sold_out", "back_in_stock"]).optional(),
         preorder: preorderFilterSchema,
+        includeSystemNoise: includeSystemNoiseSchema,
     })
     .superRefine(validatePaginationBounds);
 
@@ -68,10 +79,12 @@ export const changesListQuerySchema = z
         preorder: preorderFilterSchema,
         categoryId: z.string().uuid().optional(),
         windowDays: z.coerce.number().int().min(1).max(30).default(7),
+        includeSystemNoise: includeSystemNoiseSchema,
     })
     .superRefine(validatePaginationBounds);
 
 export type RunsListQuery = z.infer<typeof runsListQuerySchema>;
+export type RunDetailQuery = z.infer<typeof runDetailQuerySchema>;
 export type RunProductsQuery = z.infer<typeof runProductsQuerySchema>;
 export type RunChangesQuery = z.infer<typeof runChangesQuerySchema>;
 export type ChangesListQuery = z.infer<typeof changesListQuerySchema>;

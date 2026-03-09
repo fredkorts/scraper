@@ -1,5 +1,6 @@
 import { AxiosError, AxiosHeaders } from "axios";
 import { describe, expect, it } from "vitest";
+import { CategoryScrapeLockError } from "./category-lock";
 import { mapScrapeFailure } from "./failure";
 import { RobotsDisallowedError, RobotsPolicyUnavailableError } from "./robots";
 
@@ -112,5 +113,18 @@ describe("mapScrapeFailure", () => {
         expect(result.code).toBe("robots_policy_unavailable");
         expect(result.phase).toBe("robots");
         expect(result.isRetryable).toBe(false);
+    });
+
+    it("maps category lock failures as retryable lock errors", () => {
+        const error = new CategoryScrapeLockError("lock unavailable", true);
+        const result = mapScrapeFailure(error, {
+            phase: "fetch",
+            pageUrl: "https://mabrik.ee/tootekategooria/lauamangud/page/2/",
+        });
+
+        expect(result.code).toBe("category_lock_unavailable");
+        expect(result.phase).toBe("fetch");
+        expect(result.pageNumber).toBe(2);
+        expect(result.isRetryable).toBe(true);
     });
 });

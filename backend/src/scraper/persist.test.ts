@@ -189,7 +189,7 @@ describe("persistScrapeResults", () => {
             products: [
                 {
                     externalUrl: "https://mabrik.ee/toode/preorder-item",
-                    name: "Preorder Item",
+                    name: "Collector Item",
                     imageUrl: "https://mabrik.ee/images/preorder-item.jpg",
                     currentPrice: "49.99",
                     inStock: false,

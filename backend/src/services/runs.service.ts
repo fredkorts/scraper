@@ -19,6 +19,7 @@ import {
 import type {
     ChangesListQuery,
     DashboardHomeQuery,
+    RunDetailQuery,
     RunChangesQuery,
     RunProductsQuery,
     RunsListQuery,
@@ -141,7 +142,8 @@ const buildRunFailure = (
     };
 };
 
-const getAccessibleRunOrThrow = async (userId: string, role: UserRole, runId: string) => {
+const getAccessibleRunOrThrow = async (userId: string, role: UserRole, runId: string, includeSystemNoise: boolean) => {
+    assertIncludeSystemNoiseAccess(role, includeSystemNoise);
     const categoryIds = await getAccessibleCategoryIds(userId, role);
 
     if (categoryIds !== null && categoryIds.length === 0) {
@@ -152,6 +154,7 @@ const getAccessibleRunOrThrow = async (userId: string, role: UserRole, runId: st
         where: {
             id: runId,
             ...buildCategoryScopeWhere(categoryIds),
+            ...buildSystemNoiseWhere(includeSystemNoise),
         },
         include: {
             category: {
@@ -179,7 +182,17 @@ const getAccessibleRunOrThrow = async (userId: string, role: UserRole, runId: st
 const toTotalPages = (totalItems: number, pageSize: number): number =>
     totalItems === 0 ? 0 : Math.ceil(totalItems / pageSize);
 
+const assertIncludeSystemNoiseAccess = (role: UserRole, includeSystemNoise: boolean): void => {
+    if (includeSystemNoise && role !== "admin") {
+        throw new AppError(403, "forbidden", "includeSystemNoise is only available to admin users");
+    }
+};
+
+const buildSystemNoiseWhere = (includeSystemNoise: boolean): Prisma.ScrapeRunWhereInput =>
+    includeSystemNoise ? {} : { isSystemNoise: false };
+
 interface ListChangesWithScopeParams {
+    includeSystemNoise: boolean;
     categoryIds: string[] | null;
     page: number;
     pageSize: number;
@@ -193,6 +206,7 @@ interface ListChangesWithScopeParams {
 }
 
 const listChangesWithScope = async ({
+    includeSystemNoise,
     categoryIds,
     page,
     pageSize,
@@ -229,9 +243,14 @@ const listChangesWithScope = async ({
             ? {}
             : {
                   scrapeRun: selectedCategoryIds
-                      ? { categoryId: { in: selectedCategoryIds } }
-                      : buildCategoryScopeWhere(categoryIds),
+                      ? { categoryId: { in: selectedCategoryIds }, ...buildSystemNoiseWhere(includeSystemNoise) }
+                      : { ...buildCategoryScopeWhere(categoryIds), ...buildSystemNoiseWhere(includeSystemNoise) },
               }),
+        ...(changeReportId
+            ? {
+                  scrapeRun: buildSystemNoiseWhere(includeSystemNoise),
+              }
+            : {}),
     };
 
     const where: Prisma.ChangeItemWhereInput = {
@@ -363,8 +382,8 @@ export const getDashboardHome = async (
     }
 
     const categoryScope = selectedCategoryIds
-        ? { categoryId: { in: selectedCategoryIds } }
-        : buildCategoryScopeWhere(categoryIds);
+        ? { categoryId: { in: selectedCategoryIds }, isSystemNoise: false }
+        : { ...buildCategoryScopeWhere(categoryIds), isSystemNoise: false };
     const changeWindowStart = new Date(Date.now() - DASHBOARD_CHANGE_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
     const [latestRuns, recentFailures, recentChanges] = await Promise.all([
@@ -466,6 +485,7 @@ export const getDashboardHome = async (
 };
 
 export const listRuns = async (userId: string, role: UserRole, query: RunsListQuery): Promise<RunsListResponse> => {
+    assertIncludeSystemNoiseAccess(role, query.includeSystemNoise);
     const categoryIds = await getAccessibleCategoryIds(userId, role);
 
     if (categoryIds !== null && categoryIds.length === 0) {
@@ -493,6 +513,7 @@ export const listRuns = async (userId: string, role: UserRole, query: RunsListQu
     const where: Prisma.ScrapeRunWhereInput = {
         ...(selectedCategoryIds ? { categoryId: { in: selectedCategoryIds } } : buildCategoryScopeWhere(categoryIds)),
         ...(query.status ? { status: statusInputMap[query.status] } : {}),
+        ...buildSystemNoiseWhere(query.includeSystemNoise),
     };
 
     const orderBy: Prisma.ScrapeRunOrderByWithRelationInput =
@@ -562,8 +583,13 @@ export const listRuns = async (userId: string, role: UserRole, query: RunsListQu
     };
 };
 
-export const getRunDetail = async (userId: string, role: UserRole, runId: string): Promise<RunDetailResponse> => {
-    const run = await getAccessibleRunOrThrow(userId, role, runId);
+export const getRunDetail = async (
+    userId: string,
+    role: UserRole,
+    runId: string,
+    query: RunDetailQuery,
+): Promise<RunDetailResponse> => {
+    const run = await getAccessibleRunOrThrow(userId, role, runId, query.includeSystemNoise);
     const failure = buildRunFailure(run, role === "admin");
 
     return {
@@ -593,7 +619,7 @@ export const listRunProducts = async (
     runId: string,
     query: RunProductsQuery,
 ): Promise<RunProductsResponse> => {
-    await getAccessibleRunOrThrow(userId, role, runId);
+    await getAccessibleRunOrThrow(userId, role, runId, query.includeSystemNoise);
 
     const where: Prisma.ProductSnapshotWhereInput = {
         scrapeRunId: runId,
@@ -651,7 +677,7 @@ export const listRunChanges = async (
     runId: string,
     query: RunChangesQuery,
 ): Promise<RunChangesResponse> => {
-    const run = await getAccessibleRunOrThrow(userId, role, runId);
+    const run = await getAccessibleRunOrThrow(userId, role, runId, query.includeSystemNoise);
 
     if (!run.changeReport) {
         return {
@@ -664,6 +690,7 @@ export const listRunChanges = async (
     }
 
     const response = await listChangesWithScope({
+        includeSystemNoise: query.includeSystemNoise,
         categoryIds: await getAccessibleCategoryIds(userId, role),
         page: query.page,
         pageSize: query.pageSize,
@@ -693,6 +720,7 @@ export const listChanges = async (
     role: UserRole,
     query: ChangesListQuery,
 ): Promise<ChangesListResponse> => {
+    assertIncludeSystemNoiseAccess(role, query.includeSystemNoise);
     const categoryIds = await getAccessibleCategoryIds(userId, role);
 
     if (categoryIds !== null && categoryIds.length === 0) {
@@ -706,6 +734,7 @@ export const listChanges = async (
     }
 
     return listChangesWithScope({
+        includeSystemNoise: query.includeSystemNoise,
         categoryIds,
         page: query.page,
         pageSize: query.pageSize,

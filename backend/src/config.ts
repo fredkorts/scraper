@@ -57,6 +57,13 @@ const envSchema = z
         SCRAPER_MAX_DELAY_MS: z.coerce.number().int().min(1000).default(2000),
         SCRAPER_ADAPTIVE_DELAY_MAX_MS: z.coerce.number().int().min(1000).default(10_000),
         SCRAPER_ADAPTIVE_PENALTY_MS: z.coerce.number().int().min(0).default(500),
+        SCRAPER_CATEGORY_LOCK_TTL_SECONDS: z.coerce.number().int().positive().default(900),
+        SCRAPER_CATEGORY_LOCK_HEARTBEAT_SECONDS: z.coerce.number().int().positive().default(30),
+        SCRAPER_PRICE_ANOMALY_MIN_DECREASE_COUNT: z.coerce.number().int().positive().default(20),
+        SCRAPER_PRICE_ANOMALY_DECREASE_RATIO_THRESHOLD: z.coerce.number().min(0).max(1).default(0.6),
+        SCRAPER_PRICE_ANOMALY_MEDIAN_MIN: z.coerce.number().min(0).max(1).default(0.12),
+        SCRAPER_PRICE_ANOMALY_MEDIAN_MAX: z.coerce.number().min(0).max(1).default(0.18),
+        SCRAPER_PRICE_ANOMALY_STDDEV_MAX: z.coerce.number().min(0).max(1).default(0.02),
         SCRAPER_RETRY_BUDGET_MS: z.coerce.number().int().positive().default(900_000),
         SCRAPER_ROBOTS_FETCH_TIMEOUT_MS: z.coerce.number().int().positive().default(5_000),
         SCRAPER_ROBOTS_CACHE_TTL_MS: z.coerce.number().int().positive().default(21_600_000),
@@ -72,6 +79,14 @@ const envSchema = z
     .refine((value) => value.SCRAPER_ADAPTIVE_DELAY_MAX_MS >= value.SCRAPER_MAX_DELAY_MS, {
         message: "SCRAPER_ADAPTIVE_DELAY_MAX_MS must be greater than or equal to SCRAPER_MAX_DELAY_MS",
         path: ["SCRAPER_ADAPTIVE_DELAY_MAX_MS"],
+    })
+    .refine((value) => value.SCRAPER_CATEGORY_LOCK_TTL_SECONDS > value.SCRAPER_CATEGORY_LOCK_HEARTBEAT_SECONDS, {
+        message: "SCRAPER_CATEGORY_LOCK_TTL_SECONDS must be greater than SCRAPER_CATEGORY_LOCK_HEARTBEAT_SECONDS",
+        path: ["SCRAPER_CATEGORY_LOCK_TTL_SECONDS"],
+    })
+    .refine((value) => value.SCRAPER_PRICE_ANOMALY_MEDIAN_MAX >= value.SCRAPER_PRICE_ANOMALY_MEDIAN_MIN, {
+        message: "SCRAPER_PRICE_ANOMALY_MEDIAN_MAX must be greater than or equal to SCRAPER_PRICE_ANOMALY_MEDIAN_MIN",
+        path: ["SCRAPER_PRICE_ANOMALY_MEDIAN_MAX"],
     })
     .superRefine((value, ctx) => {
         if (value.EMAIL_PROVIDER === "resend" && !value.RESEND_API_KEY) {

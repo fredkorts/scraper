@@ -32,7 +32,113 @@ export const parsePriceToDecimal = (value: string): string => {
     return Number(match[0]).toFixed(2);
 };
 
-const parseProductCard = (element: AnyNode, $: cheerio.CheerioAPI): ParsedProduct => {
+type PriceExtractionSource = "sale_pair" | "regular" | "fallback";
+
+interface PriceExtractionResult {
+    currentPriceText: string;
+    originalPriceText?: string;
+    source: PriceExtractionSource;
+    warning?: string;
+}
+
+const canonicalPriceAmountSelector = ".woocommerce-Price-amount.amount, .amount, bdi, .woocommerce-Price-amount";
+
+const nonPriceMarkerPattern = /%|save|campaign|allahindlus|soodus|liikme|member/i;
+
+const extractNodeText = (node: cheerio.Cheerio<AnyNode>): string => node.text().trim();
+
+const parseComparablePrice = (value: string): number => Number.parseFloat(parsePriceToDecimal(value));
+
+const extractPriceFromCard = (card: cheerio.Cheerio<AnyNode>, $: cheerio.CheerioAPI): PriceExtractionResult => {
+    const priceContainer = card.find(".price").first();
+    if (priceContainer.length === 0) {
+        throw new Error("Missing product price");
+    }
+
+    const candidateNodes = priceContainer.find(canonicalPriceAmountSelector).toArray();
+    const firstParseableText = (nodes: AnyNode[]): string | undefined => {
+        for (const node of nodes) {
+            const text = extractNodeText($(node));
+            if (!text || nonPriceMarkerPattern.test(text)) {
+                continue;
+            }
+
+            try {
+                parsePriceToDecimal(text);
+                return text;
+            } catch {
+                continue;
+            }
+        }
+
+        return undefined;
+    };
+    const insText = firstParseableText(candidateNodes.filter((node) => $(node).closest("ins").length > 0));
+    const delText = firstParseableText(candidateNodes.filter((node) => $(node).closest("del").length > 0));
+
+    if (insText && delText) {
+        try {
+            const insValue = parseComparablePrice(insText);
+            const delValue = parseComparablePrice(delText);
+
+            if (Number.isFinite(insValue) && Number.isFinite(delValue) && delValue > insValue) {
+                return {
+                    currentPriceText: insText,
+                    originalPriceText: delText,
+                    source: "sale_pair",
+                };
+            }
+        } catch {
+            // Fall through to regular-price detection.
+        }
+    }
+
+    const regularNodes = candidateNodes.filter((node) => {
+        const wrapped = $(node);
+        return wrapped.closest("ins").length === 0 && wrapped.closest("del").length === 0;
+    });
+
+    for (const node of regularNodes) {
+        const wrapped = $(node);
+        const text = extractNodeText(wrapped);
+        if (!text || nonPriceMarkerPattern.test(text)) {
+            continue;
+        }
+
+        try {
+            parsePriceToDecimal(text);
+            return {
+                currentPriceText: text,
+                source: "regular",
+            };
+        } catch {
+            continue;
+        }
+    }
+
+    for (const node of candidateNodes) {
+        const wrapped = $(node);
+        const text = extractNodeText(wrapped);
+        if (!text || nonPriceMarkerPattern.test(text)) {
+            continue;
+        }
+
+        try {
+            parsePriceToDecimal(text);
+            return {
+                currentPriceText: text,
+                source: "fallback",
+                warning: "Price extraction used fallback strategy",
+            };
+        } catch {
+            continue;
+        }
+    }
+
+    throw new Error("Missing product price");
+};
+
+const parseProductCard = (element: AnyNode, $: cheerio.CheerioAPI, parserWarnings: string[]): ParsedProduct => {
     const card = $(element);
 
     const linkHref =
@@ -47,13 +153,9 @@ const parseProductCard = (element: AnyNode, $: cheerio.CheerioAPI): ParsedProduc
         throw new Error("Missing required product fields");
     }
 
-    const originalPriceText = card.find(productSelectors.originalPrice).first().text().trim();
-    const salePriceText = card.find(productSelectors.salePrice).first().text().trim();
-    const priceText = card.find(productSelectors.currentPrice).first().text().trim();
-    const effectiveCurrentPrice = salePriceText || priceText;
-
-    if (!effectiveCurrentPrice) {
-        throw new Error("Missing product price");
+    const priceExtraction = extractPriceFromCard(card, $);
+    if (priceExtraction.warning) {
+        parserWarnings.push(`${priceExtraction.warning}: ${name} (${priceExtraction.source})`);
     }
 
     const inStock = (() => {
@@ -103,8 +205,10 @@ const parseProductCard = (element: AnyNode, $: cheerio.CheerioAPI): ParsedProduc
         externalUrl: normalizeExternalUrl(linkHref),
         name,
         imageUrl: buildAbsoluteUrl(imageUrl),
-        currentPrice: parsePriceToDecimal(effectiveCurrentPrice),
-        originalPrice: originalPriceText ? parsePriceToDecimal(originalPriceText) : undefined,
+        currentPrice: parsePriceToDecimal(priceExtraction.currentPriceText),
+        originalPrice: priceExtraction.originalPriceText
+            ? parsePriceToDecimal(priceExtraction.originalPriceText)
+            : undefined,
         inStock,
         isPreorderCandidate,
         preorderEtaCandidate: preorderEtaCandidate ?? undefined,
@@ -135,7 +239,7 @@ export const parseCategoryPage = (html: string): ParsedCategoryPage => {
 
     productDom(productSelectors.productCard).each((_index, element) => {
         try {
-            products.push(parseProductCard(element, productDom));
+            products.push(parseProductCard(element, productDom, parserWarnings));
         } catch (error) {
             parserWarnings.push(error instanceof Error ? error.message : "Unknown product parse error");
         }

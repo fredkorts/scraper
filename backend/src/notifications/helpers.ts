@@ -52,6 +52,11 @@ export const getImmediateDeliveryPayloads = async (changeReportId: string): Prom
         where: {
             changeReportId,
             status: NotificationDeliveryStatus.PENDING,
+            changeReport: {
+                scrapeRun: {
+                    isSystemNoise: false,
+                },
+            },
             user: {
                 role: {
                     in: [UserRole.PAID, UserRole.ADMIN],
@@ -135,6 +140,11 @@ export const getDigestRecipientPayloads = async (now: Date): Promise<DigestRecip
     const deliveries = await prisma.notificationDelivery.findMany({
         where: {
             status: NotificationDeliveryStatus.PENDING,
+            changeReport: {
+                scrapeRun: {
+                    isSystemNoise: false,
+                },
+            },
             user: {
                 isActive: true,
                 OR: [{ lastDigestSentAt: null }, { lastDigestSentAt: { lte: sixHoursAgo } }],

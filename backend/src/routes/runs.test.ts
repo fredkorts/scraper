@@ -60,6 +60,8 @@ const createRun = async (
         failureSummary: string;
         startedAt: Date;
         completedAt: Date;
+        isSystemNoise: boolean;
+        systemNoiseReason: string | null;
     }> = {},
 ) =>
     prisma.scrapeRun.create({
@@ -84,6 +86,8 @@ const createRun = async (
             failureSummary: overrides.failureSummary,
             startedAt: overrides.startedAt ?? new Date(),
             completedAt: overrides.completedAt,
+            isSystemNoise: overrides.isSystemNoise ?? false,
+            systemNoiseReason: overrides.systemNoiseReason === undefined ? null : overrides.systemNoiseReason,
         },
     });
 
@@ -840,6 +844,100 @@ describe("dashboard and runs routes", () => {
         expect(
             response.body.items.some((item: { category: { id: string } }) => item.category.id === siblingCategory.id),
         ).toBe(false);
+    });
+
+    it("excludes system-noise runs and change items by default", async () => {
+        const app = createApp();
+        const { user } = await createUser({ email: "noise-filter-admin@example.com", role: UserRole.ADMIN });
+        const category = await createCategory("noise-filter", "Noise Filter");
+
+        const normalRun = await createRun(category.id, {
+            startedAt: new Date("2026-03-03T10:00:00.000Z"),
+            completedAt: new Date("2026-03-03T10:02:00.000Z"),
+        });
+        const noisyRun = await createRun(category.id, {
+            startedAt: new Date("2026-03-03T11:00:00.000Z"),
+            completedAt: new Date("2026-03-03T11:02:00.000Z"),
+            isSystemNoise: true,
+            systemNoiseReason: "parser_false_drop_incident",
+        });
+
+        const [normalReport, noisyReport] = await Promise.all([
+            prisma.changeReport.create({ data: { scrapeRunId: normalRun.id, totalChanges: 1 } }),
+            prisma.changeReport.create({ data: { scrapeRunId: noisyRun.id, totalChanges: 1 } }),
+        ]);
+        const product = await createProduct("noise-filter-product");
+
+        await prisma.changeItem.createMany({
+            data: [
+                {
+                    changeReportId: normalReport.id,
+                    productId: product.id,
+                    changeType: PrismaChangeType.PRICE_INCREASE,
+                    oldPrice: "10.00",
+                    newPrice: "11.00",
+                },
+                {
+                    changeReportId: noisyReport.id,
+                    productId: product.id,
+                    changeType: PrismaChangeType.PRICE_DECREASE,
+                    oldPrice: "11.00",
+                    newPrice: "9.00",
+                },
+            ],
+        });
+
+        const runsResponse = await request(app)
+            .get("/api/runs?page=1&pageSize=25")
+            .set("Cookie", authCookie(user.id, user.email, "admin"));
+        const changesResponse = await request(app)
+            .get("/api/changes?page=1&pageSize=25&windowDays=30")
+            .set("Cookie", authCookie(user.id, user.email, "admin"));
+
+        expect(runsResponse.status).toBe(200);
+        expect(runsResponse.body.items).toHaveLength(1);
+        expect(runsResponse.body.items[0].id).toBe(normalRun.id);
+        expect(changesResponse.status).toBe(200);
+        expect(changesResponse.body.totalItems).toBe(1);
+        expect(changesResponse.body.items[0].run.id).toBe(normalRun.id);
+    });
+
+    it("allows admins to opt in to system-noise runs", async () => {
+        const app = createApp();
+        const { user } = await createUser({ email: "noise-include-admin@example.com", role: UserRole.ADMIN });
+        const category = await createCategory("noise-include", "Noise Include");
+        const noisyRun = await createRun(category.id, {
+            isSystemNoise: true,
+            systemNoiseReason: "parser_false_drop_incident",
+        });
+
+        const defaultResponse = await request(app)
+            .get(`/api/runs/${noisyRun.id}`)
+            .set("Cookie", authCookie(user.id, user.email, "admin"));
+        const includeResponse = await request(app)
+            .get(`/api/runs/${noisyRun.id}?includeSystemNoise=true`)
+            .set("Cookie", authCookie(user.id, user.email, "admin"));
+        const listResponse = await request(app)
+            .get("/api/runs?page=1&pageSize=25&includeSystemNoise=true")
+            .set("Cookie", authCookie(user.id, user.email, "admin"));
+
+        expect(defaultResponse.status).toBe(404);
+        expect(includeResponse.status).toBe(200);
+        expect(includeResponse.body.run.id).toBe(noisyRun.id);
+        expect(listResponse.status).toBe(200);
+        expect(listResponse.body.items.some((item: { id: string }) => item.id === noisyRun.id)).toBe(true);
+    });
+
+    it("rejects includeSystemNoise for non-admin users", async () => {
+        const app = createApp();
+        const { user } = await createUser({ email: "noise-include-user@example.com" });
+
+        const response = await request(app)
+            .get("/api/runs?page=1&pageSize=25&includeSystemNoise=true")
+            .set("Cookie", authCookie(user.id, user.email));
+
+        expect(response.status).toBe(403);
+        expect(response.body.error).toBe("forbidden");
     });
 
     it("validates global changes query parameters", async () => {

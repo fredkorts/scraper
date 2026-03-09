@@ -22,6 +22,10 @@ const createCompletedRun = async (
     categoryId: string,
     startedAt: Date,
     completedAt: Date,
+    overrides: Partial<{
+        skipDiff: boolean;
+        isSystemNoise: boolean;
+    }> = {},
 ) =>
     prisma.scrapeRun.create({
         data: {
@@ -30,6 +34,8 @@ const createCompletedRun = async (
             startedAt,
             completedAt,
             pagesScraped: 1,
+            skipDiff: overrides.skipDiff ?? false,
+            isSystemNoise: overrides.isSystemNoise ?? false,
         },
     });
 
@@ -290,5 +296,24 @@ describe("runDiffEngine", () => {
         expect(second.reusedExistingReport).toBe(true);
         expect(reports).toHaveLength(1);
         expect(deliveries).toHaveLength(1);
+    });
+
+    it("skips diffing when scrape run is marked skipDiff", async () => {
+        const category = await createCategory("skip-diff-category");
+        const scrapeRun = await createCompletedRun(
+            category.id,
+            new Date("2026-03-01T12:00:00.000Z"),
+            new Date("2026-03-01T12:05:00.000Z"),
+            { skipDiff: true },
+        );
+
+        const result = await runDiffEngine(scrapeRun.id);
+        const report = await prisma.changeReport.findUnique({
+            where: { scrapeRunId: scrapeRun.id },
+        });
+
+        expect(result.totalChanges).toBe(0);
+        expect(result.deliveryCount).toBe(0);
+        expect(report).toBeNull();
     });
 });
