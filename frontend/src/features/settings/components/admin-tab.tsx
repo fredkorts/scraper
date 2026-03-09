@@ -3,6 +3,7 @@ import { SCRAPE_INTERVALS } from "@mabrik/shared";
 import { SettingOutlined, ThunderboltOutlined } from "@ant-design/icons";
 import { AppButton } from "../../../components/app-button/AppButton";
 import { AppSelect } from "../../../components/app-select/AppSelect";
+import { CategoryTreeSelect } from "../../../components/category-tree-select/CategoryTreeSelect";
 import { defaultRunDetailSectionSearch } from "../../runs/search";
 import { getSettingsPanelId, getSettingsTabId } from "../constants/settings-tab-a11y.constants";
 import { AdminSchedulerStateTable } from "./admin-scheduler-state-table";
@@ -12,11 +13,10 @@ import styles from "./settings-shared.module.scss";
 export const SettingsAdminTab = ({
     schedulerStateItems,
     schedulerStateCategoryTreeData,
+    triggerCategoryTreeData,
     schedulerStateGeneratedAt,
     schedulerStateError,
     isSchedulerStateLoading,
-    intervalCategoryOptions,
-    triggerCategoryOptions,
     selectedIntervalCategoryId,
     selectedTriggerCategoryId,
     selectedScrapeInterval,
@@ -58,10 +58,12 @@ export const SettingsAdminTab = ({
                 <div className={styles.inlineForm}>
                     <label className={styles.field}>
                         <span className={styles.label}>Category</span>
-                        <AppSelect
+                        <CategoryTreeSelect
                             ariaLabel="Category"
                             className={styles.select}
-                            options={intervalCategoryOptions}
+                            disabled={!schedulerStateCategoryTreeData.length}
+                            treeData={schedulerStateCategoryTreeData}
+                            placeholder="Select scheduler category"
                             value={selectedIntervalCategoryId || undefined}
                             onChange={(value) => onSelectIntervalCategory(value ?? "")}
                         />
@@ -102,10 +104,12 @@ export const SettingsAdminTab = ({
                 <div className={styles.inlineForm}>
                     <label className={styles.field}>
                         <span className={styles.label}>Category</span>
-                        <AppSelect
-                            ariaLabel="Trigger category"
+                        <CategoryTreeSelect
+                            ariaLabel="Category"
                             className={styles.select}
-                            options={triggerCategoryOptions}
+                            disabled={!triggerCategoryTreeData.length}
+                            treeData={triggerCategoryTreeData}
+                            placeholder="Select active category"
                             value={selectedTriggerCategoryId || undefined}
                             onChange={(value) => onSelectTriggerCategory(value ?? "")}
                         />

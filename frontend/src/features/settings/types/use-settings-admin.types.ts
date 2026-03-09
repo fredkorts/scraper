@@ -1,5 +1,4 @@
 import type { ScrapeInterval } from "@mabrik/shared";
-import type { AppSelectOption } from "../../../components/app-select/AppSelect";
 import type { CategoryTreeNode } from "../../categories/types/category-tree-node";
 import type { useAdminSchedulerStateQuery } from "../queries";
 import type { useTriggerRunMutation } from "../mutations";
@@ -9,9 +8,8 @@ export interface UseSettingsAdminResult {
     schedulerStateQuery: ReturnType<typeof useAdminSchedulerStateQuery>;
     schedulerStateItems: AdminSchedulerStateItemData[];
     schedulerStateCategoryTreeData: CategoryTreeNode[];
+    triggerCategoryTreeData: CategoryTreeNode[];
     schedulerStateGeneratedAt?: string;
-    intervalCategoryOptions: AppSelectOption[];
-    triggerCategoryOptions: AppSelectOption[];
     selectedIntervalCategoryId: string;
     selectedTriggerCategoryId: string;
     selectedScrapeInterval: ScrapeInterval;

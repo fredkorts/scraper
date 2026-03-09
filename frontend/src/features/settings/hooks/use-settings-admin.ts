@@ -30,6 +30,10 @@ export const useSettingsAdmin = (enabled: boolean): UseSettingsAdminResult => {
         () => new Set(schedulerStateItems.map((item) => item.categoryId)),
         [schedulerStateItems],
     );
+    const triggerCategoryIds = useMemo(
+        () => new Set(schedulerStateItems.filter((item) => item.isActive).map((item) => item.categoryId)),
+        [schedulerStateItems],
+    );
     const schedulerStateCategoryTreeData = useMemo(
         () =>
             buildCategoryTreeData(categoriesQuery.data?.categories ?? [], {
@@ -37,6 +41,13 @@ export const useSettingsAdmin = (enabled: boolean): UseSettingsAdminResult => {
                 disableExcludedCategories: false,
             }),
         [categoriesQuery.data?.categories, schedulerStateCategoryIds],
+    );
+    const triggerCategoryTreeData = useMemo(
+        () =>
+            buildCategoryTreeData(categoriesQuery.data?.categories ?? [], {
+                includeCategoryIds: triggerCategoryIds,
+            }),
+        [categoriesQuery.data?.categories, triggerCategoryIds],
     );
     const intervalCategoryOptions = useMemo(
         () =>
@@ -46,18 +57,12 @@ export const useSettingsAdmin = (enabled: boolean): UseSettingsAdminResult => {
             })),
         [schedulerStateItems],
     );
-    const triggerCategoryOptions = useMemo(
-        () =>
-            schedulerStateItems
-                .filter((item) => item.isActive)
-                .map((item) => ({
-                    value: item.categoryId,
-                    label: item.categoryPathNameEt,
-                })),
+    const triggerCategoryIdsOrdered = useMemo(
+        () => schedulerStateItems.filter((item) => item.isActive).map((item) => item.categoryId),
         [schedulerStateItems],
     );
     const effectiveIntervalCategoryId = selectedIntervalCategoryId || intervalCategoryOptions[0]?.value || "";
-    const effectiveTriggerCategoryId = selectedTriggerCategoryId || triggerCategoryOptions[0]?.value || "";
+    const effectiveTriggerCategoryId = selectedTriggerCategoryId || triggerCategoryIdsOrdered[0] || "";
     const selectedIntervalCategory = schedulerStateItemsById.get(effectiveIntervalCategoryId);
     const effectiveScrapeInterval =
         selectedScrapeInterval ?? selectedIntervalCategory?.scrapeIntervalHours ?? SCRAPE_INTERVALS[1];
@@ -184,9 +189,8 @@ export const useSettingsAdmin = (enabled: boolean): UseSettingsAdminResult => {
         schedulerStateQuery,
         schedulerStateItems,
         schedulerStateCategoryTreeData,
+        triggerCategoryTreeData,
         schedulerStateGeneratedAt: schedulerStateQuery.data?.generatedAt,
-        intervalCategoryOptions,
-        triggerCategoryOptions,
         selectedIntervalCategoryId: effectiveIntervalCategoryId,
         selectedTriggerCategoryId: effectiveTriggerCategoryId,
         selectedScrapeInterval: effectiveScrapeInterval,

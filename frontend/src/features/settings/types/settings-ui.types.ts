@@ -1,7 +1,6 @@
 import type { ScrapeInterval, UserRole } from "@mabrik/shared";
 import type { FormEventHandler } from "react";
 import type { UseFormReturn } from "react-hook-form";
-import type { AppSelectOption } from "../../../components/app-select/AppSelect";
 import type { CategoryOption } from "../../categories/types/category-option";
 import type { CategoryTreeNode } from "../../categories/types/category-tree-node";
 import type {
@@ -70,11 +69,10 @@ export interface SettingsPlanTabProps {
 export interface SettingsAdminTabProps {
     schedulerStateItems: AdminSchedulerStateItemData[];
     schedulerStateCategoryTreeData: CategoryTreeNode[];
+    triggerCategoryTreeData: CategoryTreeNode[];
     schedulerStateGeneratedAt?: string;
     schedulerStateError: string | null;
     isSchedulerStateLoading: boolean;
-    intervalCategoryOptions: AppSelectOption[];
-    triggerCategoryOptions: AppSelectOption[];
     selectedIntervalCategoryId: string;
     selectedTriggerCategoryId: string;
     selectedScrapeInterval: ScrapeInterval;

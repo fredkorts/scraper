@@ -113,11 +113,10 @@ export const SettingsPage = () => {
                 <SettingsAdminTab
                     schedulerStateItems={admin.schedulerStateItems}
                     schedulerStateCategoryTreeData={admin.schedulerStateCategoryTreeData}
+                    triggerCategoryTreeData={admin.triggerCategoryTreeData}
                     schedulerStateGeneratedAt={admin.schedulerStateGeneratedAt}
                     schedulerStateError={admin.schedulerStateQuery.error ? "Unable to load scheduler state." : null}
                     isSchedulerStateLoading={admin.schedulerStateQuery.isLoading}
-                    intervalCategoryOptions={admin.intervalCategoryOptions}
-                    triggerCategoryOptions={admin.triggerCategoryOptions}
                     selectedIntervalCategoryId={admin.selectedIntervalCategoryId}
                     selectedTriggerCategoryId={admin.selectedTriggerCategoryId}
                     selectedScrapeInterval={admin.selectedScrapeInterval}
