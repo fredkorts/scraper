@@ -2,6 +2,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { AppInput } from "../components/app-input/AppInput";
+import formStyles from "../features/auth/AuthForm.module.scss";
 import { useResetPasswordMutation } from "../features/auth/mutations";
 import { resetPasswordFormSchema, type ResetPasswordFormValues } from "../features/auth/schemas";
 import styles from "./Page.module.scss";
@@ -51,22 +53,43 @@ export const ResetPasswordPage = () => {
             <h1 className={styles.heading}>Reset password</h1>
             <p className={styles.subheading}>Set a new password for your account.</p>
             {!token ? <p>Reset token is missing or invalid.</p> : null}
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-                <label htmlFor="password">New password</label>
-                <input id="password" type="password" autoComplete="new-password" {...form.register("password")} />
-                {form.formState.errors.password ? <p>{form.formState.errors.password.message}</p> : null}
-                <label htmlFor="confirm-password">Confirm password</label>
-                <input
-                    id="confirm-password"
-                    type="password"
-                    autoComplete="new-password"
-                    {...form.register("confirmPassword")}
-                />
-                {form.formState.errors.confirmPassword ? <p>{form.formState.errors.confirmPassword.message}</p> : null}
-                <button type="submit" disabled={mutation.isPending || !token}>
-                    {mutation.isPending ? "Resetting..." : "Reset password"}
-                </button>
-                {mutation.error ? <p>{mutation.error.message}</p> : null}
+            <form className={formStyles.form} onSubmit={form.handleSubmit(onSubmit)} noValidate>
+                <div className={formStyles.field}>
+                    <label className={formStyles.label} htmlFor="password">
+                        New password
+                    </label>
+                    <AppInput
+                        className={formStyles.input}
+                        id="password"
+                        type="password"
+                        autoComplete="new-password"
+                        {...form.register("password")}
+                    />
+                    {form.formState.errors.password ? (
+                        <p className={formStyles.error}>{form.formState.errors.password.message}</p>
+                    ) : null}
+                </div>
+                <div className={formStyles.field}>
+                    <label className={formStyles.label} htmlFor="confirm-password">
+                        Confirm password
+                    </label>
+                    <AppInput
+                        className={formStyles.input}
+                        id="confirm-password"
+                        type="password"
+                        autoComplete="new-password"
+                        {...form.register("confirmPassword")}
+                    />
+                    {form.formState.errors.confirmPassword ? (
+                        <p className={formStyles.error}>{form.formState.errors.confirmPassword.message}</p>
+                    ) : null}
+                </div>
+                <div className={formStyles.actions}>
+                    <button type="submit" disabled={mutation.isPending || !token}>
+                        {mutation.isPending ? "Resetting..." : "Reset password"}
+                    </button>
+                </div>
+                {mutation.error ? <p className={formStyles.error}>{mutation.error.message}</p> : null}
             </form>
             <p>
                 Back to <Link to="/login">sign in</Link>

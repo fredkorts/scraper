@@ -35,11 +35,7 @@ export const detectDiffChanges = (context: DiffContext): DiffDetectionResult => 
             : undefined;
 
         if (
-            isNewProductForRun(
-                current.product.firstSeenAt,
-                context.scrapeRun.startedAt,
-                context.scrapeRun.completedAt,
-            )
+            isNewProductForRun(current.product.firstSeenAt, context.scrapeRun.startedAt, context.scrapeRun.completedAt)
         ) {
             pendingItems.push({
                 productId: current.productId,
@@ -52,6 +48,31 @@ export const detectDiffChanges = (context: DiffContext): DiffDetectionResult => 
         }
 
         if (!previous) {
+            continue;
+        }
+
+        const becameSoldOut = previous.inStock && !current.snapshot.inStock;
+        if (previous.inStock && !current.snapshot.inStock) {
+            pendingItems.push({
+                productId: current.productId,
+                changeType: ChangeType.SOLD_OUT,
+                oldPrice: null,
+                newPrice: null,
+                oldStockStatus: previous.inStock,
+                newStockStatus: current.snapshot.inStock,
+            });
+        } else if (!previous.inStock && current.snapshot.inStock) {
+            pendingItems.push({
+                productId: current.productId,
+                changeType: ChangeType.BACK_IN_STOCK,
+                oldPrice: null,
+                newPrice: null,
+                oldStockStatus: previous.inStock,
+                newStockStatus: current.snapshot.inStock,
+            });
+        }
+
+        if (becameSoldOut) {
             continue;
         }
 
@@ -75,26 +96,6 @@ export const detectDiffChanges = (context: DiffContext): DiffDetectionResult => 
                 newStockStatus: null,
             });
         }
-
-        if (previous.inStock && !current.snapshot.inStock) {
-            pendingItems.push({
-                productId: current.productId,
-                changeType: ChangeType.SOLD_OUT,
-                oldPrice: null,
-                newPrice: null,
-                oldStockStatus: previous.inStock,
-                newStockStatus: current.snapshot.inStock,
-            });
-        } else if (!previous.inStock && current.snapshot.inStock) {
-            pendingItems.push({
-                productId: current.productId,
-                changeType: ChangeType.BACK_IN_STOCK,
-                oldPrice: null,
-                newPrice: null,
-                oldStockStatus: previous.inStock,
-                newStockStatus: current.snapshot.inStock,
-            });
-        }
     }
 
     const changeItems = dedupeChangeItems(pendingItems);
@@ -102,7 +103,6 @@ export const detectDiffChanges = (context: DiffContext): DiffDetectionResult => 
     return {
         changeItems,
         soldOutCount: changeItems.filter((item) => item.changeType === ChangeType.SOLD_OUT).length,
-        backInStockCount: changeItems.filter((item) => item.changeType === ChangeType.BACK_IN_STOCK)
-            .length,
+        backInStockCount: changeItems.filter((item) => item.changeType === ChangeType.BACK_IN_STOCK).length,
     };
 };

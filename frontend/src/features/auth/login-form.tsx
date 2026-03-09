@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { AppInput } from "../../components/app-input/AppInput";
 import { useLoginMutation, useVerifyMfaLoginMutation } from "./mutations";
 import { loginFormSchema, type LoginFormValues } from "./schemas";
 import styles from "./AuthForm.module.scss";
@@ -56,7 +57,13 @@ export const LoginForm = () => {
                 <label className={styles.label} htmlFor="email">
                     Email
                 </label>
-                <input className={styles.input} id="email" type="email" autoComplete="email" {...register("email")} />
+                <AppInput
+                    className={styles.input}
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    {...register("email")}
+                />
                 {errors.email ? <p className={styles.error}>{errors.email.message}</p> : null}
             </div>
 
@@ -64,7 +71,7 @@ export const LoginForm = () => {
                 <label className={styles.label} htmlFor="password">
                     Password
                 </label>
-                <input
+                <AppInput
                     className={styles.input}
                     id="password"
                     type="password"
@@ -87,7 +94,7 @@ export const LoginForm = () => {
                     <label className={styles.label} htmlFor="mfa-code">
                         MFA code
                     </label>
-                    <input
+                    <AppInput
                         id="mfa-code"
                         className={styles.input}
                         value={mfaCode}
@@ -98,7 +105,7 @@ export const LoginForm = () => {
                     <label className={styles.label} htmlFor="recovery-code">
                         Recovery code (optional)
                     </label>
-                    <input
+                    <AppInput
                         id="recovery-code"
                         className={styles.input}
                         value={recoveryCode}

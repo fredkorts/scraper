@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
+import { AppInput } from "../../components/app-input/AppInput";
 import { useRegisterMutation } from "./mutations";
 import { registerFormSchema, type RegisterFormValues } from "./schemas";
 import styles from "./AuthForm.module.scss";
@@ -33,7 +34,7 @@ export const RegisterForm = () => {
                 <label className={styles.label} htmlFor="name">
                     Name
                 </label>
-                <input className={styles.input} id="name" autoComplete="name" {...register("name")} />
+                <AppInput className={styles.input} id="name" autoComplete="name" {...register("name")} />
                 {errors.name ? <p className={styles.error}>{errors.name.message}</p> : null}
             </div>
 
@@ -41,7 +42,13 @@ export const RegisterForm = () => {
                 <label className={styles.label} htmlFor="email">
                     Email
                 </label>
-                <input className={styles.input} id="email" type="email" autoComplete="email" {...register("email")} />
+                <AppInput
+                    className={styles.input}
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    {...register("email")}
+                />
                 {errors.email ? <p className={styles.error}>{errors.email.message}</p> : null}
             </div>
 
@@ -49,7 +56,7 @@ export const RegisterForm = () => {
                 <label className={styles.label} htmlFor="password">
                     Password
                 </label>
-                <input
+                <AppInput
                     className={styles.input}
                     id="password"
                     type="password"

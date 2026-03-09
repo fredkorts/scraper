@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AppButton } from "../../../components/app-button/AppButton";
+import { AppInput } from "../../../components/app-input/AppInput";
 import { useMeQuery, useSessionsQuery } from "../../auth/queries";
 import {
     useConfirmMfaSetupMutation,
@@ -70,14 +71,14 @@ export const SettingsAccountTab = ({
             <form className={styles.card} onSubmit={onSubmitProfile}>
                 <label className={styles.field}>
                     <span className={styles.label}>Name</span>
-                    <input className={styles.input} {...form.register("name")} />
+                    <AppInput className={styles.input} {...form.register("name")} />
                     {form.formState.errors.name ? (
                         <span className={styles.errorText}>{form.formState.errors.name.message}</span>
                     ) : null}
                 </label>
                 <label className={styles.field}>
                     <span className={styles.label}>Email</span>
-                    <input className={styles.input} value={email} readOnly />
+                    <AppInput className={styles.input} value={email} readOnly />
                     <span className={styles.subtle}>Email changes are not available in Phase 5.</span>
                 </label>
                 <div className={styles.metaGrid}>
@@ -123,7 +124,7 @@ export const SettingsAccountTab = ({
                     <div className={styles.stack}>
                         <label className={styles.field}>
                             <span className={styles.label}>Current password (step-up)</span>
-                            <input
+                            <AppInput
                                 className={styles.input}
                                 type="password"
                                 value={stepUpPassword}
@@ -173,7 +174,7 @@ export const SettingsAccountTab = ({
                                 {setupOtpauthUri ? <p>OTPAuth URI: {setupOtpauthUri}</p> : null}
                                 <label className={styles.field}>
                                     <span className={styles.label}>Confirm code</span>
-                                    <input
+                                    <AppInput
                                         className={styles.input}
                                         value={mfaCode}
                                         onChange={(event) => setMfaCode(event.target.value)}
@@ -198,7 +199,7 @@ export const SettingsAccountTab = ({
                 <h3 className={styles.cardTitle}>Active sessions</h3>
                 <label className={styles.field}>
                     <span className={styles.label}>Current password (step-up for revoke)</span>
-                    <input
+                    <AppInput
                         className={styles.input}
                         type="password"
                         value={stepUpPassword}

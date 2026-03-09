@@ -147,7 +147,7 @@ describe("runDiffEngine", () => {
         });
     });
 
-    it("creates price increase and sold out change items when explicit historical data exists", async () => {
+    it("creates sold out change items and suppresses same-run price deltas", async () => {
         const category = await createCategory("strategy");
         const { user } = await createUser({ email: "paid@example.com" });
         await prisma.user.update({
@@ -202,10 +202,8 @@ describe("runDiffEngine", () => {
             where: { id: currentRun.id },
         });
 
-        expect(result.totalChanges).toBe(2);
-        expect(items.map((item) => item.changeType)).toEqual(
-            expect.arrayContaining([ChangeType.PRICE_INCREASE, ChangeType.SOLD_OUT]),
-        );
+        expect(result.totalChanges).toBe(1);
+        expect(items.map((item) => item.changeType)).toEqual([ChangeType.SOLD_OUT]);
         expect(refreshedRun.soldOut).toBe(1);
         expect(refreshedRun.backInStock).toBe(0);
     });

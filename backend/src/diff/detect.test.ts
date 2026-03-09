@@ -80,7 +80,7 @@ describe("detectDiffChanges", () => {
         });
     });
 
-    it("emits price increase and sold_out from explicit persisted stock change", () => {
+    it("emits sold_out and suppresses same-run price deltas when item becomes out of stock", () => {
         const context = buildContext({
             previousRunExists: true,
             currentProducts: [
@@ -121,10 +121,12 @@ describe("detectDiffChanges", () => {
 
         const result = detectDiffChanges(context);
 
-        expect(result.changeItems).toHaveLength(2);
-        expect(result.changeItems.map((item) => item.changeType)).toEqual(
-            expect.arrayContaining([ChangeType.PRICE_INCREASE, ChangeType.SOLD_OUT]),
-        );
+        expect(result.changeItems).toHaveLength(1);
+        expect(result.changeItems[0]).toMatchObject({
+            changeType: ChangeType.SOLD_OUT,
+            oldStockStatus: true,
+            newStockStatus: false,
+        });
         expect(result.soldOutCount).toBe(1);
     });
 

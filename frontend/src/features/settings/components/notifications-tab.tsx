@@ -1,5 +1,6 @@
 import { PlusOutlined } from "@ant-design/icons";
 import { AppButton } from "../../../components/app-button/AppButton";
+import { AppInput } from "../../../components/app-input/AppInput";
 import { getSettingsPanelId, getSettingsTabId } from "../constants/settings-tab-a11y.constants";
 import type { SettingsNotificationsTabProps } from "../types/settings-ui.types";
 import styles from "./settings-shared.module.scss";
@@ -29,7 +30,7 @@ export const SettingsNotificationsTab = ({
             <div className={styles.inlineForm}>
                 <label className={styles.field}>
                     <span className={styles.label}>Email</span>
-                    <input
+                    <AppInput
                         className={styles.input}
                         type="email"
                         value={newChannelEmail}
