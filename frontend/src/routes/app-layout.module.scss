@@ -15,13 +15,17 @@
     background: var(--color-surface);
 }
 
-.nav {
-    display: flex;
-    gap: var(--space-md);
+.logoLink {
+    color: inherit;
+    text-decoration: none;
 }
 
 .actions {
     display: flex;
     align-items: center;
     gap: var(--space-sm);
+}
+
+.main {
+    min-width: 0;
 }

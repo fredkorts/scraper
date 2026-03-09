@@ -1,11 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import type { ProductDetailData, ProductHistoryData } from "../schemas";
 import type { useProductDetailPageViewModel } from "../hooks/use-product-detail-page-view-model";
-import type {
-    ProductHistoryControls,
-    ProductHistoryRange,
-    ProductHistoryStockFilter,
-} from "../history-controls";
+import type { ProductHistoryControls, ProductHistoryRange, ProductHistoryStockFilter } from "../history-controls";
 
 export type ProductDetailRecord = ProductDetailData["product"];
 export type ProductHistoryRecord = ProductHistoryData["items"][number];
@@ -46,6 +42,9 @@ export interface ProductHistoryChartProps {
 export interface ProductHistoryVisualStateProps {
     controls: ProductHistoryControls;
     chartData: ProductDetailViewModel["history"]["chartData"];
+    historyColumns: Array<ColumnDef<ProductHistoryRecord, unknown>>;
+    historyItems: ProductHistoryRecord[];
+    historyScreenReaderSummary: string;
     showOriginalPriceLine: boolean;
     historyErrorMessage?: string;
     isHistoryLoading: boolean;

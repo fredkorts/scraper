@@ -82,6 +82,19 @@ describe("auth routes", () => {
         expect(response.body.message).toBe("Invalid email or password");
     });
 
+    it("rejects auth mutations from untrusted origins", async () => {
+        const app = createApp();
+
+        const response = await request(app).post("/api/auth/register").set("Origin", "https://evil.example").send({
+            email: "blocked-origin@example.com",
+            password: "Password123",
+            name: "Blocked Origin",
+        });
+
+        expect(response.status).toBe(403);
+        expect(response.body.error).toBe("origin_not_allowed");
+    });
+
     it("returns the current user when given a valid access cookie", async () => {
         const app = createApp();
         const { user } = await createUser({
@@ -99,6 +112,17 @@ describe("auth routes", () => {
 
         expect(response.status).toBe(200);
         expect(response.body.user.email).toBe(user.email);
+    });
+
+    it("returns non-cacheable headers for CSRF bootstrap endpoint", async () => {
+        const app = createApp();
+
+        const response = await request(app).get("/api/auth/csrf");
+
+        expect(response.status).toBe(200);
+        expect(response.headers["cache-control"]).toContain("no-store");
+        expect(response.headers.pragma).toBe("no-cache");
+        expect(response.headers.expires).toBe("0");
     });
 
     it("updates the current user's display name", async () => {
@@ -162,6 +186,31 @@ describe("auth routes", () => {
 
         expect(oldToken.revocationReason).toBe("rotated");
         expect(oldToken.replacedByTokenId).toBeTruthy();
+    });
+
+    it("returns csrf_mismatch when refresh CSRF token is invalid", async () => {
+        const app = createApp();
+        const { user } = await createUser({
+            email: "refresh-csrf-mismatch@example.com",
+        });
+        const token = await createRefreshTokenRecord({ userId: user.id });
+        const csrfResponse = await request(app).get("/api/auth/csrf");
+        const csrfSetCookie = Array.isArray(csrfResponse.headers["set-cookie"])
+            ? csrfResponse.headers["set-cookie"]
+            : [];
+        const csrfCookie = extractCookieValue(csrfSetCookie, authCookieNames.csrfToken)!;
+
+        const response = await request(app)
+            .post("/api/auth/refresh")
+            .set("Origin", trustedOrigin)
+            .set("x-csrf-token", "mismatch-token")
+            .set("Cookie", [
+                `${authCookieNames.refreshToken}=${token.rawToken}`,
+                `${authCookieNames.csrfToken}=${csrfCookie}`,
+            ]);
+
+        expect(response.status).toBe(403);
+        expect(response.body.error).toBe("csrf_mismatch");
     });
 
     it("clears cookies and revokes the token on logout", async () => {

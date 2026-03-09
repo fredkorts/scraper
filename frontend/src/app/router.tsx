@@ -1,4 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
+import { ApiError } from "../lib/api/errors";
 import {
     Outlet,
     createRootRouteWithContext,
@@ -34,6 +35,7 @@ import { ChangesPage } from "../routes/changes-page";
 import { ForbiddenPage } from "../routes/forbidden-page";
 import { ForgotPasswordPage } from "../routes/forgot-password-page";
 import { GlobalErrorPage } from "../routes/global-error-page";
+import { AuthConfigurationErrorPage } from "../routes/auth-configuration-error-page";
 import { LandingPage } from "../routes/landing-page";
 import { LoginPage } from "../routes/login-page";
 import { NotFoundPage } from "../routes/not-found-page";
@@ -56,6 +58,18 @@ const rootRoute = createRootRouteWithContext<RouterContext>()({
     errorComponent: ({ error, reset }) => <GlobalErrorPage error={error} onRetry={reset} />,
 });
 
+const ensureSessionWithConfigErrorRedirect = async (context: RouterContext): Promise<AuthUser | null> => {
+    try {
+        return await context.ensureSession();
+    } catch (error) {
+        if (error instanceof ApiError && error.status === 403 && error.code === "origin_not_allowed") {
+            throw redirect({ to: "/auth-configuration-error" });
+        }
+
+        throw error;
+    }
+};
+
 const landingRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/",
@@ -66,7 +80,7 @@ const loginRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/login",
     beforeLoad: async ({ context }) => {
-        const session = await context.ensureSession();
+        const session = await ensureSessionWithConfigErrorRedirect(context);
 
         if (session) {
             throw redirect({ to: "/app" });
@@ -79,7 +93,7 @@ const registerRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/register",
     beforeLoad: async ({ context }) => {
-        const session = await context.ensureSession();
+        const session = await ensureSessionWithConfigErrorRedirect(context);
 
         if (session) {
             throw redirect({ to: "/app" });
@@ -118,11 +132,17 @@ const forbiddenRoute = createRoute({
     component: ForbiddenPage,
 });
 
+const authConfigurationErrorRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/auth-configuration-error",
+    component: AuthConfigurationErrorPage,
+});
+
 const appRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/app",
     beforeLoad: async ({ context }) => {
-        const session = await context.ensureSession();
+        const session = await ensureSessionWithConfigErrorRedirect(context);
 
         if (!session) {
             throw redirect({ to: "/login" });
@@ -238,6 +258,7 @@ const routeTree = rootRoute.addChildren([
     resetPasswordRoute,
     verifyEmailRoute,
     forbiddenRoute,
+    authConfigurationErrorRoute,
     appRoute.addChildren([
         appHomeRoute,
         appRunsRoute,

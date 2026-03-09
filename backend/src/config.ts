@@ -13,6 +13,7 @@ const booleanStringSchema = z.preprocess((value) => {
 
     return value;
 }, z.boolean());
+const authCookieSameSiteSchema = z.enum(["strict", "lax", "none"]);
 
 const envSchema = z
     .object({
@@ -71,6 +72,8 @@ const envSchema = z
         SCRAPER_MAX_PAGES: z.coerce.number().int().positive().default(200),
         SCRAPER_USER_AGENT: z.string().default("MabrikScraper/1.0 (+https://mabrik.ee)"),
         FRONTEND_URL: z.string().url(),
+        FRONTEND_ORIGINS: z.string().optional(),
+        AUTH_COOKIE_SAMESITE: authCookieSameSiteSchema.optional(),
     })
     .refine((value) => value.SCRAPER_MAX_DELAY_MS >= value.SCRAPER_MIN_DELAY_MS, {
         message: "SCRAPER_MAX_DELAY_MS must be greater than or equal to SCRAPER_MIN_DELAY_MS",
@@ -89,6 +92,39 @@ const envSchema = z
         path: ["SCRAPER_PRICE_ANOMALY_MEDIAN_MAX"],
     })
     .superRefine((value, ctx) => {
+        if (value.FRONTEND_ORIGINS) {
+            const origins = value.FRONTEND_ORIGINS.split(",")
+                .map((origin) => origin.trim())
+                .filter((origin) => origin.length > 0);
+
+            if (origins.length === 0) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "FRONTEND_ORIGINS must include at least one origin when set",
+                    path: ["FRONTEND_ORIGINS"],
+                });
+            }
+
+            for (const origin of origins) {
+                try {
+                    const normalizedOrigin = new URL(origin).origin;
+                    if (normalizedOrigin !== origin) {
+                        ctx.addIssue({
+                            code: z.ZodIssueCode.custom,
+                            message: `FRONTEND_ORIGINS entry "${origin}" must be an origin without path/query`,
+                            path: ["FRONTEND_ORIGINS"],
+                        });
+                    }
+                } catch {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message: `FRONTEND_ORIGINS entry "${origin}" is not a valid URL origin`,
+                        path: ["FRONTEND_ORIGINS"],
+                    });
+                }
+            }
+        }
+
         if (value.EMAIL_PROVIDER === "resend" && !value.RESEND_API_KEY) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
@@ -104,6 +140,21 @@ const envSchema = z
                 path: ["AUTH_MFA_ENCRYPTION_KEY"],
             });
         }
+
+        if (value.AUTH_COOKIE_SAMESITE === "none" && value.NODE_ENV !== "production") {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "AUTH_COOKIE_SAMESITE=none is only allowed in production",
+                path: ["AUTH_COOKIE_SAMESITE"],
+            });
+        }
     });
 
-export const config = envSchema.parse(process.env);
+const parsedConfig = envSchema.parse(process.env);
+const derivedAuthCookieSameSite: z.infer<typeof authCookieSameSiteSchema> =
+    parsedConfig.AUTH_COOKIE_SAMESITE ?? (parsedConfig.NODE_ENV === "production" ? "none" : "strict");
+
+export const config = {
+    ...parsedConfig,
+    AUTH_COOKIE_SAMESITE: derivedAuthCookieSameSite,
+};

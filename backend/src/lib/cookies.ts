@@ -3,7 +3,7 @@ import { config } from "../config";
 import { generateOneTimeToken } from "./hash";
 
 const secure = config.NODE_ENV === "production";
-const sameSite = config.NODE_ENV === "production" ? ("none" as const) : ("strict" as const);
+const sameSite = config.AUTH_COOKIE_SAMESITE;
 
 const baseCookieOptions = {
     httpOnly: true,

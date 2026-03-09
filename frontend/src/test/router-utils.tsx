@@ -22,6 +22,7 @@ export const mockUser: AuthUser = {
 interface RenderRouterOptions {
     initialEntry?: string;
     session?: AuthUser | null;
+    ensureSessionError?: Error | null;
     logoutShouldFail?: boolean;
     apiResponses?: Partial<{
         categories: unknown;
@@ -228,6 +229,7 @@ const defaultApiResponses = {
 export const renderRouterApp = async ({
     initialEntry = "/",
     session = null,
+    ensureSessionError = null,
     logoutShouldFail = false,
     apiResponses = {},
 }: RenderRouterOptions = {}) => {
@@ -262,6 +264,10 @@ export const renderRouterApp = async ({
     const mutableResponses = structuredClone(mergedApiResponses) as typeof mergedApiResponses;
 
     const ensureSession = async (): Promise<AuthUser | null> => {
+        if (ensureSessionError) {
+            throw ensureSessionError;
+        }
+
         queryClient.setQueryData(queryKeys.auth.me(), session);
         return session;
     };

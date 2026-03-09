@@ -1,6 +1,5 @@
 import { Card, Empty, Flex, Space, Tag, Typography } from "antd";
 import { Link } from "@tanstack/react-router";
-import { AppButton } from "../../../../components/app-button/AppButton";
 import { formatDateTime, formatStatusLabel } from "../../../../shared/formatters/display";
 import { defaultRunDetailSectionSearch, defaultRunsListSearch } from "../../../../shared/navigation/default-searches";
 import styles from "../product-detail-view.module.scss";
@@ -10,8 +9,8 @@ export const ProductRecentRuns = ({ recentRuns }: ProductRecentRunsProps) => (
     <Card className={styles.sectionCard} title={<Typography.Title level={2}>Recent Runs</Typography.Title>}>
         {recentRuns.length === 0 ? (
             <Empty description="No recent runs are available for this product.">
-                <Link search={defaultRunsListSearch} to="/app/runs">
-                    <AppButton>Back to runs</AppButton>
+                <Link className={styles.actionLinkButton} search={defaultRunsListSearch} to="/app/runs">
+                    Back to runs
                 </Link>
             </Empty>
         ) : (
@@ -32,8 +31,13 @@ export const ProductRecentRuns = ({ recentRuns }: ProductRecentRunsProps) => (
                                 <Tag>{formatStatusLabel(run.status)}</Tag>
                             </Space>
                         </Space>
-                        <Link params={{ runId: run.id }} search={defaultRunDetailSectionSearch} to="/app/runs/$runId">
-                            <AppButton intent="link">Open run detail</AppButton>
+                        <Link
+                            className={styles.actionLinkButton}
+                            params={{ runId: run.id }}
+                            search={defaultRunDetailSectionSearch}
+                            to="/app/runs/$runId"
+                        >
+                            Open run detail
                         </Link>
                     </Flex>
                 ))}

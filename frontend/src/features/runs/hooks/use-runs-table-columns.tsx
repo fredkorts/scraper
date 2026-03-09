@@ -48,11 +48,6 @@ export const useRunsTableColumns = ({
                         </span>
                     ),
                 }),
-                runsColumnHelper.display({
-                    id: "failure",
-                    header: "Failure",
-                    cell: (info) => info.row.original.failure?.summary ?? "-",
-                }),
                 runsColumnHelper.accessor("totalProducts", {
                     header: () => (
                         <SortHeader
@@ -89,15 +84,37 @@ export const useRunsTableColumns = ({
                 runsColumnHelper.display({
                     id: "actions",
                     header: "Actions",
-                    cell: (info) => (
-                        <Link
-                            params={{ runId: info.row.original.id }}
-                            search={defaultRunDetailSectionSearch}
-                            to="/app/runs/$runId"
-                        >
-                            Open detail
-                        </Link>
-                    ),
+                    cell: (info) => {
+                        const isFailedRun = info.row.original.status === "failed";
+                        const run = info.row.original;
+                        const runContext = `${run.categoryName}, ${formatDateTime(run.startedAt)}`;
+
+                        return (
+                            <span>
+                                <Link
+                                    aria-label={`Open run detail for ${runContext}`}
+                                    params={{ runId: info.row.original.id }}
+                                    search={defaultRunDetailSectionSearch}
+                                    to="/app/runs/$runId"
+                                >
+                                    Open run detail
+                                </Link>
+                                {isFailedRun ? (
+                                    <>
+                                        {" · "}
+                                        <Link
+                                            aria-label={`View failure reason for ${runContext}`}
+                                            params={{ runId: info.row.original.id }}
+                                            search={defaultRunDetailSectionSearch}
+                                            to="/app/runs/$runId"
+                                        >
+                                            View failure reason
+                                        </Link>
+                                    </>
+                                ) : null}
+                            </span>
+                        );
+                    },
                 }),
             ] satisfies Array<ColumnDef<RunsListData["items"][number], unknown>>,
         [onToggleSort, sortBy, sortOrder, statusBadgeClassName],

@@ -10,6 +10,7 @@
         "lint:staged": "eslint --fix",
         "typecheck": "tsc -b",
         "test": "vitest run",
+        "test:a11y": "vitest run src/test/a11y",
         "test:watch": "vitest",
         "preview": "vite preview"
     },

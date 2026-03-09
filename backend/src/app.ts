@@ -7,6 +7,7 @@ import { config } from "./config";
 import { AppError } from "./lib/errors";
 import { logger, requestContextMiddleware } from "./lib/logger";
 import { prisma } from "./lib/prisma";
+import { isTrustedOrigin, trustedOrigins, trustedOriginsMetadata } from "./lib/trusted-origins";
 import { apiReadLimiter, paymentsMutationLimiter } from "./middleware/rate-limit";
 import { authRouter } from "./routes/auth";
 import { adminRouter } from "./routes/admin";
@@ -20,13 +21,26 @@ import { subscriptionsRouter } from "./routes/subscriptions";
 
 export const createApp = () => {
     const app = express();
-    const frontendOrigin = new URL(config.FRONTEND_URL).origin;
+
+    if (trustedOriginsMetadata.hasLegacyMismatch) {
+        logger.warn("frontend_origin_legacy_mismatch", {
+            frontendUrlOrigin: trustedOriginsMetadata.legacyOrigin,
+            trustedOrigins,
+        });
+    }
 
     app.set("trust proxy", config.TRUST_PROXY_HOPS);
 
     app.use(
         cors({
-            origin: frontendOrigin,
+            origin: (origin, callback) => {
+                if (!origin || isTrustedOrigin(origin)) {
+                    callback(null, true);
+                    return;
+                }
+
+                callback(null, false);
+            },
             credentials: true,
         }),
     );

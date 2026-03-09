@@ -88,6 +88,7 @@ export const useChangesListColumns = ({
                     header: "Run",
                     cell: (info) => (
                         <Link
+                            aria-label={`Open run for ${info.row.original.product.name}`}
                             params={{ runId: info.row.original.run.id }}
                             search={defaultRunDetailSectionSearch}
                             to="/app/runs/$runId"
@@ -101,6 +102,7 @@ export const useChangesListColumns = ({
                     header: "Link",
                     cell: (info) => (
                         <a
+                            aria-label={`View product page for ${info.row.original.product.name} (opens in new tab)`}
                             className={productLinkClassName}
                             href={info.row.original.product.externalUrl}
                             rel="noreferrer"

@@ -3,12 +3,17 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { AppInput } from "../../components/app-input/AppInput";
+import { getFieldA11yProps, getFieldErrorProps } from "../../shared/forms/a11y";
+import { useAppNotification } from "../../shared/hooks/use-app-notification";
+import { normalizeUserError } from "../../shared/utils/normalize-user-error";
 import { useLoginMutation, useVerifyMfaLoginMutation } from "./mutations";
 import { loginFormSchema, type LoginFormValues } from "./schemas";
 import styles from "./AuthForm.module.scss";
 
 export const LoginForm = () => {
+    const formId = "login";
     const navigate = useNavigate();
+    const { notify } = useAppNotification();
     const loginMutation = useLoginMutation();
     const verifyMfaMutation = useVerifyMfaLoginMutation();
     const [challengeToken, setChallengeToken] = useState<string | null>(null);
@@ -28,14 +33,23 @@ export const LoginForm = () => {
     });
 
     const onSubmit = async (values: LoginFormValues) => {
-        const result = await loginMutation.mutateAsync(values);
+        try {
+            const result = await loginMutation.mutateAsync(values);
 
-        if ("mfaRequired" in result && result.mfaRequired) {
-            setChallengeToken(result.challengeToken);
-            return;
+            if ("mfaRequired" in result && result.mfaRequired) {
+                setChallengeToken(result.challengeToken);
+                return;
+            }
+
+            await navigate({ to: "/app" });
+        } catch (error) {
+            notify({
+                variant: "error",
+                message: "Sign in failed",
+                description: normalizeUserError(error, "Invalid email or password"),
+                key: "auth:login:failed",
+            });
         }
-
-        await navigate({ to: "/app" });
     };
 
     const onSubmitMfa = async () => {
@@ -62,9 +76,18 @@ export const LoginForm = () => {
                     id="email"
                     type="email"
                     autoComplete="email"
+                    {...getFieldA11yProps({
+                        formId,
+                        fieldName: "email",
+                        hasError: Boolean(errors.email),
+                    })}
                     {...register("email")}
                 />
-                {errors.email ? <p className={styles.error}>{errors.email.message}</p> : null}
+                {errors.email ? (
+                    <p {...getFieldErrorProps(formId, "email")} className={styles.error}>
+                        {errors.email.message}
+                    </p>
+                ) : null}
             </div>
 
             <div className={styles.field}>
@@ -76,9 +99,18 @@ export const LoginForm = () => {
                     id="password"
                     type="password"
                     autoComplete="current-password"
+                    {...getFieldA11yProps({
+                        formId,
+                        fieldName: "password",
+                        hasError: Boolean(errors.password),
+                    })}
                     {...register("password")}
                 />
-                {errors.password ? <p className={styles.error}>{errors.password.message}</p> : null}
+                {errors.password ? (
+                    <p {...getFieldErrorProps(formId, "password")} className={styles.error}>
+                        {errors.password.message}
+                    </p>
+                ) : null}
             </div>
 
             <div className={styles.actions}>
@@ -86,7 +118,6 @@ export const LoginForm = () => {
                     {loginMutation.isPending ? "Signing in..." : "Sign in"}
                 </button>
                 <Link to="/forgot-password">Forgot password?</Link>
-                {loginMutation.error ? <p className={styles.error}>{loginMutation.error.message}</p> : null}
             </div>
 
             {challengeToken ? (

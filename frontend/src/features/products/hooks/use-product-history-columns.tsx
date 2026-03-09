@@ -37,6 +37,7 @@ export const useProductHistoryColumns = () =>
                     header: "Run",
                     cell: (info) => (
                         <Link
+                            aria-label={`Open run for snapshot at ${formatDateTime(info.row.original.scrapedAt)}`}
                             params={{ runId: info.row.original.scrapeRunId }}
                             search={defaultRunDetailSectionSearch}
                             to="/app/runs/$runId"

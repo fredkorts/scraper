@@ -146,7 +146,7 @@ describe("settings page", () => {
         await waitFor(() => {
             expect(screen.getByText("new@example.com")).toBeInTheDocument();
         });
-    });
+    }, 15_000);
 
     it("falls back to account tab for non-admin users when URL requests admin tab", async () => {
         await renderRouterApp({

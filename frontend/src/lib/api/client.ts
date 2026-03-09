@@ -3,11 +3,13 @@ import { apiBaseUrl } from "./config";
 import { ApiError, normalizeApiError } from "./errors";
 
 type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
+type AuthMode = "standard" | "bootstrap";
 
 interface ApiRequestOptions<TBody> {
     method?: HttpMethod;
     body?: TBody;
     signal?: AbortSignal;
+    authMode?: AuthMode;
 }
 
 const AUTH_ENDPOINT_EXCLUSIONS = new Set([
@@ -51,6 +53,43 @@ const parseResponseBody = async (response: Response): Promise<unknown> => {
 const shouldRefreshOnUnauthorized = (method: HttpMethod, path: string): boolean =>
     method === "GET" && !AUTH_ENDPOINT_EXCLUSIONS.has(path);
 
+const shouldRefreshOnUnauthorizedWithMode = (method: HttpMethod, path: string, authMode: AuthMode): boolean => {
+    if (method !== "GET") {
+        return false;
+    }
+
+    if (authMode === "bootstrap") {
+        return path === "/api/auth/me";
+    }
+
+    return shouldRefreshOnUnauthorized(method, path);
+};
+
+const getPayloadErrorCode = (payload: unknown): string | undefined => {
+    if (payload && typeof payload === "object" && "error" in payload) {
+        const errorCode = (payload as { error?: unknown }).error;
+        if (typeof errorCode === "string" && errorCode.length > 0) {
+            return errorCode;
+        }
+    }
+
+    return undefined;
+};
+
+const resetCsrfTokenState = (): void => {
+    csrfTokenCache = null;
+    csrfPromise = null;
+};
+
+const syncCsrfTokenCacheFromCookie = (): void => {
+    csrfTokenCache = getCookieValue("csrf_token");
+};
+
+const resetAuthRecoveryState = (): void => {
+    resetCsrfTokenState();
+    refreshPromise = null;
+};
+
 const getCookieValue = (name: string): string | null => {
     if (typeof document === "undefined") {
         return null;
@@ -72,6 +111,7 @@ const getCookieValue = (name: string): string | null => {
 const fetchCsrfToken = async (): Promise<string> => {
     const response = await fetch(toAbsoluteUrl("/api/auth/csrf"), {
         method: "GET",
+        cache: "no-store",
         credentials: "include",
         headers: {
             Accept: "application/json",
@@ -123,30 +163,52 @@ const ensureCsrfToken = async (): Promise<void> => {
 
 const refreshSession = async (): Promise<void> => {
     await ensureCsrfToken();
-    const csrfToken = csrfTokenCache;
-    const response = await fetch(toAbsoluteUrl("/api/auth/refresh"), {
-        method: "POST",
-        credentials: "include",
-        headers: {
-            Accept: "application/json",
-            ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
-        },
-    });
+    const sendRefreshRequest = async (): Promise<Response> => {
+        const csrfToken = csrfTokenCache;
+        return fetch(toAbsoluteUrl("/api/auth/refresh"), {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                Accept: "application/json",
+                ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
+            },
+        });
+    };
+
+    let response = await sendRefreshRequest();
+    let payload = await parseResponseBody(response);
+
+    if (response.status === 403 && getPayloadErrorCode(payload) === "csrf_mismatch") {
+        resetCsrfTokenState();
+        await ensureCsrfToken();
+        response = await sendRefreshRequest();
+        payload = await parseResponseBody(response);
+    }
 
     if (!response.ok) {
-        const payload = await parseResponseBody(response);
         throw new ApiError(normalizeApiError(response.status, payload));
     }
+
+    syncCsrfTokenCacheFromCookie();
 };
 
 const refreshSessionSingleFlight = async (): Promise<void> => {
     if (!refreshPromise) {
-        refreshPromise = refreshSession().finally(() => {
-            refreshPromise = null;
-        });
+        refreshPromise = refreshSession()
+            .catch((error) => {
+                resetAuthRecoveryState();
+                throw error;
+            })
+            .finally(() => {
+                refreshPromise = null;
+            });
     }
 
     await refreshPromise;
+};
+
+export const resetAuthClientState = (): void => {
+    resetAuthRecoveryState();
 };
 
 export const apiRequest = async <TResponse, TBody = unknown>(
@@ -155,6 +217,7 @@ export const apiRequest = async <TResponse, TBody = unknown>(
     schema?: ZodType<TResponse>,
 ): Promise<TResponse> => {
     const method = options.method ?? "GET";
+    const authMode = options.authMode ?? "standard";
     const url = toAbsoluteUrl(path);
     const isMutation = method !== "GET";
 
@@ -178,32 +241,41 @@ export const apiRequest = async <TResponse, TBody = unknown>(
     };
 
     let response = await request();
+    let payload: unknown;
 
     if (response.status === 403 && isMutation) {
-        csrfPromise = fetchCsrfToken()
-            .then((token) => {
-                csrfTokenCache = token;
-            })
-            .finally(() => {
-                csrfPromise = null;
-            });
-        await csrfPromise;
-        response = await request();
+        payload = await parseResponseBody(response);
+        if (getPayloadErrorCode(payload) === "csrf_mismatch") {
+            resetCsrfTokenState();
+            await ensureCsrfToken();
+            response = await request();
+            payload = undefined;
+        }
     }
 
-    if (response.status === 401 && shouldRefreshOnUnauthorized(method, path)) {
+    if (response.status === 401 && shouldRefreshOnUnauthorizedWithMode(method, path, authMode)) {
         await refreshSessionSingleFlight();
         response = await request();
+        payload = undefined;
     }
 
-    const payload = await parseResponseBody(response);
+    if (payload === undefined) {
+        payload = await parseResponseBody(response);
+    }
 
     if (!response.ok) {
         throw new ApiError(normalizeApiError(response.status, payload));
     }
 
-    if (path === "/api/auth/logout" && method === "POST") {
-        csrfTokenCache = null;
+    if (
+        method === "POST" &&
+        (path === "/api/auth/logout" ||
+            path === "/api/auth/login" ||
+            path === "/api/auth/register" ||
+            path === "/api/auth/refresh")
+    ) {
+        resetCsrfTokenState();
+        syncCsrfTokenCacheFromCookie();
     }
 
     if (!schema) {
@@ -213,8 +285,11 @@ export const apiRequest = async <TResponse, TBody = unknown>(
     return schema.parse(payload);
 };
 
-export const apiGet = <TResponse>(path: string, schema?: ZodType<TResponse>): Promise<TResponse> =>
-    apiRequest(path, { method: "GET" }, schema);
+export const apiGet = <TResponse>(
+    path: string,
+    schema?: ZodType<TResponse>,
+    options?: Pick<ApiRequestOptions<never>, "signal" | "authMode">,
+): Promise<TResponse> => apiRequest(path, { method: "GET", ...options }, schema);
 
 export const apiPost = <TResponse, TBody = unknown>(
     path: string,

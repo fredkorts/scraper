@@ -48,6 +48,7 @@ export const useRunDetailColumns = ({ productLinkClassName }: UseRunDetailColumn
                     header: "Dashboard",
                     cell: (info) => (
                         <Link
+                            aria-label={`Open product detail for ${info.row.original.name}`}
                             params={{ productId: info.row.original.productId }}
                             search={defaultProductHistoryControls}
                             to="/app/products/$productId"
@@ -61,6 +62,7 @@ export const useRunDetailColumns = ({ productLinkClassName }: UseRunDetailColumn
                     header: "Link",
                     cell: (info) => (
                         <a
+                            aria-label={`View product page for ${info.row.original.name} (opens in new tab)`}
                             className={productLinkClassName}
                             href={info.row.original.externalUrl}
                             rel="noreferrer"
@@ -109,6 +111,7 @@ export const useRunDetailColumns = ({ productLinkClassName }: UseRunDetailColumn
                     header: "Link",
                     cell: (info) => (
                         <a
+                            aria-label={`View product page for ${info.row.original.product.name} (opens in new tab)`}
                             className={productLinkClassName}
                             href={info.row.original.product.externalUrl}
                             rel="noreferrer"

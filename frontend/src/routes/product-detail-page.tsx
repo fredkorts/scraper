@@ -1,5 +1,5 @@
 import { Alert, Empty, Space, Typography } from "antd";
-import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
+import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { AppButton } from "../components/app-button/AppButton";
 import { ProductDetailView } from "../features/products/components/product-detail-view";
@@ -39,9 +39,18 @@ export const ProductDetailPage = () => {
                             <AppButton size="small" onClick={() => void detailQuery.refetch()}>
                                 Retry
                             </AppButton>
-                            <Link search={defaultRunsListSearch} to="/app/runs">
-                                <AppButton size="small">Back to runs</AppButton>
-                            </Link>
+                            <AppButton
+                                intent="secondary"
+                                size="small"
+                                onClick={() =>
+                                    void navigate({
+                                        to: "/app/runs",
+                                        search: defaultRunsListSearch,
+                                    })
+                                }
+                            >
+                                Back to runs
+                            </AppButton>
                         </Space>
                     }
                     description={detailQuery.error.message}

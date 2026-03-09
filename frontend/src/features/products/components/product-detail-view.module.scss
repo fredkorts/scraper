@@ -90,6 +90,11 @@
     color: var(--color-text-muted);
 }
 
+.chartSummaryText {
+    margin: 0;
+    color: var(--color-text-muted);
+}
+
 .stockTag {
     font-weight: 600;
 }
@@ -112,6 +117,35 @@
 
 .externalLinkAnchor {
     display: inline-flex;
+}
+
+.actionLinkButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.5rem;
+    padding: 0.25rem 1rem;
+    border: 1px solid var(--button-secondary-border);
+    border-radius: var(--radius-sm);
+    background: var(--button-secondary-bg);
+    color: var(--button-secondary-text);
+    text-decoration: none;
+    transition:
+        background var(--transition-fast),
+        border-color var(--transition-fast),
+        color var(--transition-fast);
+}
+
+.actionLinkButton:hover {
+    background: var(--button-secondary-hover-bg);
+    border-color: var(--button-secondary-hover-border);
+    color: var(--button-secondary-hover-text);
+    text-decoration: none;
+}
+
+.actionLinkButton:focus-visible {
+    @include mixins.focus-ring;
+    text-decoration: none;
 }
 
 @include mixins.mq-md {

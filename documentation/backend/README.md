@@ -32,6 +32,8 @@ Required variables:
 - `NODE_ENV`
 - `PORT`
 - `FRONTEND_URL`
+- `FRONTEND_ORIGINS` (recommended; comma-separated allowlist, `FRONTEND_URL` remains legacy fallback)
+- `AUTH_COOKIE_SAMESITE` (`strict|lax|none`)
 - `DATABASE_URL`
 - `TEST_DATABASE_URL`
 - `EMAIL_PROVIDER`

@@ -97,14 +97,15 @@ export const ProductCriticalOverview = ({ discount, product }: ProductCriticalOv
                             </Descriptions.Item>
                             <Descriptions.Item label="Source URL">{product.externalUrl}</Descriptions.Item>
                         </Descriptions>
-                        <a
+                        <AppButton
                             className={styles.externalLinkAnchor}
                             href={product.externalUrl}
+                            intent="primary"
                             rel="noreferrer"
                             target="_blank"
                         >
-                            <AppButton intent="primary">Open on Mabrik</AppButton>
-                        </a>
+                            Open on Mabrik
+                        </AppButton>
                     </Card>
                 </Space>
             </Col>

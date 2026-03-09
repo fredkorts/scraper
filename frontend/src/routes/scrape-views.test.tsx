@@ -233,8 +233,8 @@ describe("scrape views", () => {
         expect(await screen.findByRole("heading", { name: "Scrape Runs" })).toBeInTheDocument();
         expect(screen.getByText("Miniatures")).toBeInTheDocument();
         expect(screen.getByText("11 total runs")).toBeInTheDocument();
-        expect(screen.getByRole("link", { name: "Open detail" })).toBeInTheDocument();
-        expect(screen.getByText("The scrape received HTTP 500 while loading page 4.")).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: /Open run detail for/ })).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: /View failure reason for/ })).toBeInTheDocument();
     });
 
     it("renders changes explorer from URL-backed query state", async () => {
@@ -278,8 +278,8 @@ describe("scrape views", () => {
         expect(await screen.findByRole("heading", { name: "Changes Explorer" })).toBeInTheDocument();
         expect(screen.getByText("Showing:")).toBeInTheDocument();
         expect(screen.getByText("Change Product")).toBeInTheDocument();
-        expect(screen.getByRole("link", { name: "Open run" })).toBeInTheDocument();
-        expect(screen.getByRole("link", { name: "View product" })).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: /Open run for/ })).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: /View product page for/ })).toBeInTheDocument();
     });
 
     it("renders run detail with readable failure metadata for non-admin users", async () => {
@@ -367,7 +367,7 @@ describe("scrape views", () => {
         expect(screen.queryByText("timeout of 45000ms exceeded")).not.toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "Diff Items" })).toBeInTheDocument();
         expect(screen.getAllByText("Test Product").length).toBeGreaterThan(0);
-        expect(screen.getByRole("link", { name: "Open product" })).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: /Open product detail for/ })).toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "Product Snapshots" })).toBeInTheDocument();
     });
 
@@ -414,6 +414,8 @@ describe("scrape views", () => {
     });
 
     it("renders product detail and history views", async () => {
+        const user = userEvent.setup();
+
         await renderRouterApp({
             initialEntry: "/app/products/55555555-5555-4555-8555-555555555555",
             session: mockUser,
@@ -480,9 +482,13 @@ describe("scrape views", () => {
         expect(await screen.findByRole("heading", { name: "Test Product" }, { timeout: 5000 })).toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "Price History" })).toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "Recent Runs" })).toBeInTheDocument();
-        expect(screen.getByRole("heading", { name: "History Table" })).toBeInTheDocument();
         expect(screen.getByRole("link", { name: "Open on Mabrik" })).toBeInTheDocument();
         expect(screen.getByRole("link", { name: "Open run detail" })).toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: "Show table fallback" }));
+        expect(screen.getByRole("heading", { name: "History Table" })).toBeInTheDocument();
+        expect(document.querySelector("a button")).toBeNull();
+        expect(document.querySelector("button a")).toBeNull();
     }, 15_000);
 
     it("updates product history view when controls change", async () => {
@@ -566,6 +572,8 @@ describe("scrape views", () => {
         expect(screen.getByLabelText("Show original price")).toBeChecked();
         expect(screen.getByLabelText("Show stock overlay")).toBeChecked();
         expect(screen.getByText("3 filtered state-change snapshots")).toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "Show table fallback" }));
+        expect(screen.getByRole("heading", { name: "History Table" })).toBeInTheDocument();
 
         await selectAntOption(user, "Category", "Card Games");
         expect(await screen.findByText("1 filtered state-change snapshots")).toBeInTheDocument();

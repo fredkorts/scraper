@@ -5,9 +5,11 @@ import { AppInput } from "../components/app-input/AppInput";
 import formStyles from "../features/auth/AuthForm.module.scss";
 import { useForgotPasswordMutation } from "../features/auth/mutations";
 import { forgotPasswordFormSchema, type ForgotPasswordFormValues } from "../features/auth/schemas";
+import { getFieldA11yProps, getFieldErrorProps } from "../shared/forms/a11y";
 import styles from "./Page.module.scss";
 
 export const ForgotPasswordPage = () => {
+    const formId = "forgot-password";
     const mutation = useForgotPasswordMutation();
     const form = useForm<ForgotPasswordFormValues>({
         resolver: zodResolver(forgotPasswordFormSchema),
@@ -37,10 +39,17 @@ export const ForgotPasswordPage = () => {
                         id="forgot-email"
                         type="email"
                         autoComplete="email"
+                        {...getFieldA11yProps({
+                            formId,
+                            fieldName: "email",
+                            hasError: Boolean(form.formState.errors.email),
+                        })}
                         {...form.register("email")}
                     />
                     {form.formState.errors.email ? (
-                        <p className={formStyles.error}>{form.formState.errors.email.message}</p>
+                        <p {...getFieldErrorProps(formId, "email")} className={formStyles.error}>
+                            {form.formState.errors.email.message}
+                        </p>
                     ) : null}
                 </div>
                 <div className={formStyles.actions}>

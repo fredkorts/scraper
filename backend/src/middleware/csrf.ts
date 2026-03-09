@@ -1,10 +1,9 @@
 import { timingSafeEqual } from "node:crypto";
 import type { NextFunction, Request, Response } from "express";
-import { config } from "../config";
 import { authCookieNames, setCsrfCookie } from "../lib/cookies";
 import { AppError } from "../lib/errors";
+import { isTrustedOrigin } from "../lib/trusted-origins";
 
-const trustedOrigin = new URL(config.FRONTEND_URL).origin;
 const csrfHeaderName = "x-csrf-token";
 
 const parseRequestOrigin = (request: Request): string | null => {
@@ -43,8 +42,8 @@ export const issueCsrfCookie = (_request: Request, response: Response): void => 
 export const requireTrustedOrigin = (request: Request, _response: Response, next: NextFunction): void => {
     const requestOrigin = parseRequestOrigin(request);
 
-    if (!requestOrigin || requestOrigin !== trustedOrigin) {
-        next(new AppError(403, "forbidden", "Origin is not allowed"));
+    if (!requestOrigin || !isTrustedOrigin(requestOrigin)) {
+        next(new AppError(403, "origin_not_allowed", "Origin is not allowed"));
         return;
     }
 
@@ -56,7 +55,7 @@ export const requireCsrf = (request: Request, _response: Response, next: NextFun
     const headerToken = request.headers[csrfHeaderName] as string | undefined;
 
     if (!cookieToken || !headerToken || !safeEqual(cookieToken, headerToken)) {
-        next(new AppError(403, "forbidden", "CSRF token mismatch"));
+        next(new AppError(403, "csrf_mismatch", "CSRF token mismatch"));
         return;
     }
 

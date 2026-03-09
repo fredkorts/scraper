@@ -3,7 +3,6 @@ import { ProductCriticalOverview } from "./detail/product-critical-overview";
 import { ProductDetailHeader } from "./detail/product-detail-header";
 import { ProductHistoryControlsSection } from "./detail/product-history-controls-section";
 import { ProductHistorySummaryCards } from "./detail/product-history-summary-cards";
-import { ProductHistoryTable } from "./detail/product-history-table";
 import { ProductHistoryVisualState } from "./detail/product-history-visual-state";
 import { ProductRecentRuns } from "./detail/product-recent-runs";
 import styles from "./product-detail-view.module.scss";
@@ -31,17 +30,16 @@ export const ProductDetailView = ({
 
         <Card
             className={styles.sectionCard}
-            title={(
+            title={
                 <Typography.Title id="price-history-heading" level={2}>
                     Price History
                 </Typography.Title>
-            )}
+            }
         >
             <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
                 <Typography.Text id="price-history-summary" type="secondary">
                     {viewModel.history.historySummary.pointCount} filtered state-change snapshots
                 </Typography.Text>
-                <span className={styles.srOnly}>{viewModel.historyScreenReaderSummary}</span>
 
                 <ProductHistoryControlsSection
                     availableCategoryOptions={viewModel.history.availableCategoryOptions}
@@ -60,16 +58,14 @@ export const ProductDetailView = ({
                 <ProductHistoryVisualState
                     chartData={viewModel.history.chartData}
                     controls={controls}
+                    historyColumns={historyColumns}
                     historyErrorMessage={historyErrorMessage}
+                    historyItems={viewModel.history.filteredHistoryItems}
+                    historyScreenReaderSummary={viewModel.historyScreenReaderSummary}
                     isHistoryLoading={isHistoryLoading}
                     showOriginalPriceLine={viewModel.history.showOriginalPriceLine}
                     onResetFilters={onResetFilters}
                     onRetryHistory={onRetryHistory}
-                />
-
-                <ProductHistoryTable
-                    historyColumns={historyColumns}
-                    historyItems={viewModel.history.filteredHistoryItems}
                 />
             </Space>
         </Card>

@@ -114,6 +114,20 @@
     --button-danger-disabled-text: #8a3030;
     --button-danger-focus-ring: rgba(184, 60, 60, 0.3);
 
+    --notification-success-bg: #2e7d4f;
+    --notification-success-border: #236640;
+    --notification-success-text: #ffffff;
+    --notification-error-bg: #f0b040;
+    --notification-error-border: #cc9428;
+    --notification-error-text: #1a1712;
+    --notification-info-bg: #ffffff;
+    --notification-info-border: #e2d9c8;
+    --notification-info-text: #1a1712;
+    --notification-warning-bg: #b83c3c;
+    --notification-warning-border: #9e2f2f;
+    --notification-warning-text: #ffffff;
+    --notification-shadow: var(--shadow-md);
+
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
     --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
     --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.14);
@@ -204,6 +218,20 @@
     --button-danger-disabled-border: #2e1818;
     --button-danger-disabled-text: #a05050;
     --button-danger-focus-ring: rgba(212, 90, 90, 0.35);
+
+    --notification-success-bg: #52a870;
+    --notification-success-border: #3d9058;
+    --notification-success-text: #0f0e0c;
+    --notification-error-bg: #f0b040;
+    --notification-error-border: #cc9428;
+    --notification-error-text: #0f0e0c;
+    --notification-info-bg: #ffffff;
+    --notification-info-border: #cdc0a8;
+    --notification-info-text: #1a1712;
+    --notification-warning-bg: #d45a5a;
+    --notification-warning-border: #b84848;
+    --notification-warning-text: #0f0e0c;
+    --notification-shadow: var(--shadow-md);
 
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
     --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.6);

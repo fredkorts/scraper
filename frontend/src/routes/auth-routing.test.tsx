@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { ApiError } from "../lib/api/errors";
 import { renderRouterApp, mockUser } from "../test/router-utils";
 
 afterEach(() => {
@@ -37,21 +38,18 @@ describe("auth routing", () => {
         const user = userEvent.setup();
         await renderRouterApp({ initialEntry: "/app", session: mockUser });
 
-        expect(await screen.findByRole("navigation", { name: "Main" })).toBeInTheDocument();
-        expect(screen.getByText("Example User")).toBeInTheDocument();
-        expect(screen.getByRole("link", { name: "Runs" })).toBeInTheDocument();
+        expect(screen.queryByRole("navigation", { name: "Main" })).not.toBeInTheDocument();
+        expect(screen.getAllByRole("main")).toHaveLength(1);
 
-        const themeSwitch = screen.getByRole("switch", { name: "Toggle dark mode" });
-        expect(themeSwitch).toHaveAttribute("aria-checked", "false");
+        const logoLink = await screen.findByRole("link", { name: "PricePulse" });
+        expect(logoLink).toHaveAttribute("href", "/app");
 
-        const logoutButton = screen.getByRole("button", { name: "Log out" });
-        const actions = logoutButton.parentElement;
-        expect(actions?.children[0]).toBe(themeSwitch);
-        expect(actions?.children[1]).toHaveTextContent("Example User");
-        expect(actions?.children[2]).toBe(logoutButton);
+        const menuTrigger = screen.getByRole("button", { name: "Open account menu" });
+        await user.click(menuTrigger);
 
-        await user.click(themeSwitch);
-        expect(themeSwitch).toHaveAttribute("aria-checked", "true");
+        expect(await screen.findByRole("menuitem", { name: "Settings" })).toBeInTheDocument();
+        expect(screen.getByRole("menuitem", { name: "Toggle theme (currently Light)" })).toBeInTheDocument();
+        expect(screen.getByRole("menuitem", { name: "Log out" })).toBeInTheDocument();
     });
 
     it("supports keyboard focus navigation on login form", async () => {
@@ -63,6 +61,23 @@ describe("auth routing", () => {
 
         await user.tab();
         expect(screen.getByLabelText("Password")).toHaveFocus();
+    });
+
+    it("associates login validation errors with fields", async () => {
+        const user = userEvent.setup();
+        await renderRouterApp({ initialEntry: "/login", session: null });
+
+        await user.click(screen.getByRole("button", { name: "Sign in" }));
+
+        const emailInput = screen.getByLabelText("Email");
+        const passwordInput = screen.getByLabelText("Password");
+
+        expect(emailInput).toHaveAttribute("aria-invalid", "true");
+        expect(emailInput).toHaveAttribute("aria-describedby", "login-email-error");
+        expect(passwordInput).toHaveAttribute("aria-invalid", "true");
+        expect(passwordInput).toHaveAttribute("aria-describedby", "login-password-error");
+        expect(screen.getByText("Invalid email address")).toHaveAttribute("id", "login-email-error");
+        expect(screen.getByText("Password is required")).toHaveAttribute("id", "login-password-error");
     });
 
     it("renders dedicated 404 page for unknown routes", async () => {
@@ -79,11 +94,27 @@ describe("auth routing", () => {
         expect(screen.getByRole("link", { name: "Back to dashboard" })).toBeInTheDocument();
     });
 
+    it("routes auth bootstrap origin misconfiguration to dedicated configuration error page", async () => {
+        await renderRouterApp({
+            initialEntry: "/app",
+            session: null,
+            ensureSessionError: new ApiError({
+                status: 403,
+                code: "origin_not_allowed",
+                message: "Origin is not allowed",
+            }),
+        });
+
+        expect(await screen.findByRole("heading", { name: "Authentication configuration error" })).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: "Back to sign in" })).toBeInTheDocument();
+    });
+
     it("shows notification feedback when logout fails", async () => {
         const user = userEvent.setup();
         await renderRouterApp({ initialEntry: "/app", session: mockUser, logoutShouldFail: true });
 
-        await user.click(await screen.findByRole("button", { name: "Log out" }));
+        await user.click(await screen.findByRole("button", { name: "Open account menu" }));
+        await user.click(await screen.findByRole("menuitem", { name: "Log out" }));
 
         await waitFor(() => {
             expect(screen.getByText("Sign out failed")).toBeInTheDocument();

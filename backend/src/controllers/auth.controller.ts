@@ -43,6 +43,9 @@ const getSessionContext = (request: Request): { ip?: string; userAgent?: string 
 export const csrfHandler = (req: Request, res: Response): void => {
     void req;
     const csrfToken = setCsrfCookie(res);
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
     res.status(200).json({ success: true, csrfToken });
 };
 

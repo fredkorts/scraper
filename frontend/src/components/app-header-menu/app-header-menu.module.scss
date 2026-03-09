@@ -1,0 +1,10 @@
+.trigger {
+    min-height: 2.75rem;
+}
+
+.userLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    color: var(--color-text-muted);
+}

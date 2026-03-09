@@ -6,9 +6,11 @@ import { AppInput } from "../components/app-input/AppInput";
 import formStyles from "../features/auth/AuthForm.module.scss";
 import { useResetPasswordMutation } from "../features/auth/mutations";
 import { resetPasswordFormSchema, type ResetPasswordFormValues } from "../features/auth/schemas";
+import { getFieldA11yProps, getFieldErrorProps } from "../shared/forms/a11y";
 import styles from "./Page.module.scss";
 
 export const ResetPasswordPage = () => {
+    const formId = "reset-password";
     const search = useSearch({ from: "/reset-password" });
     const navigate = useNavigate({ from: "/reset-password" });
     const mutation = useResetPasswordMutation();
@@ -63,10 +65,17 @@ export const ResetPasswordPage = () => {
                         id="password"
                         type="password"
                         autoComplete="new-password"
+                        {...getFieldA11yProps({
+                            formId,
+                            fieldName: "password",
+                            hasError: Boolean(form.formState.errors.password),
+                        })}
                         {...form.register("password")}
                     />
                     {form.formState.errors.password ? (
-                        <p className={formStyles.error}>{form.formState.errors.password.message}</p>
+                        <p {...getFieldErrorProps(formId, "password")} className={formStyles.error}>
+                            {form.formState.errors.password.message}
+                        </p>
                     ) : null}
                 </div>
                 <div className={formStyles.field}>
@@ -78,10 +87,17 @@ export const ResetPasswordPage = () => {
                         id="confirm-password"
                         type="password"
                         autoComplete="new-password"
+                        {...getFieldA11yProps({
+                            formId,
+                            fieldName: "confirm-password",
+                            hasError: Boolean(form.formState.errors.confirmPassword),
+                        })}
                         {...form.register("confirmPassword")}
                     />
                     {form.formState.errors.confirmPassword ? (
-                        <p className={formStyles.error}>{form.formState.errors.confirmPassword.message}</p>
+                        <p {...getFieldErrorProps(formId, "confirm-password")} className={formStyles.error}>
+                            {form.formState.errors.confirmPassword.message}
+                        </p>
                     ) : null}
                 </div>
                 <div className={formStyles.actions}>
