@@ -30,6 +30,45 @@ export const successResponseSchema = z.object({
     success: z.literal(true),
 });
 
+export const trackedProductSchema = z.object({
+    id: z.string().uuid(),
+    productId: z.string().uuid(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+    product: z.object({
+        id: z.string().uuid(),
+        name: z.string(),
+        imageUrl: z.string(),
+        externalUrl: z.string().url(),
+        currentPrice: z.number(),
+        inStock: z.boolean(),
+        isPreorder: z.boolean().optional(),
+        preorderEta: z.string().optional(),
+        preorderDetectedFrom: z.enum(["category_slug", "title", "description"]).optional(),
+        categories: z.array(
+            z.object({
+                id: z.string().uuid(),
+                slug: z.string(),
+                nameEt: z.string(),
+                nameEn: z.string(),
+            }),
+        ),
+    }),
+});
+
+export const trackedProductsResponseSchema = z.object({
+    items: z.array(trackedProductSchema),
+});
+
+export const trackProductResponseSchema = z.object({
+    item: trackedProductSchema,
+});
+
+export const subscriptionDeleteResponseSchema = z.object({
+    success: z.literal(true),
+    autoDisabledWatchCount: z.number().int().nonnegative().optional().default(0),
+});
+
 export const updateProfileRequestSchema = z.object({
     name: z.string().trim().min(2).max(100),
 });

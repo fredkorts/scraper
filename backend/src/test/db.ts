@@ -12,12 +12,14 @@ export const useTestDatabase = () => {
         assertDbBackedTestEnvironment();
         await prisma.$executeRawUnsafe(`
             TRUNCATE TABLE
+                notification_delivery_items,
                 notification_deliveries,
                 notification_channels,
                 refresh_tokens,
                 product_snapshots,
                 product_categories,
                 products,
+                user_tracked_products,
                 scrape_runs,
                 categories,
                 user_subscriptions,

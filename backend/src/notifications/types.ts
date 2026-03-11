@@ -26,6 +26,7 @@ export interface ReportChangeItem {
     newPrice: ChangeItem["newPrice"];
     oldStockStatus: ChangeItem["oldStockStatus"];
     newStockStatus: ChangeItem["newStockStatus"];
+    isWatchedAtSend?: boolean;
     product: Pick<
         Product,
         "id" | "name" | "externalUrl" | "imageUrl" | "isPreorder" | "preorderEta" | "preorderDetectedFrom"

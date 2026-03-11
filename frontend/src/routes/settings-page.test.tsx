@@ -133,6 +133,12 @@ describe("settings page", () => {
         expect(await screen.findByRole("tab", { name: "Admin" })).toHaveAttribute("aria-selected", "true");
         expect(screen.getByRole("heading", { name: "Category Schedule State" })).toBeInTheDocument();
         expect(screen.getAllByRole("button", { name: /edit interval for/i }).length).toBeGreaterThan(0);
+        await user.type(screen.getByLabelText("Search scheduler categories"), "queued");
+        expect(screen.getByText("Queued")).toBeInTheDocument();
+        await selectAntOption(user, "Scheduler category filter", "Strateegia");
+        await user.clear(screen.getByLabelText("Search scheduler categories"));
+        await user.type(screen.getByLabelText("Search scheduler categories"), "idle");
+        expect(screen.getByText("No scheduler categories matched the current filters.")).toBeInTheDocument();
         await user.click(screen.getByRole("button", { name: /save interval/i }));
 
         const manualTriggerSection = screen.getByRole("heading", { name: "Manual scrape trigger" }).closest("article");

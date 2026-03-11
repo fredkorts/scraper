@@ -1,11 +1,13 @@
 const AUTH_EVENT_CHANNEL_NAME = "auth-events";
 const AUTH_EVENT_KEY = "pricepulse:auth-event";
 
-type AuthEventType = "signed_out" | "session_revoked" | "password_reset";
+type AuthEventType = "signed_out" | "session_revoked" | "password_reset" | "auth_recovery_rate_limited";
 
 interface AuthEventPayload {
     type: AuthEventType;
     timestamp: number;
+    cooldownUntilMs?: number;
+    retryAfterSeconds?: number;
 }
 
 let authChannel: BroadcastChannel | null = null;
@@ -22,10 +24,14 @@ const getAuthChannel = (): BroadcastChannel | null => {
     return authChannel;
 };
 
-export const broadcastAuthEvent = (type: AuthEventType): void => {
+export const broadcastAuthEvent = (
+    type: AuthEventType,
+    extras?: Pick<AuthEventPayload, "cooldownUntilMs" | "retryAfterSeconds">,
+): void => {
     const payload: AuthEventPayload = {
         type,
         timestamp: Date.now(),
+        ...extras,
     };
 
     const channel = getAuthChannel();

@@ -24,7 +24,7 @@ export const createSubscriptionHandler = async (req: Request, res: Response, nex
 export const deleteSubscriptionHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const params = subscriptionIdParamSchema.parse(req.params);
-        const result = await deleteSubscription(req.auth!.userId, params.id);
+        const result = await deleteSubscription(req.auth!.userId, req.auth!.role, params.id);
         res.status(200).json(result);
     } catch (error) {
         next(error);

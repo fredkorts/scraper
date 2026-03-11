@@ -51,4 +51,8 @@ export const apiEndpoints = {
         list: "/api/subscriptions",
         detail: (id: string) => `/api/subscriptions/${id}`,
     },
+    trackedProducts: {
+        list: "/api/tracked-products",
+        byProduct: (productId: string) => `/api/tracked-products/by-product/${productId}`,
+    },
 } as const;

@@ -8,6 +8,9 @@ import {
     triggerRunResponseSchema,
     updateCategorySettingsResponseSchema,
     adminSchedulerStateResponseSchema,
+    trackedProductsResponseSchema,
+    trackedProductSchema,
+    subscriptionDeleteResponseSchema,
 } from "../schemas";
 
 export type SettingsTab = z.infer<typeof settingsTabSchema>;
@@ -20,3 +23,6 @@ export type CategorySettingsResponseData = z.infer<typeof updateCategorySettings
 export type AdminSchedulerStateData = z.infer<typeof adminSchedulerStateResponseSchema>;
 export type AdminSchedulerStateItemData = AdminSchedulerStateData["items"][number];
 export type ChannelData = z.infer<typeof notificationChannelSchema>;
+export type TrackedProductsData = z.infer<typeof trackedProductsResponseSchema>;
+export type TrackedProductData = z.infer<typeof trackedProductSchema>;
+export type SubscriptionDeleteResponseData = z.infer<typeof subscriptionDeleteResponseSchema>;

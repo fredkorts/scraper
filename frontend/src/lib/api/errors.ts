@@ -2,11 +2,15 @@ export interface NormalizedApiError {
     status: number;
     code: string;
     message: string;
+    retryAfterSeconds?: number;
+    limiter?: string;
 }
 
 interface BackendErrorPayload {
     error?: unknown;
     message?: unknown;
+    retryAfterSeconds?: unknown;
+    limiter?: unknown;
 }
 
 const isBackendErrorPayload = (value: unknown): value is BackendErrorPayload => {
@@ -20,12 +24,16 @@ const isBackendErrorPayload = (value: unknown): value is BackendErrorPayload => 
 export class ApiError extends Error {
     readonly status: number;
     readonly code: string;
+    readonly retryAfterSeconds?: number;
+    readonly limiter?: string;
 
     constructor(payload: NormalizedApiError) {
         super(payload.message);
         this.name = "ApiError";
         this.status = payload.status;
         this.code = payload.code;
+        this.retryAfterSeconds = payload.retryAfterSeconds;
+        this.limiter = payload.limiter;
     }
 }
 
@@ -46,5 +54,11 @@ export const normalizeApiError = (status: number, payload: unknown): NormalizedA
               ? "Server error"
               : "Request failed";
 
-    return { status, code, message };
+    const retryAfterSeconds =
+        typeof payload.retryAfterSeconds === "number" && payload.retryAfterSeconds > 0
+            ? payload.retryAfterSeconds
+            : undefined;
+    const limiter = typeof payload.limiter === "string" && payload.limiter.length > 0 ? payload.limiter : undefined;
+
+    return { status, code, message, retryAfterSeconds, limiter };
 };

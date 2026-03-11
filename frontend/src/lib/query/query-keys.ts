@@ -30,6 +30,7 @@ export const queryKeys = {
     },
     settings: {
         subscriptions: () => ["settings", "subscriptions"] as const,
+        trackedProducts: () => ["settings", "tracked-products"] as const,
         adminSchedulerState: () => ["settings", "admin", "scheduler-state"] as const,
     },
 };

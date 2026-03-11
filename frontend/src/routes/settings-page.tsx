@@ -16,7 +16,8 @@ import styles from "./settings-page.module.scss";
 export const SettingsPage = () => {
     const headingRef = useRef<HTMLHeadingElement>(null);
     const account = useSettingsAccount();
-    const tracking = useSettingsTracking();
+    const canTrackProducts = account.session.data?.capabilities?.productWatchlist ?? false;
+    const tracking = useSettingsTracking(canTrackProducts);
     const notifications = useSettingsNotifications();
     const role = account.session.data?.role ?? "free";
     const isAdmin = role === "admin";
@@ -78,16 +79,25 @@ export const SettingsPage = () => {
                 <SettingsTrackingTab
                     availableCategoryOptions={tracking.availableCategoryOptions}
                     availableCategoryTreeData={tracking.availableCategoryTreeData}
+                    canTrackProducts={canTrackProducts}
                     categoryLabelById={tracking.categoryLabelById}
+                    isTrackedProductsLoading={tracking.trackedProductsQuery.isLoading}
+                    isUntrackProductPending={tracking.isUntrackProductPending}
                     role={role}
                     selectedCategoryId={tracking.effectiveSelectedCategoryId}
                     subscriptions={tracking.subscriptionsQuery.data}
+                    trackedProducts={tracking.trackedProductsQuery.data?.items ?? []}
+                    trackedProductsError={
+                        tracking.trackedProductsQuery.isError ? tracking.trackedProductsQuery.error.message : null
+                    }
                     trackingError={tracking.trackingError}
                     isCreatePending={tracking.isCreatePending}
                     isDeletePending={tracking.isDeletePending}
+                    onRetryTrackedProducts={() => void tracking.trackedProductsQuery.refetch()}
                     onSelectCategory={tracking.setSelectedCategoryId}
                     onTrackCategory={tracking.onTrackCategory}
                     onUntrackCategory={tracking.onUntrackCategory}
+                    onUntrackProduct={tracking.onUntrackProduct}
                 />
             ) : null}
 

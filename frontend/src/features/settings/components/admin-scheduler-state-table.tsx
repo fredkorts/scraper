@@ -3,14 +3,21 @@ import { DataTable } from "../../../components/data-table/DataTable";
 import { AppButton } from "../../../components/app-button/AppButton";
 import { AppSelect } from "../../../components/app-select/AppSelect";
 import { CategoryTreeSelect } from "../../../components/category-tree-select/CategoryTreeSelect";
+import { TableSearchInput } from "../../../components/table-search-input/TableSearchInput";
 import { PaginationControls } from "../../../components/pagination/PaginationControls";
 import { formatDateTime } from "../../../shared/formatters/display";
+import {
+    normalizeTableSearchQuery,
+    TABLE_SEARCH_QUERY_MAX_LENGTH,
+    tokenizeTableSearchQuery,
+} from "../../../shared/search/query";
 import {
     DEFAULT_SCHEDULER_TABLE_PAGE_SIZE,
     SCHEDULER_ELIGIBILITY_LABELS,
     SCHEDULER_QUEUE_STATUS_LABELS,
     SCHEDULER_TABLE_PAGE_SIZE_OPTIONS,
 } from "../constants/admin-scheduler-state.constants";
+import { formatEligibilityStatusLabel, formatQueueStatusLabel } from "../formatters/admin-scheduler-state.formatters";
 import { useAdminSchedulerColumns } from "../hooks/use-admin-scheduler-columns";
 import type { AdminSchedulerSortBy, AdminSchedulerSortOrder } from "../types/admin-scheduler-sort.types";
 import type { AdminSchedulerStateTableProps } from "../types/admin-scheduler-state-table.types";
@@ -34,6 +41,7 @@ export const AdminSchedulerStateTable = ({
     const [sortBy, setSortBy] = useState<AdminSchedulerSortBy>("categoryNameEt");
     const [sortOrder, setSortOrder] = useState<AdminSchedulerSortOrder>("asc");
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>();
+    const [queryInput, setQueryInput] = useState("");
 
     const descendantCategoryIdsByCategoryId = useMemo(() => {
         const descendantsByCategoryId = new Map<string, Set<string>>();
@@ -63,7 +71,7 @@ export const AdminSchedulerStateTable = ({
             ? selectedCategoryId
             : undefined;
 
-    const filteredItems = useMemo(() => {
+    const categoryFilteredItems = useMemo(() => {
         if (!effectiveSelectedCategoryId) {
             return items;
         }
@@ -75,6 +83,28 @@ export const AdminSchedulerStateTable = ({
 
         return items.filter((item) => includedCategoryIds.has(item.categoryId));
     }, [descendantCategoryIdsByCategoryId, effectiveSelectedCategoryId, items]);
+
+    const searchQuery = useMemo(() => normalizeTableSearchQuery(queryInput), [queryInput]);
+    const searchTokens = useMemo(() => tokenizeTableSearchQuery(searchQuery?.toLocaleLowerCase()), [searchQuery]);
+
+    const filteredItems = useMemo(() => {
+        if (searchTokens.length === 0) {
+            return categoryFilteredItems;
+        }
+
+        return categoryFilteredItems.filter((item) => {
+            const searchableText = [
+                item.categoryNameEt,
+                item.categoryPathNameEt,
+                formatEligibilityStatusLabel(item.eligibilityStatus),
+                formatQueueStatusLabel(item.queueStatus),
+            ]
+                .join(" ")
+                .toLocaleLowerCase();
+
+            return searchTokens.every((token) => searchableText.includes(token));
+        });
+    }, [categoryFilteredItems, searchTokens]);
 
     const sortedItems = useMemo(() => {
         const normalizeDateValue = (value?: string): number => {
@@ -131,6 +161,7 @@ export const AdminSchedulerStateTable = ({
     const totalItems = sortedItems.length;
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
     const safePage = Math.min(page, totalPages);
+    const hasActiveFilters = Boolean(effectiveSelectedCategoryId || searchQuery);
     const pagedItems = useMemo(() => {
         const offset = (safePage - 1) * pageSize;
 
@@ -162,14 +193,20 @@ export const AdminSchedulerStateTable = ({
 
     return (
         <article className={styles.card}>
-            <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>Category Schedule State</h2>
+            <div className={[styles.sectionHeader, styles.stackedSectionHeader].join(" ")}>
+                <div className={styles.stack}>
+                    <h2 className={styles.sectionTitle}>Category Schedule State</h2>
+                    <span className={styles.subtle}>Updated {generatedAt ? formatDateTime(generatedAt) : "-"}</span>
+                </div>
                 <div className={styles.tableMetaGroup}>
-                    <label className={styles.inlineLabel}>
-                        <span className={styles.subtle}>Results per page</span>
+                    <div className={styles.filterGroup}>
+                        <label className={styles.label} htmlFor="scheduler-page-size-filter">
+                            Page size
+                        </label>
                         <AppSelect
-                            ariaLabel="Results per page"
-                            className={styles.pageSizeSelect}
+                            id="scheduler-page-size-filter"
+                            ariaLabel="Scheduler page size"
+                            className={[styles.select, styles.pageSizeSelect].join(" ")}
                             options={SCHEDULER_TABLE_PAGE_SIZE_OPTIONS}
                             value={String(pageSize)}
                             onChange={(value) => {
@@ -181,24 +218,42 @@ export const AdminSchedulerStateTable = ({
                                 setPage(1);
                             }}
                         />
-                    </label>
-                    <label className={styles.inlineLabel}>
-                        <span className={styles.subtle}>Category filter</span>
+                    </div>
+                    <div className={styles.filterGroup}>
+                        <label className={styles.label} htmlFor="scheduler-category-filter">
+                            Category
+                        </label>
                         <CategoryTreeSelect
                             allowClear
                             ariaLabel="Scheduler category filter"
-                            className={styles.schedulerFilterSelect}
+                            className={[styles.select, styles.schedulerFilterSelect].join(" ")}
                             disabled={!categoryTreeData.length}
+                            id="scheduler-category-filter"
                             treeData={categoryTreeData}
-                            placeholder="All scheduler categories"
+                            placeholder="All tracked categories"
                             value={effectiveSelectedCategoryId}
                             onChange={(value) => {
                                 setSelectedCategoryId(value);
                                 setPage(1);
                             }}
                         />
-                    </label>
-                    <span className={styles.subtle}>Updated {generatedAt ? formatDateTime(generatedAt) : "-"}</span>
+                    </div>
+                    <div className={styles.filterGroup}>
+                        <label className={styles.label} htmlFor="scheduler-query-filter">
+                            Search
+                        </label>
+                        <TableSearchInput
+                            id="scheduler-query-filter"
+                            ariaLabel="Search scheduler categories"
+                            placeholder="Search categories and statuses"
+                            value={queryInput}
+                            maxLength={TABLE_SEARCH_QUERY_MAX_LENGTH}
+                            onChange={(value) => {
+                                setQueryInput(value);
+                                setPage(1);
+                            }}
+                        />
+                    </div>
                 </div>
             </div>
             {isLoading ? <p className={styles.subtle}>Loading schedule state...</p> : null}
@@ -212,7 +267,15 @@ export const AdminSchedulerStateTable = ({
             ) : null}
             {!isLoading && !error ? (
                 <>
-                    <DataTable data={pagedItems} columns={columns} emptyText="No scheduler categories available." />
+                    <DataTable
+                        data={pagedItems}
+                        columns={columns}
+                        emptyText={
+                            hasActiveFilters
+                                ? "No scheduler categories matched the current filters."
+                                : "No scheduler categories available."
+                        }
+                    />
                     <PaginationControls
                         page={safePage}
                         pageSize={pageSize}

@@ -21,8 +21,10 @@ export const defaultRunDetailSectionSearch = {
     productsPage: 1,
     productsPageSize: 10,
     productsInStock: undefined as "true" | "false" | undefined,
+    productsQuery: undefined as string | undefined,
     changesPage: 1,
     changesPageSize: 10,
+    changesQuery: undefined as string | undefined,
     changeType: undefined as RunChangeTypeValue | undefined,
     preorder: "all" as PreorderFilterValue,
 };
@@ -36,4 +38,5 @@ export const defaultChangesListSearch = {
     preorder: "all" as PreorderFilterValue,
     categoryId: undefined as string | undefined,
     windowDays: 7 as 1 | 7 | 30,
+    query: undefined as string | undefined,
 };

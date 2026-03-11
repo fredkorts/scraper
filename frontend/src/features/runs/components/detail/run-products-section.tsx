@@ -1,6 +1,8 @@
 import { AppSelect } from "../../../../components/app-select/AppSelect";
 import { DataTable } from "../../../../components/data-table/DataTable";
 import { PaginationControls } from "../../../../components/pagination/PaginationControls";
+import { TableSearchInput } from "../../../../components/table-search-input/TableSearchInput";
+import { TABLE_SEARCH_QUERY_MAX_LENGTH } from "../../../../shared/search/query";
 import { RUN_PRODUCT_STOCK_FILTER_OPTIONS } from "../../constants/run-filters.constants";
 import styles from "./run-detail-sections.module.scss";
 import type { RunProductsSectionProps } from "../../types/run-detail-sections.types";
@@ -14,7 +16,9 @@ export const RunProductsSection = ({
     productColumns,
     products,
     productsInStock,
+    query,
     onPageChange,
+    onQueryChange,
     onProductsStockChange,
 }: RunProductsSectionProps) => (
     <section aria-labelledby="products-heading" className={styles.section}>
@@ -22,20 +26,35 @@ export const RunProductsSection = ({
             <h2 className={styles.sectionTitle} id="products-heading">
                 Product Snapshots
             </h2>
-            <div className={styles.filterGroup}>
-                <label className={styles.label} htmlFor="stock-filter">
-                    Stock filter
-                </label>
-                <AppSelect
-                    allowClear
-                    ariaLabel="Stock filter"
-                    className={styles.select}
-                    id="stock-filter"
-                    options={RUN_PRODUCT_STOCK_FILTER_OPTIONS}
-                    placeholder="All stock states"
-                    value={productsInStock}
-                    onChange={(value) => onProductsStockChange(value || undefined)}
-                />
+            <div className={styles.filterRow}>
+                <div className={styles.filterGroup}>
+                    <label className={styles.label} htmlFor="stock-filter">
+                        Stock filter
+                    </label>
+                    <AppSelect
+                        allowClear
+                        ariaLabel="Stock filter"
+                        className={styles.select}
+                        id="stock-filter"
+                        options={RUN_PRODUCT_STOCK_FILTER_OPTIONS}
+                        placeholder="All stock states"
+                        value={productsInStock}
+                        onChange={(value) => onProductsStockChange(value || undefined)}
+                    />
+                </div>
+                <div className={styles.filterGroup}>
+                    <label className={styles.label} htmlFor="run-products-search-filter">
+                        Search
+                    </label>
+                    <TableSearchInput
+                        id="run-products-search-filter"
+                        ariaLabel="Search product snapshots"
+                        placeholder="Search product snapshots"
+                        value={query}
+                        maxLength={TABLE_SEARCH_QUERY_MAX_LENGTH}
+                        onChange={onQueryChange}
+                    />
+                </div>
             </div>
         </div>
 

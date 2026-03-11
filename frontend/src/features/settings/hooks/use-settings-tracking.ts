@@ -1,18 +1,20 @@
 import { useMemo, useState } from "react";
 import { buildCategoryOptions, buildCategoryTreeData, getCategoryDisplayLabel } from "../../categories/options";
 import { useCategoriesQuery } from "../../categories/queries";
-import { useCreateSubscriptionMutation, useDeleteSubscriptionMutation } from "../mutations";
-import { useSubscriptionsQuery } from "../queries";
+import { useCreateSubscriptionMutation, useDeleteSubscriptionMutation, useUntrackProductMutation } from "../mutations";
+import { useSubscriptionsQuery, useTrackedProductsQuery } from "../queries";
 import type { UseSettingsTrackingResult } from "../types/use-settings-tracking.types";
 import { NOTIFICATION_MESSAGES } from "../../../shared/constants/notification-messages";
 import { useAppNotification } from "../../../shared/hooks/use-app-notification";
 import { normalizeUserError } from "../../../shared/utils/normalize-user-error";
 
-export const useSettingsTracking = (): UseSettingsTrackingResult => {
+export const useSettingsTracking = (canTrackProducts: boolean): UseSettingsTrackingResult => {
     const categoriesQuery = useCategoriesQuery("all");
     const subscriptionsQuery = useSubscriptionsQuery();
+    const trackedProductsQuery = useTrackedProductsQuery(canTrackProducts);
     const createSubscriptionMutation = useCreateSubscriptionMutation();
     const deleteSubscriptionMutation = useDeleteSubscriptionMutation();
+    const untrackProductMutation = useUntrackProductMutation();
     const { notify } = useAppNotification();
     const [selectedCategoryId, setSelectedCategoryId] = useState("");
     const [trackingError, setTrackingError] = useState<string | null>(null);
@@ -84,11 +86,15 @@ export const useSettingsTracking = (): UseSettingsTrackingResult => {
 
     const onUntrackCategory = async (subscriptionId: string) => {
         try {
-            await deleteSubscriptionMutation.mutateAsync(subscriptionId);
+            const result = await deleteSubscriptionMutation.mutateAsync(subscriptionId);
+            const autoDisabledWatchCount = result.autoDisabledWatchCount ?? 0;
             notify({
                 variant: "success",
                 message: NOTIFICATION_MESSAGES.settings.categoryUntracked.message,
-                description: "The category is no longer tracked.",
+                description:
+                    autoDisabledWatchCount > 0
+                        ? `The category is no longer tracked. ${autoDisabledWatchCount} watched product${autoDisabledWatchCount === 1 ? "" : "s"} were auto-disabled.`
+                        : "The category is no longer tracked.",
                 key: "settings:tracking:delete",
             });
         } catch (error) {
@@ -101,9 +107,29 @@ export const useSettingsTracking = (): UseSettingsTrackingResult => {
         }
     };
 
+    const onUntrackProduct = async (productId: string, productName: string) => {
+        try {
+            await untrackProductMutation.mutateAsync(productId);
+            notify({
+                variant: "success",
+                message: NOTIFICATION_MESSAGES.settings.productUnwatched.message,
+                description: `${productName} is no longer tracked.`,
+                key: "settings:tracking:product-unwatch",
+            });
+        } catch (error) {
+            notify({
+                variant: "error",
+                message: NOTIFICATION_MESSAGES.settings.productUnwatchFailed.message,
+                description: normalizeUserError(error, "Failed to stop tracking product"),
+                key: "settings:tracking:product-unwatch",
+            });
+        }
+    };
+
     return {
         categoriesQuery,
         subscriptionsQuery,
+        trackedProductsQuery,
         categoryOptions,
         availableCategoryOptions,
         availableCategoryTreeData,
@@ -113,8 +139,10 @@ export const useSettingsTracking = (): UseSettingsTrackingResult => {
         trackingError,
         isCreatePending: createSubscriptionMutation.isPending,
         isDeletePending: deleteSubscriptionMutation.isPending,
+        isUntrackProductPending: untrackProductMutation.isPending,
         setSelectedCategoryId,
         onTrackCategory,
         onUntrackCategory,
+        onUntrackProduct,
     };
 };

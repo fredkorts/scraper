@@ -28,6 +28,7 @@ import { prisma } from "../lib/prisma";
 import { AppError } from "../lib/errors";
 import { buildCategoryScopeWhere, getAccessibleCategoryIds } from "./access-scope.service";
 import { collectDescendantCategoryIds } from "./category-hierarchy.service";
+import { getWatchedProductMap } from "./tracked-product.service";
 
 const DASHBOARD_CHANGE_WINDOW_DAYS = 7;
 const DASHBOARD_LATEST_RUN_LIMIT = 6;
@@ -80,6 +81,13 @@ const preorderSourceMap: Record<PreorderDetectionSource, "category_slug" | "titl
     TITLE: "title",
     DESCRIPTION: "description",
 };
+const searchableChangeTypeLabels: Record<PrismaChangeType, string> = {
+    PRICE_INCREASE: "price increase",
+    PRICE_DECREASE: "price decrease",
+    NEW_PRODUCT: "new product",
+    SOLD_OUT: "sold out",
+    BACK_IN_STOCK: "back in stock",
+};
 
 const buildEmptyChangeSummary = (): DashboardChangeSummary => ({
     priceIncrease: 0,
@@ -88,6 +96,22 @@ const buildEmptyChangeSummary = (): DashboardChangeSummary => ({
     soldOut: 0,
     backInStock: 0,
 });
+
+const tokenizeSearchQuery = (query?: string): string[] => {
+    if (!query) {
+        return [];
+    }
+
+    return query.split(" ").filter((token) => token.length > 0);
+};
+
+const getChangeTypesMatchingToken = (token: string): PrismaChangeType[] => {
+    const normalizedToken = token.toLocaleLowerCase();
+
+    return (Object.entries(searchableChangeTypeLabels) as Array<[PrismaChangeType, string]>)
+        .filter(([, label]) => label.includes(normalizedToken))
+        .map(([changeType]) => changeType);
+};
 
 const getDescendantCategoryIds = async (
     rootCategoryId: string,
@@ -192,6 +216,7 @@ const buildSystemNoiseWhere = (includeSystemNoise: boolean): Prisma.ScrapeRunWhe
     includeSystemNoise ? {} : { isSystemNoise: false };
 
 interface ListChangesWithScopeParams {
+    userId: string;
     includeSystemNoise: boolean;
     categoryIds: string[] | null;
     page: number;
@@ -200,12 +225,14 @@ interface ListChangesWithScopeParams {
     sortOrder: "asc" | "desc";
     changeType?: RunChangesQuery["changeType"];
     preorder?: "all" | "only" | "exclude";
+    query?: string;
     categoryId?: string;
     windowDays?: number;
     changeReportId?: string;
 }
 
 const listChangesWithScope = async ({
+    userId,
     includeSystemNoise,
     categoryIds,
     page,
@@ -214,6 +241,7 @@ const listChangesWithScope = async ({
     sortOrder,
     changeType,
     preorder = "all",
+    query,
     categoryId,
     windowDays,
     changeReportId,
@@ -253,6 +281,7 @@ const listChangesWithScope = async ({
             : {}),
     };
 
+    const searchTokens = tokenizeSearchQuery(query);
     const where: Prisma.ChangeItemWhereInput = {
         changeReport: changeReportWhere,
         ...(changeType ? { changeType: changeTypeInputMap[changeType] } : {}),
@@ -269,6 +298,55 @@ const listChangesWithScope = async ({
                     },
                 }
               : {}),
+        ...(searchTokens.length > 0
+            ? {
+                  AND: searchTokens.map((token) => {
+                      const matchingChangeTypes = getChangeTypesMatchingToken(token);
+
+                      return {
+                          OR: [
+                              {
+                                  product: {
+                                      name: {
+                                          contains: token,
+                                          mode: Prisma.QueryMode.insensitive,
+                                      },
+                                  },
+                              },
+                              {
+                                  product: {
+                                      externalUrl: {
+                                          contains: token,
+                                          mode: Prisma.QueryMode.insensitive,
+                                      },
+                                  },
+                              },
+                              {
+                                  changeReport: {
+                                      scrapeRun: {
+                                          category: {
+                                              nameEt: {
+                                                  contains: token,
+                                                  mode: Prisma.QueryMode.insensitive,
+                                              },
+                                          },
+                                      },
+                                  },
+                              },
+                              ...(matchingChangeTypes.length > 0
+                                  ? [
+                                        {
+                                            changeType: {
+                                                in: matchingChangeTypes,
+                                            },
+                                        },
+                                    ]
+                                  : []),
+                          ],
+                      };
+                  }),
+              }
+            : {}),
     };
 
     const orderBy: Prisma.ChangeItemOrderByWithRelationInput[] =
@@ -319,6 +397,10 @@ const listChangesWithScope = async ({
             take: pageSize,
         }),
     ]);
+    const watchedProductIds = await getWatchedProductMap(
+        userId,
+        Array.from(new Set(changeItems.map((item) => item.product.id))),
+    );
 
     return {
         items: changeItems.map((item) => ({
@@ -333,6 +415,7 @@ const listChangesWithScope = async ({
                 name: item.product.name,
                 imageUrl: item.product.imageUrl,
                 externalUrl: item.product.externalUrl,
+                isWatched: watchedProductIds.has(item.product.id),
                 isPreorder: item.product.isPreorder,
                 preorderEta: toDateOnly(item.product.preorderEta),
                 preorderDetectedFrom: item.product.preorderDetectedFrom
@@ -620,10 +703,33 @@ export const listRunProducts = async (
     query: RunProductsQuery,
 ): Promise<RunProductsResponse> => {
     await getAccessibleRunOrThrow(userId, role, runId, query.includeSystemNoise);
+    const searchTokens = tokenizeSearchQuery(query.query);
 
     const where: Prisma.ProductSnapshotWhereInput = {
         scrapeRunId: runId,
         ...(query.inStock === undefined ? {} : { inStock: query.inStock }),
+        ...(searchTokens.length > 0
+            ? {
+                  AND: searchTokens.map((token) => ({
+                      OR: [
+                          {
+                              name: {
+                                  contains: token,
+                                  mode: Prisma.QueryMode.insensitive,
+                              },
+                          },
+                          {
+                              product: {
+                                  externalUrl: {
+                                      contains: token,
+                                      mode: Prisma.QueryMode.insensitive,
+                                  },
+                              },
+                          },
+                      ],
+                  })),
+              }
+            : {}),
     };
 
     const [totalItems, snapshots] = await Promise.all([
@@ -645,6 +751,10 @@ export const listRunProducts = async (
             take: query.pageSize,
         }),
     ]);
+    const watchedProductIds = await getWatchedProductMap(
+        userId,
+        Array.from(new Set(snapshots.map((snapshot) => snapshot.productId))),
+    );
 
     return {
         items: snapshots.map((snapshot) => ({
@@ -655,6 +765,7 @@ export const listRunProducts = async (
             price: Number(snapshot.price.toString()),
             originalPrice: toNumber(snapshot.originalPrice),
             inStock: snapshot.inStock,
+            isWatched: watchedProductIds.has(snapshot.productId),
             imageUrl: snapshot.imageUrl,
             externalUrl: snapshot.product.externalUrl,
             isPreorder: snapshot.product.isPreorder,
@@ -690,6 +801,7 @@ export const listRunChanges = async (
     }
 
     const response = await listChangesWithScope({
+        userId,
         includeSystemNoise: query.includeSystemNoise,
         categoryIds: await getAccessibleCategoryIds(userId, role),
         page: query.page,
@@ -698,6 +810,7 @@ export const listRunChanges = async (
         sortOrder: "desc",
         changeType: query.changeType,
         preorder: query.preorder,
+        query: query.query,
         changeReportId: run.changeReport.id,
     });
 
@@ -734,6 +847,7 @@ export const listChanges = async (
     }
 
     return listChangesWithScope({
+        userId,
         includeSystemNoise: query.includeSystemNoise,
         categoryIds,
         page: query.page,
@@ -742,6 +856,7 @@ export const listChanges = async (
         sortOrder: query.sortOrder,
         changeType: query.changeType,
         preorder: query.preorder,
+        query: query.query,
         categoryId: query.categoryId,
         windowDays: query.windowDays,
     });

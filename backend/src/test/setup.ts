@@ -1,9 +1,6 @@
 import { config as loadEnv } from "dotenv";
 import { fileURLToPath } from "node:url";
-import {
-    assertIsolatedTestDatabaseUrl,
-    getSafePlaceholderTestDatabaseUrl,
-} from "./database-target";
+import { assertIsolatedTestDatabaseUrl, getSafePlaceholderTestDatabaseUrl } from "./database-target";
 
 loadEnv({
     path: fileURLToPath(new URL("../../.env", import.meta.url)),
@@ -23,7 +20,7 @@ process.env.JWT_ISSUER ??= "mabrik-backend-test";
 process.env.JWT_AUDIENCE ??= "mabrik-app-test";
 process.env.ACCESS_TOKEN_TTL ??= "15m";
 process.env.REFRESH_TOKEN_TTL_DAYS ??= "30";
-process.env.BCRYPT_ROUNDS ??= "10";
+process.env.BCRYPT_ROUNDS ??= "4";
 
 const configuredTestDatabaseUrl = process.env.TEST_DATABASE_URL?.trim();
 

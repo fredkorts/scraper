@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
+import { TrackedProductBadge } from "../../../components/tracked-product-badge/TrackedProductBadge";
 import { defaultProductHistoryControls } from "../../products/history-controls";
 import { STOCK_STATUS_LABELS } from "../../../shared/constants/stock.constants";
 import { formatChangeDetails, formatPreorderState, formatPrice, formatStatusLabel } from "../formatters";
@@ -17,13 +18,16 @@ export const useRunDetailColumns = ({ productLinkClassName }: UseRunDetailColumn
                 productColumnHelper.accessor("name", {
                     header: "Product",
                     cell: (info) => (
-                        <Link
-                            params={{ productId: info.row.original.productId }}
-                            search={defaultProductHistoryControls}
-                            to="/app/products/$productId"
-                        >
-                            {info.getValue()}
-                        </Link>
+                        <span>
+                            <Link
+                                params={{ productId: info.row.original.productId }}
+                                search={defaultProductHistoryControls}
+                                to="/app/products/$productId"
+                            >
+                                {info.getValue()}
+                            </Link>
+                            {info.row.original.isWatched ? <TrackedProductBadge /> : null}
+                        </span>
                     ),
                 }),
                 productColumnHelper.accessor("price", {
@@ -87,13 +91,16 @@ export const useRunDetailColumns = ({ productLinkClassName }: UseRunDetailColumn
                     id: "productName",
                     header: "Product",
                     cell: (info) => (
-                        <Link
-                            params={{ productId: info.row.original.product.id }}
-                            search={defaultProductHistoryControls}
-                            to="/app/products/$productId"
-                        >
-                            {info.row.original.product.name}
-                        </Link>
+                        <span>
+                            <Link
+                                params={{ productId: info.row.original.product.id }}
+                                search={defaultProductHistoryControls}
+                                to="/app/products/$productId"
+                            >
+                                {info.row.original.product.name}
+                            </Link>
+                            {info.row.original.product.isWatched ? <TrackedProductBadge /> : null}
+                        </span>
                     ),
                 }),
                 changeColumnHelper.display({

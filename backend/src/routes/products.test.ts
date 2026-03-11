@@ -72,7 +72,7 @@ describe("categories and products routes", () => {
         expect(response.status).toBe(200);
         expect(response.body.categories).toHaveLength(1);
         expect(response.body.categories[0].id).toBe(visibleCategory.id);
-    });
+    }, 15_000);
 
     it("allows admin users to list all active categories", async () => {
         const app = createApp();

@@ -1,10 +1,12 @@
 import { AppSelect } from "../../../../components/app-select/AppSelect";
+import { TableSearchInput } from "../../../../components/table-search-input/TableSearchInput";
 import { ChangesTableSection } from "../shared/changes-table-section";
 import { RUN_CHANGE_TYPE_FILTER_OPTIONS, RUN_PREORDER_FILTER_OPTIONS } from "../../constants/run-filters.constants";
 import {
     PREORDER_EMPTY_FILTER_EXCLUDE_MESSAGE,
     PREORDER_EMPTY_FILTER_ONLY_MESSAGE,
 } from "../../../../shared/constants/preorder.constants";
+import { TABLE_SEARCH_QUERY_MAX_LENGTH } from "../../../../shared/search/query";
 import styles from "./run-detail-sections.module.scss";
 import type { RunChangesSectionProps } from "../../types/run-detail-sections.types";
 
@@ -12,6 +14,7 @@ export const RunChangesSection = ({
     changeColumns,
     changes,
     changeType,
+    query,
     preorder,
     errorMessage,
     isFetching,
@@ -19,6 +22,7 @@ export const RunChangesSection = ({
     page,
     pageSize,
     onChangeTypeChange,
+    onQueryChange,
     onPreorderChange,
     onPageChange,
     onRetry,
@@ -59,6 +63,19 @@ export const RunChangesSection = ({
                         placeholder="All change types"
                         value={changeType}
                         onChange={(value) => onChangeTypeChange(value || undefined)}
+                    />
+                </div>
+                <div className={styles.filterGroup}>
+                    <label className={styles.label} htmlFor="run-changes-search-filter">
+                        Search
+                    </label>
+                    <TableSearchInput
+                        id="run-changes-search-filter"
+                        ariaLabel="Search diff items"
+                        placeholder="Search diff items"
+                        value={query}
+                        maxLength={TABLE_SEARCH_QUERY_MAX_LENGTH}
+                        onChange={onQueryChange}
                     />
                 </div>
                 <div className={styles.filterGroup}>

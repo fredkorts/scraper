@@ -2,13 +2,7 @@ import { UserRole as PrismaUserRole } from "@prisma/client";
 import type { UserRole } from "@mabrik/shared";
 import { prisma } from "../lib/prisma";
 import { AppError } from "../lib/errors";
-
-const roleLimitMap: Record<Exclude<UserRole, "admin">, number> = {
-    free: 3,
-    paid: 6,
-};
-
-const toLimit = (role: UserRole): number | null => (role === "admin" ? null : roleLimitMap[role]);
+import { getTrackingLimit, getTrackingLimitByPrismaRole, getTrackingUsage } from "./tracking-capacity.service";
 
 export const listSubscriptions = async (
     userId: string,
@@ -49,7 +43,7 @@ export const listSubscriptions = async (
         },
     });
 
-    const limit = toLimit(role);
+    const limit = getTrackingLimit(role);
     const used = subscriptions.length;
 
     return {
@@ -85,7 +79,7 @@ export const createSubscription = async (
     createdAt: string;
     isActive: boolean;
 }> => {
-    const limit = toLimit(role);
+    const limit = getTrackingLimit(role);
 
     return prisma.$transaction(async (tx) => {
         const category = await tx.category.findFirst({
@@ -117,15 +111,9 @@ export const createSubscription = async (
         }
 
         if (limit !== null) {
-            const activeCount = await tx.userSubscription.count({
-                where: {
-                    userId,
-                    isActive: true,
-                },
-            });
-
-            if (activeCount >= limit) {
-                throw new AppError(409, "subscription_limit_reached", `Your plan allows tracking up to ${limit} categories`);
+            const usage = await getTrackingUsage(tx, userId);
+            if (usage.used >= limit) {
+                throw new AppError(409, "tracking_limit_reached", `Your plan allows tracking up to ${limit} items`);
             }
         }
 
@@ -154,7 +142,11 @@ export const createSubscription = async (
     });
 };
 
-export const deleteSubscription = async (userId: string, subscriptionId: string): Promise<{ success: true }> => {
+export const deleteSubscription = async (
+    userId: string,
+    role: UserRole,
+    subscriptionId: string,
+): Promise<{ success: true; autoDisabledWatchCount: number }> => {
     const subscription = await prisma.userSubscription.findFirst({
         where: {
             id: subscriptionId,
@@ -167,22 +159,71 @@ export const deleteSubscription = async (userId: string, subscriptionId: string)
         throw new AppError(404, "not_found", "Subscription not found");
     }
 
-    await prisma.userSubscription.update({
-        where: {
-            id: subscription.id,
-        },
-        data: {
-            isActive: false,
-        },
-    });
+    return prisma.$transaction(async (tx) => {
+        await tx.userSubscription.update({
+            where: {
+                id: subscription.id,
+            },
+            data: {
+                isActive: false,
+            },
+        });
 
-    return { success: true };
+        if (role === "admin") {
+            return {
+                success: true as const,
+                autoDisabledWatchCount: 0,
+            };
+        }
+
+        const remainingSubscriptionCategoryIds = (
+            await tx.userSubscription.findMany({
+                where: {
+                    userId,
+                    isActive: true,
+                },
+                select: {
+                    categoryId: true,
+                },
+            })
+        ).map((item) => item.categoryId);
+
+        const disableResult = await tx.userTrackedProduct.updateMany({
+            where: {
+                userId,
+                isActive: true,
+                ...(remainingSubscriptionCategoryIds.length > 0
+                    ? {
+                          NOT: {
+                              product: {
+                                  productCategories: {
+                                      some: {
+                                          categoryId: {
+                                              in: remainingSubscriptionCategoryIds,
+                                          },
+                                          category: {
+                                              isActive: true,
+                                          },
+                                      },
+                                  },
+                              },
+                          },
+                      }
+                    : {}),
+            },
+            data: {
+                isActive: false,
+                deactivatedReason: "category_untracked",
+            },
+        });
+
+        return {
+            success: true as const,
+            autoDisabledWatchCount: disableResult.count,
+        };
+    });
 };
 
 export const getRoleLimit = (role: PrismaUserRole): number | null => {
-    if (role === PrismaUserRole.ADMIN) {
-        return null;
-    }
-
-    return role === PrismaUserRole.PAID ? 6 : 3;
+    return getTrackingLimitByPrismaRole(role);
 };

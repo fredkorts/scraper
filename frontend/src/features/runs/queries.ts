@@ -35,6 +35,7 @@ interface RunProductsParams {
     page: number;
     pageSize: number;
     inStock?: "true" | "false";
+    query?: string;
 }
 
 interface RunChangesParams {
@@ -42,6 +43,7 @@ interface RunChangesParams {
     pageSize: number;
     changeType?: string;
     preorder: "all" | "only" | "exclude";
+    query?: string;
 }
 
 interface ChangesListParams {
@@ -53,6 +55,7 @@ interface ChangesListParams {
     preorder: "all" | "only" | "exclude";
     categoryId?: string;
     windowDays: number;
+    query?: string;
 }
 
 const toQueryString = (params: Record<string, string | number | undefined>) => {
@@ -71,19 +74,20 @@ const toQueryString = (params: Record<string, string | number | undefined>) => {
 export const dashboardHomeQueryOptions = (params: DashboardHomeParams = {}) =>
     queryOptions<DashboardHomeData>({
         queryKey: queryKeys.dashboard.filteredHome({ ...params }),
-        queryFn: () =>
+        queryFn: ({ signal }) =>
             apiGet(
                 `${apiEndpoints.dashboard.home}${toQueryString({
                     categoryId: params.categoryId,
                 })}`,
                 dashboardHomeResponseSchema,
+                { signal },
             ),
     });
 
 export const runsListQueryOptions = (params: RunsListParams) =>
     queryOptions<RunsListData>({
         queryKey: queryKeys.runs.list({ ...params }),
-        queryFn: () =>
+        queryFn: ({ signal }) =>
             apiGet(
                 `${apiEndpoints.runs.list}${toQueryString({
                     page: params.page,
@@ -94,6 +98,7 @@ export const runsListQueryOptions = (params: RunsListParams) =>
                     categoryId: params.categoryId,
                 })}`,
                 runsListResponseSchema,
+                { signal },
             ),
         placeholderData: keepPreviousData,
     });
@@ -101,20 +106,22 @@ export const runsListQueryOptions = (params: RunsListParams) =>
 export const runDetailQueryOptions = (runId: string) =>
     queryOptions<RunDetailData>({
         queryKey: queryKeys.runs.detail(runId),
-        queryFn: () => apiGet(apiEndpoints.runs.detail(runId), runDetailResponseSchema),
+        queryFn: ({ signal }) => apiGet(apiEndpoints.runs.detail(runId), runDetailResponseSchema, { signal }),
     });
 
 export const runProductsQueryOptions = (runId: string, params: RunProductsParams) =>
     queryOptions<RunProductsData>({
         queryKey: queryKeys.runs.products(runId, { ...params }),
-        queryFn: () =>
+        queryFn: ({ signal }) =>
             apiGet(
                 `${apiEndpoints.runs.products(runId)}${toQueryString({
                     page: params.page,
                     pageSize: params.pageSize,
                     inStock: params.inStock,
+                    query: params.query,
                 })}`,
                 runProductsResponseSchema,
+                { signal },
             ),
         placeholderData: keepPreviousData,
     });
@@ -122,15 +129,18 @@ export const runProductsQueryOptions = (runId: string, params: RunProductsParams
 export const runChangesQueryOptions = (runId: string, params: RunChangesParams) =>
     queryOptions<RunChangesData>({
         queryKey: queryKeys.runs.changes(runId, { ...params }),
-        queryFn: async () => {
+        queryFn: async ({ signal }) => {
             const path = `${apiEndpoints.runs.changes(runId)}${toQueryString({
                 page: params.page,
                 pageSize: params.pageSize,
                 changeType: params.changeType,
                 preorder: params.preorder,
+                query: params.query,
             })}`;
 
-            return requestWithPreorderFallback(path, (requestPath) => apiGet(requestPath, runChangesResponseSchema));
+            return requestWithPreorderFallback(path, (requestPath) =>
+                apiGet(requestPath, runChangesResponseSchema, { signal }),
+            );
         },
         placeholderData: keepPreviousData,
     });
@@ -138,7 +148,7 @@ export const runChangesQueryOptions = (runId: string, params: RunChangesParams) 
 export const changesListQueryOptions = (params: ChangesListParams) =>
     queryOptions<ChangesListData>({
         queryKey: queryKeys.changes.list({ ...params }),
-        queryFn: async () => {
+        queryFn: async ({ signal }) => {
             const path = `${apiEndpoints.changes.list}${toQueryString({
                 page: params.page,
                 pageSize: params.pageSize,
@@ -148,9 +158,12 @@ export const changesListQueryOptions = (params: ChangesListParams) =>
                 preorder: params.preorder,
                 categoryId: params.categoryId,
                 windowDays: params.windowDays,
+                query: params.query,
             })}`;
 
-            return requestWithPreorderFallback(path, (requestPath) => apiGet(requestPath, changesListResponseSchema));
+            return requestWithPreorderFallback(path, (requestPath) =>
+                apiGet(requestPath, changesListResponseSchema, { signal }),
+            );
         },
         placeholderData: keepPreviousData,
     });

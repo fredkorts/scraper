@@ -11,6 +11,8 @@ export const productDetailResponseSchema = z.object({
         currentPrice: z.number(),
         originalPrice: z.number().optional(),
         inStock: z.boolean(),
+        isWatched: z.boolean().optional().default(false),
+        trackedProductId: z.string().uuid().optional(),
         isPreorder: z.boolean().optional(),
         preorderEta: z.string().optional(),
         preorderDetectedFrom: z.enum(["category_slug", "title", "description"]).optional(),

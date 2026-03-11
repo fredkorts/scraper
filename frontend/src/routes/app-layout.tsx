@@ -4,6 +4,7 @@ import { Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { useMeQuery } from "../features/auth/queries";
 import { useLogoutMutation } from "../features/auth/mutations";
 import { subscribeAuthEvents } from "../features/auth/auth-events";
+import { ApiError } from "../lib/api/errors";
 import { defaultDashboardHomeSearch } from "../features/runs/search";
 import { queryKeys } from "../lib/query/query-keys";
 import { NOTIFICATION_MESSAGES } from "../shared/constants/notification-messages";
@@ -23,7 +24,11 @@ export const AppLayout = () => {
     const { notify } = useAppNotification();
 
     useEffect(() => {
-        const unsubscribe = subscribeAuthEvents(() => {
+        const unsubscribe = subscribeAuthEvents((payload) => {
+            if (payload.type === "auth_recovery_rate_limited") {
+                return;
+            }
+
             queryClient.setQueryData(queryKeys.auth.me(), null);
             queryClient.removeQueries();
             void navigate({ to: "/login" });
@@ -31,6 +36,23 @@ export const AppLayout = () => {
 
         return unsubscribe;
     }, [navigate, queryClient]);
+
+    useEffect(() => {
+        if (!(session.error instanceof ApiError)) {
+            return;
+        }
+
+        if (session.error.status !== 429 || session.error.code !== "rate_limit_exceeded") {
+            return;
+        }
+
+        notify({
+            variant: "warning",
+            message: NOTIFICATION_MESSAGES.session.authRateLimited.message,
+            description: session.error.message || NOTIFICATION_MESSAGES.session.authRateLimited.description,
+            key: "auth:rate-limit",
+        });
+    }, [notify, session.error]);
 
     const onLogout = async () => {
         try {

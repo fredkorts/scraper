@@ -5,6 +5,7 @@ import { prisma } from "../lib/prisma";
 import { AppError } from "../lib/errors";
 import type { ProductDetailQuery, ProductHistoryQuery } from "../schemas/products";
 import { buildCategoryScopeWhere, getAccessibleCategoryIds } from "./access-scope.service";
+import { getActiveTrackedProductRecord } from "./tracked-product.service";
 
 const statusMap: Record<ScrapeRunStatus, ScrapeStatus> = {
     PENDING: ScrapeStatus.PENDING,
@@ -101,7 +102,7 @@ export const getProductDetail = async (
         ...(query.includeSystemNoise ? {} : { isSystemNoise: false }),
     };
 
-    const [latestSnapshot, earliestSnapshot, historyPointCount, recentRuns] = await Promise.all([
+    const [latestSnapshot, earliestSnapshot, historyPointCount, recentRuns, trackedProduct] = await Promise.all([
         prisma.productSnapshot.findFirst({
             where: {
                 productId,
@@ -142,6 +143,7 @@ export const getProductDetail = async (
             orderBy: [{ startedAt: "desc" }, { id: "desc" }],
             take: 5,
         }),
+        getActiveTrackedProductRecord(userId, productId),
     ]);
 
     return {
@@ -153,6 +155,8 @@ export const getProductDetail = async (
             currentPrice: toNumber(latestSnapshot?.price) ?? Number(product.currentPrice.toString()),
             originalPrice: toNumber(latestSnapshot?.originalPrice) ?? toNumber(product.originalPrice),
             inStock: latestSnapshot?.inStock ?? product.inStock,
+            isWatched: Boolean(trackedProduct),
+            trackedProductId: trackedProduct?.id,
             isPreorder: product.isPreorder,
             preorderEta: toDateOnly(product.preorderEta),
             preorderDetectedFrom: product.preorderDetectedFrom

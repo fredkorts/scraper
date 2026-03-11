@@ -5,6 +5,34 @@ import { verifyAccessToken } from "../lib/jwt";
 import { config } from "../config";
 import { prisma } from "../lib/prisma";
 
+export const hydrateAuthOptional = (req: Request, _res: Response, next: NextFunction): void => {
+    try {
+        const accessToken = req.cookies[authCookieNames.accessToken] as string | undefined;
+
+        if (!accessToken) {
+            next();
+            return;
+        }
+
+        const payload = verifyAccessToken(accessToken);
+        if (payload.type !== "access") {
+            next();
+            return;
+        }
+
+        req.auth = {
+            userId: payload.sub,
+            email: payload.email,
+            role: payload.role,
+            tokenType: payload.type,
+        };
+    } catch {
+        // Optional hydration must fail open.
+    }
+
+    next();
+};
+
 export const requireAuth = (req: Request, _res: Response, next: NextFunction): void => {
     try {
         const accessToken = req.cookies[authCookieNames.accessToken] as string | undefined;

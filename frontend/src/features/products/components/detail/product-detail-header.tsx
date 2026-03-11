@@ -1,12 +1,21 @@
+import { EyeInvisibleOutlined, EyeOutlined } from "@ant-design/icons";
 import { Alert, Breadcrumb, Flex, Space, Tag, Typography } from "antd";
 import { Link } from "@tanstack/react-router";
+import { AppButton } from "../../../../components/app-button/AppButton";
 import { formatDateTime } from "../../../../shared/formatters/display";
 import { PREORDER_BADGE_LABEL, PREORDER_ETA_LABEL } from "../../../../shared/constants/preorder.constants";
 import { defaultDashboardHomeSearch, defaultRunsListSearch } from "../../../../shared/navigation/default-searches";
 import styles from "../product-detail-view.module.scss";
 import type { ProductDetailHeaderProps } from "../../types/product-detail-sections.types";
 
-export const ProductDetailHeader = ({ freshness, product }: ProductDetailHeaderProps) => (
+export const ProductDetailHeader = ({
+    canToggleWatch,
+    freshness,
+    headingRef,
+    isWatchPending,
+    product,
+    onToggleWatch,
+}: ProductDetailHeaderProps) => (
     <Space orientation="vertical" size="small">
         <Breadcrumb
             items={[
@@ -28,13 +37,30 @@ export const ProductDetailHeader = ({ freshness, product }: ProductDetailHeaderP
             ]}
         />
         <div className={styles.headerStack}>
-            <Typography.Title level={1}>{product.name}</Typography.Title>
-            {product.isPreorder ? (
-                <Tag color="gold">
-                    {PREORDER_BADGE_LABEL}
-                    {product.preorderEta ? ` (${PREORDER_ETA_LABEL} ${product.preorderEta})` : ""}
-                </Tag>
-            ) : null}
+            <Typography.Title level={1} ref={headingRef} tabIndex={-1}>
+                {product.name}
+            </Typography.Title>
+            <div className={styles.headerBadges}>
+                {product.isPreorder ? (
+                    <Tag color="gold">
+                        {PREORDER_BADGE_LABEL}
+                        {product.preorderEta ? ` (${PREORDER_ETA_LABEL} ${product.preorderEta})` : ""}
+                    </Tag>
+                ) : null}
+                {canToggleWatch ? (
+                    <AppButton
+                        aria-label={product.isWatched ? "Untrack product" : "Track product"}
+                        aria-pressed={product.isWatched}
+                        intent={product.isWatched ? "warning" : "secondary"}
+                        icon={product.isWatched ? <EyeInvisibleOutlined aria-hidden /> : <EyeOutlined aria-hidden />}
+                        isLoading={isWatchPending}
+                        size="small"
+                        onClick={onToggleWatch}
+                    >
+                        {product.isWatched ? "Watching" : "Watch product"}
+                    </AppButton>
+                ) : null}
+            </div>
         </div>
         <Flex gap="small" wrap>
             <Typography.Text type="secondary">First seen: {formatDateTime(product.firstSeenAt)}</Typography.Text>

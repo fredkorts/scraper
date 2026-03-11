@@ -1,0 +1,26 @@
+.badgeWrap {
+    display: inline-flex;
+    align-items: center;
+    margin-left: var(--space-2xs);
+}
+
+.badgeText {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.icon {
+    font-size: 0.75rem;
+}
+
+.srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}

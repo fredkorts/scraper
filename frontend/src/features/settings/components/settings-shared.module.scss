@@ -57,6 +57,11 @@
     flex-wrap: wrap;
 }
 
+.stackedSectionHeader {
+    flex-direction: column;
+    align-items: flex-start;
+}
+
 .sectionTitle,
 .cardTitle {
     margin: 0;
@@ -69,6 +74,11 @@
 }
 
 .field {
+    display: grid;
+    gap: var(--space-2xs);
+}
+
+.filterGroup {
     display: grid;
     gap: var(--space-2xs);
 }
@@ -157,6 +167,7 @@
 }
 
 .pageSizeSelect {
+    min-width: 5rem;
     width: 5rem;
 }
 

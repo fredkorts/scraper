@@ -8,6 +8,7 @@ import type {
     ChannelData,
     SettingsTab,
     SubscriptionsData,
+    TrackedProductData,
     UpdateProfileRequestData,
     TriggerRunResponseData,
 } from "./settings-schema.types";
@@ -41,12 +42,19 @@ export interface SettingsTrackingTabProps {
     role: UserRole;
     selectedCategoryId: string;
     subscriptions: SubscriptionsData;
+    trackedProducts: TrackedProductData[];
+    trackedProductsError: string | null;
+    isTrackedProductsLoading: boolean;
     trackingError: string | null;
     isCreatePending: boolean;
     isDeletePending: boolean;
+    isUntrackProductPending: boolean;
+    canTrackProducts: boolean;
+    onRetryTrackedProducts: () => void;
     onSelectCategory: (categoryId: string) => void;
     onTrackCategory: () => void;
     onUntrackCategory: (subscriptionId: string) => void;
+    onUntrackProduct: (productId: string, productName: string) => void;
 }
 
 export interface SettingsNotificationsTabProps {

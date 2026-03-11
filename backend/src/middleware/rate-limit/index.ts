@@ -12,6 +12,8 @@ interface LimiterOptions {
     windowMs: number;
     limit: number;
     failureMode: LimiterFailureMode;
+    keyMode?: "ip-only" | "auth-aware";
+    skip?: (request: Request, response: Response) => boolean;
 }
 
 let redisClient: Redis | null = null;
@@ -39,13 +41,23 @@ const getRedisClient = (): Redis | null => {
     return redisClient;
 };
 
-const getLimiterKey = (request: Request): string => {
+export const getIpLimiterKey = (request: Pick<Request, "ip">): string =>
+    `ip:${ipKeyGenerator(request.ip ?? "0.0.0.0")}`;
+
+export const getLimiterKey = (request: Pick<Request, "ip" | "auth">): string => {
+    if (!config.RATE_LIMIT_USER_KEYING_ENABLED) {
+        return getIpLimiterKey(request);
+    }
+
     if (request.auth?.userId) {
         return `user:${request.auth.userId}`;
     }
 
-    return `ip:${ipKeyGenerator(request.ip ?? "0.0.0.0")}`;
+    return getIpLimiterKey(request);
 };
+
+export const shouldSkipAuthenticatedIpCeiling = (request: Pick<Request, "auth">): boolean =>
+    !config.RATE_LIMIT_USER_KEYING_ENABLED || !request.auth?.userId;
 
 const toRetryAfterSeconds = (request: Request): number | undefined => {
     const requestWithRateLimit = request as Request & {
@@ -80,7 +92,14 @@ const createExceededHandler =
         });
     };
 
-const createLimiter = ({ id, windowMs, limit, failureMode }: LimiterOptions): RateLimitRequestHandler => {
+const createLimiter = ({
+    id,
+    windowMs,
+    limit,
+    failureMode,
+    keyMode = "auth-aware",
+    skip,
+}: LimiterOptions): RateLimitRequestHandler => {
     const redis = getRedisClient();
 
     return rateLimit({
@@ -88,17 +107,13 @@ const createLimiter = ({ id, windowMs, limit, failureMode }: LimiterOptions): Ra
         limit: config.NODE_ENV === "test" ? 10_000 : limit,
         standardHeaders: true,
         legacyHeaders: false,
-        keyGenerator: getLimiterKey,
+        keyGenerator: keyMode === "ip-only" ? getIpLimiterKey : getLimiterKey,
         handler: createExceededHandler(id),
+        skip,
         store:
             redis === null
                 ? undefined
-                : new RedisRateLimitStore(
-                      redis,
-                      `mabrik:ratelimit:${id}:`,
-                      failureMode,
-                      windowMs,
-                  ),
+                : new RedisRateLimitStore(redis, `mabrik:ratelimit:${id}:`, failureMode, windowMs),
     });
 };
 
@@ -109,11 +124,21 @@ export const apiReadLimiter = createLimiter({
     failureMode: "fail-open",
 });
 
+export const apiAuthenticatedIpCeilingLimiter = createLimiter({
+    id: "api-authenticated-ip-ceiling",
+    windowMs: 15 * 60 * 1000,
+    limit: config.RATE_LIMIT_AUTHENTICATED_IP_CEILING_LIMIT,
+    failureMode: "fail-open",
+    keyMode: "ip-only",
+    skip: (request) => shouldSkipAuthenticatedIpCeiling(request),
+});
+
 export const authMutationLimiter = createLimiter({
     id: "auth-mutation",
     windowMs: 15 * 60 * 1000,
     limit: 20,
     failureMode: "fail-closed",
+    keyMode: "ip-only",
 });
 
 export const paymentsMutationLimiter = createLimiter({
@@ -121,6 +146,7 @@ export const paymentsMutationLimiter = createLimiter({
     windowMs: 15 * 60 * 1000,
     limit: 30,
     failureMode: "fail-closed",
+    keyMode: "ip-only",
 });
 
 export const highCostReadLimiter = createLimiter({
@@ -135,6 +161,7 @@ export const adminMutationLimiter = createLimiter({
     windowMs: 15 * 60 * 1000,
     limit: 45,
     failureMode: "fail-closed",
+    keyMode: "ip-only",
 });
 
 export const authenticatedMutationLimiter = createLimiter({
@@ -142,4 +169,5 @@ export const authenticatedMutationLimiter = createLimiter({
     windowMs: 15 * 60 * 1000,
     limit: 120,
     failureMode: "fail-closed",
+    keyMode: "ip-only",
 });

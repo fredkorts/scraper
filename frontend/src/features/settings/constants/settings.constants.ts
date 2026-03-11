@@ -9,13 +9,7 @@ export const SETTINGS_TAB_LABELS: Record<SettingsTab, string> = {
     admin: "Admin",
 };
 
-export const SETTINGS_TAB_ORDER: SettingsTab[] = [
-    "account",
-    "tracking",
-    "notifications",
-    "plan",
-    "admin",
-];
+export const SETTINGS_TAB_ORDER: SettingsTab[] = ["account", "tracking", "notifications", "plan", "admin"];
 
 export const ROLE_LABELS: Record<UserRole, string> = {
     free: "Free",
@@ -36,12 +30,12 @@ export const getNotificationModeLabel = (role: UserRole): string =>
 
 export const getTrackingRoleDescription = (role: UserRole): string => {
     if (role === "free") {
-        return "Free users receive digest notifications every 6 hours.";
+        return "Free users share 3 tracking slots across categories and products, with digest notifications every 6 hours.";
     }
 
     if (role === "paid") {
-        return "Paid users receive immediate notifications.";
+        return "Paid users share 6 tracking slots across categories and products, with immediate notifications.";
     }
 
-    return "Admin users can track unlimited categories.";
+    return "Admin users can track unlimited categories and products.";
 };

@@ -15,6 +15,9 @@ export const mockUser: AuthUser = {
     role: "free",
     isActive: true,
     mfaEnabled: false,
+    capabilities: {
+        productWatchlist: false,
+    },
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
 };
@@ -37,6 +40,7 @@ interface RenderRouterOptions {
         adminSchedulerState: unknown;
         subscriptions: unknown;
         notificationChannels: unknown;
+        trackedProducts: unknown;
     }>;
 }
 
@@ -154,6 +158,9 @@ const defaultApiResponses = {
                 createdAt: new Date().toISOString(),
             },
         ],
+    },
+    trackedProducts: {
+        items: [],
     },
     runDetail: {
         run: {
@@ -408,6 +415,68 @@ export const renderRouterApp = async ({
                 payload.used = payload.items.length;
                 payload.remaining = payload.limit === null ? null : Math.max(0, payload.limit - payload.used);
                 mutableResponses.subscriptions = payload;
+                return jsonResponse({ success: true });
+            }
+
+            return jsonResponse(payload);
+        }
+
+        if (url.includes("/api/tracked-products")) {
+            const payload = mutableResponses.trackedProducts as {
+                items: Array<Record<string, unknown>>;
+            };
+
+            if (method === "POST") {
+                const body = await parseBody();
+                const productId = (body as { productId: string }).productId;
+                const detail = mutableResponses.productDetail as {
+                    product: {
+                        id: string;
+                        name: string;
+                        imageUrl: string;
+                        externalUrl: string;
+                        currentPrice: number;
+                        inStock: boolean;
+                        isPreorder?: boolean;
+                        preorderEta?: string;
+                        preorderDetectedFrom?: "category_slug" | "title" | "description";
+                        categories: Array<{
+                            id: string;
+                            slug: string;
+                            nameEt: string;
+                            nameEn: string;
+                        }>;
+                    };
+                };
+
+                const product = detail.product;
+                const tracked = {
+                    id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+                    productId,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    product: {
+                        id: product.id,
+                        name: product.name,
+                        imageUrl: product.imageUrl,
+                        externalUrl: product.externalUrl,
+                        currentPrice: product.currentPrice,
+                        inStock: product.inStock,
+                        isPreorder: product.isPreorder ?? false,
+                        preorderEta: product.preorderEta,
+                        preorderDetectedFrom: product.preorderDetectedFrom,
+                        categories: product.categories,
+                    },
+                };
+                payload.items = [tracked, ...payload.items.filter((item) => item.productId !== productId)];
+                mutableResponses.trackedProducts = payload;
+                return jsonResponse({ item: tracked });
+            }
+
+            if (method === "DELETE") {
+                const productId = url.split("/api/tracked-products/by-product/")[1];
+                payload.items = payload.items.filter((item) => item.productId !== productId);
+                mutableResponses.trackedProducts = payload;
                 return jsonResponse({ success: true });
             }
 

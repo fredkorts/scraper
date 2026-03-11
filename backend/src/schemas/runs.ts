@@ -3,6 +3,7 @@ import { z } from "zod";
 const MAX_PAGE_SIZE = 100;
 const MAX_PAGE = 500;
 const MAX_OFFSET = 50_000;
+const MAX_SEARCH_QUERY_LENGTH = 100;
 
 const paginationShape = {
     page: z.coerce.number().int().min(1).max(MAX_PAGE).default(1),
@@ -10,6 +11,14 @@ const paginationShape = {
 };
 
 const preorderFilterSchema = z.enum(["all", "only", "exclude"]).default("all");
+const searchQuerySchema = z.preprocess((value) => {
+    if (typeof value !== "string") {
+        return undefined;
+    }
+
+    const normalized = value.trim().replace(/\s+/g, " ");
+    return normalized.length > 0 ? normalized : undefined;
+}, z.string().max(MAX_SEARCH_QUERY_LENGTH).optional());
 const includeSystemNoiseSchema = z
     .union([z.boolean(), z.enum(["true", "false"])])
     .transform((value) => (typeof value === "boolean" ? value : value === "true"))
@@ -53,6 +62,7 @@ export const runsListQuerySchema = z
 export const runProductsQuerySchema = z
     .object({
         ...paginationShape,
+        query: searchQuerySchema,
         inStock: z
             .union([z.boolean(), z.enum(["true", "false"])])
             .transform((value) => (typeof value === "boolean" ? value : value === "true"))
@@ -64,6 +74,7 @@ export const runProductsQuerySchema = z
 export const runChangesQuerySchema = z
     .object({
         ...paginationShape,
+        query: searchQuerySchema,
         changeType: z.enum(["price_increase", "price_decrease", "new_product", "sold_out", "back_in_stock"]).optional(),
         preorder: preorderFilterSchema,
         includeSystemNoise: includeSystemNoiseSchema,
@@ -73,6 +84,7 @@ export const runChangesQuerySchema = z
 export const changesListQuerySchema = z
     .object({
         ...paginationShape,
+        query: searchQuerySchema,
         sortBy: z.enum(["changedAt", "changeType", "productName", "categoryName"]).default("changedAt"),
         sortOrder: z.enum(["asc", "desc"]).default("desc"),
         changeType: z.enum(["price_increase", "price_decrease", "new_product", "sold_out", "back_in_stock"]).optional(),

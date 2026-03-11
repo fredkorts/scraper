@@ -3,11 +3,16 @@ import { apiGet } from "../../lib/api/client";
 import { apiEndpoints } from "../../lib/api/endpoints";
 import { notificationChannelsResponseSchema } from "../../lib/api/schemas";
 import { queryKeys } from "../../lib/query/query-keys";
-import { adminSchedulerStateResponseSchema, subscriptionsResponseSchema } from "./schemas";
+import {
+    adminSchedulerStateResponseSchema,
+    subscriptionsResponseSchema,
+    trackedProductsResponseSchema,
+} from "./schemas";
 import type {
     AdminSchedulerStateData,
     NotificationChannelsData,
     SubscriptionsData,
+    TrackedProductsData,
 } from "./types/settings-schema.types";
 
 export const subscriptionsQueryOptions = () =>
@@ -30,6 +35,14 @@ export const adminSchedulerStateQueryOptions = (enabled: boolean = true) =>
     });
 
 export const useSubscriptionsQuery = () => useQuery(subscriptionsQueryOptions());
+export const trackedProductsQueryOptions = (enabled: boolean = true) =>
+    queryOptions<TrackedProductsData>({
+        queryKey: queryKeys.settings.trackedProducts(),
+        queryFn: () => apiGet(apiEndpoints.trackedProducts.list, trackedProductsResponseSchema),
+        enabled,
+    });
+
+export const useTrackedProductsQuery = (enabled: boolean = true) => useQuery(trackedProductsQueryOptions(enabled));
 export const useNotificationChannelsQuery = () => useQuery(notificationChannelsQueryOptions());
 export const useAdminSchedulerStateQuery = (enabled: boolean = true) =>
     useQuery(adminSchedulerStateQueryOptions(enabled));

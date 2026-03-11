@@ -10,11 +10,15 @@ import type { ProductDetailViewProps } from "../types/product-detail-view.types"
 
 export const ProductDetailView = ({
     controls,
+    headingRef,
     historyColumns,
     historyErrorMessage,
     isHistoryLoading,
+    canToggleWatch,
+    isWatchPending,
     product,
     viewModel,
+    onToggleWatch,
     onResetFilters,
     onRetryHistory,
     onSetCategoryId,
@@ -24,7 +28,14 @@ export const ProductDetailView = ({
     onSetStockFilter,
 }: ProductDetailViewProps) => (
     <div className={styles.page}>
-        <ProductDetailHeader freshness={viewModel.freshness} product={product} />
+        <ProductDetailHeader
+            canToggleWatch={canToggleWatch}
+            freshness={viewModel.freshness}
+            headingRef={headingRef}
+            isWatchPending={isWatchPending}
+            product={product}
+            onToggleWatch={onToggleWatch}
+        />
 
         <ProductCriticalOverview discount={viewModel.discount} product={product} />
 

@@ -282,4 +282,53 @@ describe("notification templates", () => {
         expect(email.text).toContain("Catan & Friends");
         expect(email.text).toContain("https://mabrik.ee/toode/catan-friends");
     });
+
+    it("renders watched changes section at the top when watched items exist", () => {
+        const payloadWithWatched: ImmediateDeliveryPayload = {
+            ...immediatePayload,
+            report: {
+                ...immediatePayload.report,
+                totalChanges: 2,
+            },
+            changeItems: [
+                {
+                    ...immediatePayload.changeItems[0],
+                    id: "watched-item",
+                    isWatchedAtSend: true,
+                    product: {
+                        ...immediatePayload.changeItems[0].product,
+                        name: "Watched Product",
+                    },
+                },
+                {
+                    ...immediatePayload.changeItems[0],
+                    id: "regular-item",
+                    isWatchedAtSend: false,
+                    product: {
+                        ...immediatePayload.changeItems[0].product,
+                        name: "Regular Product",
+                    },
+                },
+            ],
+        };
+
+        const email = renderImmediateEmail(payloadWithWatched);
+
+        expect(email.text).toContain("Watched products changed (1)");
+        expect(email.html).toContain("Watched products changed (1)");
+        expect(email.html.indexOf("Watched products changed (1)")).toBeLessThan(email.html.indexOf("Price drops (2)"));
+    });
+
+    it("does not render watched section when no watched items exist", () => {
+        const email = renderImmediateEmail({
+            ...immediatePayload,
+            changeItems: immediatePayload.changeItems.map((item) => ({
+                ...item,
+                isWatchedAtSend: false,
+            })),
+        });
+
+        expect(email.text).not.toContain("Watched products changed");
+        expect(email.html).not.toContain("Watched products changed");
+    });
 });

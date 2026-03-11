@@ -74,6 +74,9 @@ const sanitizeUser = (user: User): AuthUser => ({
     emailVerifiedAt: user.emailVerifiedAt?.toISOString(),
     mfaEnabled: user.mfaEnabled,
     mfaEnabledAt: user.mfaEnabledAt?.toISOString(),
+    capabilities: {
+        productWatchlist: config.PRODUCT_WATCHLIST_ENABLED,
+    },
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
 });
@@ -824,8 +827,14 @@ export const listSessions = async (userId: string, currentRefreshToken?: string)
     }
 
     const sessions = await prisma.refreshToken.findMany({
-        where: { userId },
-        orderBy: [{ revokedAt: "asc" }, { createdAt: "desc" }],
+        where: {
+            userId,
+            revokedAt: null,
+            expiresAt: {
+                gt: new Date(),
+            },
+        },
+        orderBy: [{ createdAt: "desc" }],
     });
 
     const currentTokenHash = currentRefreshToken ? hashToken(currentRefreshToken) : undefined;

@@ -1,5 +1,5 @@
 import type { ZodType } from "zod";
-import { apiBaseUrl } from "./config";
+import { apiBaseUrl, authRecoveryCooldownEnabled } from "./config";
 import { ApiError, normalizeApiError } from "./errors";
 
 type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
@@ -24,6 +24,12 @@ const AUTH_ENDPOINT_EXCLUSIONS = new Set([
 let refreshPromise: Promise<void> | null = null;
 let csrfPromise: Promise<void> | null = null;
 let csrfTokenCache: string | null = null;
+let authRecoveryCooldownUntilMs = 0;
+let cooldownStorageListenerRegistered = false;
+
+const AUTH_RECOVERY_COOLDOWN_KEY = "pricepulse:auth-recovery-cooldown";
+const AUTH_RECOVERY_COOLDOWN_FALLBACK_SECONDS = 30;
+const AUTH_RECOVERY_COOLDOWN_MAX_SECONDS = 300;
 
 const toAbsoluteUrl = (path: string): string => {
     if (path.startsWith("http://") || path.startsWith("https://")) {
@@ -76,6 +82,124 @@ const getPayloadErrorCode = (payload: unknown): string | undefined => {
     return undefined;
 };
 
+interface AuthRecoveryCooldownPayload {
+    cooldownUntilMs: number;
+    retryAfterSeconds: number;
+    timestamp: number;
+}
+
+const parseRetryAfterSeconds = (response: Response, payload: unknown): number | undefined => {
+    if (payload && typeof payload === "object" && "retryAfterSeconds" in payload) {
+        const retryAfterSeconds = (payload as { retryAfterSeconds?: unknown }).retryAfterSeconds;
+        if (typeof retryAfterSeconds === "number" && retryAfterSeconds > 0) {
+            return retryAfterSeconds;
+        }
+    }
+
+    const retryAfterHeader = response.headers.get("Retry-After");
+    if (!retryAfterHeader) {
+        return undefined;
+    }
+
+    const parsed = Number.parseInt(retryAfterHeader, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+};
+
+const clampRetryAfterSeconds = (value?: number): number => {
+    if (value === undefined) {
+        return AUTH_RECOVERY_COOLDOWN_FALLBACK_SECONDS;
+    }
+
+    return Math.min(Math.max(value, 1), AUTH_RECOVERY_COOLDOWN_MAX_SECONDS);
+};
+
+const syncCooldownUntil = (cooldownUntilMs: number): void => {
+    if (!authRecoveryCooldownEnabled) {
+        return;
+    }
+
+    if (cooldownUntilMs > authRecoveryCooldownUntilMs) {
+        authRecoveryCooldownUntilMs = cooldownUntilMs;
+    }
+};
+
+const getAuthRecoveryCooldownRemainingSeconds = (): number => {
+    if (!authRecoveryCooldownEnabled) {
+        return 0;
+    }
+
+    const remaining = Math.ceil((authRecoveryCooldownUntilMs - Date.now()) / 1000);
+    return remaining > 0 ? remaining : 0;
+};
+
+const isAuthRecoveryCooldownActive = (): boolean => getAuthRecoveryCooldownRemainingSeconds() > 0;
+
+const buildAuthRecoveryCooldownError = (retryAfterSeconds: number): ApiError =>
+    new ApiError({
+        status: 429,
+        code: "rate_limit_exceeded",
+        message: "Too many requests, please try again later.",
+        retryAfterSeconds,
+        limiter: "auth-recovery-cooldown",
+    });
+
+const broadcastAuthRecoveryCooldown = (payload: AuthRecoveryCooldownPayload): void => {
+    if (typeof window === "undefined") {
+        return;
+    }
+
+    try {
+        window.localStorage.setItem(AUTH_RECOVERY_COOLDOWN_KEY, JSON.stringify(payload));
+        window.localStorage.removeItem(AUTH_RECOVERY_COOLDOWN_KEY);
+    } catch {
+        // Ignore storage failures in restricted browser environments.
+    }
+};
+
+const activateAuthRecoveryCooldown = (retryAfterSeconds?: number): void => {
+    if (!authRecoveryCooldownEnabled) {
+        return;
+    }
+
+    const normalizedRetryAfter = clampRetryAfterSeconds(retryAfterSeconds);
+    const cooldownUntilMs = Date.now() + normalizedRetryAfter * 1000;
+    syncCooldownUntil(cooldownUntilMs);
+    broadcastAuthRecoveryCooldown({
+        cooldownUntilMs,
+        retryAfterSeconds: normalizedRetryAfter,
+        timestamp: Date.now(),
+    });
+};
+
+const clearAuthRecoveryCooldown = (): void => {
+    authRecoveryCooldownUntilMs = 0;
+};
+
+const ensureCooldownStorageListener = (): void => {
+    if (!authRecoveryCooldownEnabled || typeof window === "undefined" || cooldownStorageListenerRegistered) {
+        return;
+    }
+
+    window.addEventListener("storage", (event) => {
+        if (event.key !== AUTH_RECOVERY_COOLDOWN_KEY || !event.newValue) {
+            return;
+        }
+
+        try {
+            const payload = JSON.parse(event.newValue) as Partial<AuthRecoveryCooldownPayload>;
+            if (typeof payload.cooldownUntilMs === "number") {
+                syncCooldownUntil(payload.cooldownUntilMs);
+            }
+        } catch {
+            // Ignore malformed payloads.
+        }
+    });
+
+    cooldownStorageListenerRegistered = true;
+};
+
+ensureCooldownStorageListener();
+
 const resetCsrfTokenState = (): void => {
     csrfTokenCache = null;
     csrfPromise = null;
@@ -88,6 +212,7 @@ const syncCsrfTokenCacheFromCookie = (): void => {
 const resetAuthRecoveryState = (): void => {
     resetCsrfTokenState();
     refreshPromise = null;
+    clearAuthRecoveryCooldown();
 };
 
 const getCookieValue = (name: string): string | null => {
@@ -162,6 +287,10 @@ const ensureCsrfToken = async (): Promise<void> => {
 };
 
 const refreshSession = async (): Promise<void> => {
+    if (isAuthRecoveryCooldownActive()) {
+        throw buildAuthRecoveryCooldownError(getAuthRecoveryCooldownRemainingSeconds());
+    }
+
     await ensureCsrfToken();
     const sendRefreshRequest = async (): Promise<Response> => {
         const csrfToken = csrfTokenCache;
@@ -186,17 +315,26 @@ const refreshSession = async (): Promise<void> => {
     }
 
     if (!response.ok) {
-        throw new ApiError(normalizeApiError(response.status, payload));
+        const normalizedError = normalizeApiError(response.status, payload);
+        if (normalizedError.status === 429 && normalizedError.code === "rate_limit_exceeded") {
+            activateAuthRecoveryCooldown(normalizedError.retryAfterSeconds);
+        }
+
+        throw new ApiError(normalizedError);
     }
 
     syncCsrfTokenCacheFromCookie();
+    clearAuthRecoveryCooldown();
 };
 
 const refreshSessionSingleFlight = async (): Promise<void> => {
     if (!refreshPromise) {
         refreshPromise = refreshSession()
             .catch((error) => {
-                resetAuthRecoveryState();
+                resetCsrfTokenState();
+                if (!(error instanceof ApiError && error.status === 429 && error.code === "rate_limit_exceeded")) {
+                    clearAuthRecoveryCooldown();
+                }
                 throw error;
             })
             .finally(() => {
@@ -263,6 +401,16 @@ export const apiRequest = async <TResponse, TBody = unknown>(
         payload = await parseResponseBody(response);
     }
 
+    if (response.status === 429 && authMode === "bootstrap" && path === "/api/auth/me") {
+        const normalizedError = normalizeApiError(response.status, payload);
+        if (normalizedError.code === "rate_limit_exceeded") {
+            activateAuthRecoveryCooldown(
+                normalizedError.retryAfterSeconds ?? parseRetryAfterSeconds(response, payload),
+            );
+            throw new ApiError(normalizedError);
+        }
+    }
+
     if (!response.ok) {
         throw new ApiError(normalizeApiError(response.status, payload));
     }
@@ -276,6 +424,7 @@ export const apiRequest = async <TResponse, TBody = unknown>(
     ) {
         resetCsrfTokenState();
         syncCsrfTokenCacheFromCookie();
+        clearAuthRecoveryCooldown();
     }
 
     if (!schema) {
@@ -303,8 +452,20 @@ export const apiPatch = <TResponse, TBody = unknown>(
     schema?: ZodType<TResponse>,
 ): Promise<TResponse> => apiRequest(path, { method: "PATCH", body }, schema);
 
-export const apiDelete = <TResponse, TBody = unknown>(
+export function apiDelete<TResponse>(path: string, schema: ZodType<TResponse>): Promise<TResponse>;
+export function apiDelete<TResponse, TBody = unknown>(
     path: string,
-    body?: TBody,
+    body: TBody,
     schema?: ZodType<TResponse>,
-): Promise<TResponse> => apiRequest(path, { method: "DELETE", body }, schema);
+): Promise<TResponse>;
+export function apiDelete<TResponse, TBody = unknown>(
+    path: string,
+    bodyOrSchema?: TBody | ZodType<TResponse>,
+    schema?: ZodType<TResponse>,
+): Promise<TResponse> {
+    if (bodyOrSchema && typeof bodyOrSchema === "object" && "parse" in bodyOrSchema) {
+        return apiRequest(path, { method: "DELETE" }, bodyOrSchema as ZodType<TResponse>);
+    }
+
+    return apiRequest(path, { method: "DELETE", body: bodyOrSchema as TBody }, schema);
+}

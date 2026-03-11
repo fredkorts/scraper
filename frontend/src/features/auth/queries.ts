@@ -63,7 +63,23 @@ export const meQueryOptions = (mode: MeQueryMode = "standard") =>
 
 export const ensureSession = async (queryClient: QueryClient): Promise<AuthUser | null> => {
     const previousSession = queryClient.getQueryData<AuthUser | null>(queryKeys.auth.me());
-    const session = await queryClient.ensureQueryData(meQueryOptions("bootstrap"));
+    let session: AuthUser | null;
+
+    try {
+        session = await queryClient.ensureQueryData(meQueryOptions("bootstrap"));
+    } catch (error) {
+        if (error instanceof ApiError && error.status === 429 && error.code === "rate_limit_exceeded") {
+            if (previousSession) {
+                queryClient.setQueryData(queryKeys.auth.me(), previousSession);
+                return previousSession;
+            }
+
+            queryClient.setQueryData(queryKeys.auth.me(), null);
+            return null;
+        }
+
+        throw error;
+    }
 
     if (session !== null) {
         return session;

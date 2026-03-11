@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { prisma } from "../lib/prisma";
 import { useTestDatabase } from "../test/db";
 import { createRefreshTokenRecord, createUser } from "../test/factories";
-import { getCurrentUser, login, logout, refreshSession, register } from "./auth.service";
+import { getCurrentUser, listSessions, login, logout, refreshSession, register } from "./auth.service";
 
 useTestDatabase();
 
@@ -146,5 +146,32 @@ describe("auth.service", () => {
 
         expect(result.user.email).toBe(user.email);
         expect(result.user).not.toHaveProperty("passwordHash");
+    });
+
+    it("returns only active sessions in session listing", async () => {
+        const { user } = await createUser();
+        const active = await createRefreshTokenRecord({ userId: user.id });
+        const revoked = await createRefreshTokenRecord({ userId: user.id });
+        const expired = await createRefreshTokenRecord({ userId: user.id });
+
+        await prisma.refreshToken.update({
+            where: { id: revoked.record.id },
+            data: {
+                revokedAt: new Date(),
+                revocationReason: "session_revoked",
+            },
+        });
+        await prisma.refreshToken.update({
+            where: { id: expired.record.id },
+            data: {
+                expiresAt: new Date(Date.now() - 60 * 1000),
+            },
+        });
+
+        const result = await listSessions(user.id, active.rawToken);
+
+        expect(result.sessions).toHaveLength(1);
+        expect(result.sessions[0]?.id).toBe(active.record.id);
+        expect(result.sessions[0]?.isCurrent).toBe(true);
     });
 });

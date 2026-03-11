@@ -1,4 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
+import type { RefObject } from "react";
 import type { ProductDetailData, ProductHistoryData } from "../schemas";
 import type { useProductDetailPageViewModel } from "../hooks/use-product-detail-page-view-model";
 import type { ProductHistoryControls, ProductHistoryRange, ProductHistoryStockFilter } from "../history-controls";
@@ -10,6 +11,10 @@ export type ProductDetailViewModel = ReturnType<typeof useProductDetailPageViewM
 export interface ProductDetailHeaderProps {
     product: ProductDetailRecord;
     freshness: ProductDetailViewModel["freshness"];
+    headingRef: RefObject<HTMLHeadingElement | null>;
+    canToggleWatch: boolean;
+    isWatchPending: boolean;
+    onToggleWatch: () => void;
 }
 
 export interface ProductCriticalOverviewProps {

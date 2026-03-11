@@ -240,7 +240,7 @@ describe("scrape views", () => {
     it("renders changes explorer from URL-backed query state", async () => {
         await renderRouterApp({
             initialEntry:
-                "/app/changes?page=2&pageSize=10&sortBy=changedAt&sortOrder=desc&changeType=sold_out&windowDays=30",
+                "/app/changes?page=2&pageSize=10&sortBy=changedAt&sortOrder=desc&changeType=sold_out&windowDays=30&query=change",
             session: mockUser,
             apiResponses: {
                 changesList: {
@@ -278,13 +278,14 @@ describe("scrape views", () => {
         expect(await screen.findByRole("heading", { name: "Changes Explorer" })).toBeInTheDocument();
         expect(screen.getByText("Showing:")).toBeInTheDocument();
         expect(screen.getByText("Change Product")).toBeInTheDocument();
+        expect(screen.getByLabelText("Search change results")).toHaveValue("change");
         expect(screen.getByRole("link", { name: /Open run for/ })).toBeInTheDocument();
         expect(screen.getByRole("link", { name: /View product page for/ })).toBeInTheDocument();
     });
 
     it("renders run detail with readable failure metadata for non-admin users", async () => {
         await renderRouterApp({
-            initialEntry: "/app/runs/11111111-1111-4111-8111-111111111111",
+            initialEntry: "/app/runs/11111111-1111-4111-8111-111111111111?changesQuery=test&productsQuery=snapshot",
             session: mockUser,
             apiResponses: {
                 runDetail: {
@@ -366,6 +367,8 @@ describe("scrape views", () => {
         expect(screen.getByText("Yes")).toBeInTheDocument();
         expect(screen.queryByText("timeout of 45000ms exceeded")).not.toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "Diff Items" })).toBeInTheDocument();
+        expect(screen.getByLabelText("Search diff items")).toHaveValue("test");
+        expect(screen.getByLabelText("Search product snapshots")).toHaveValue("snapshot");
         expect(screen.getAllByText("Test Product").length).toBeGreaterThan(0);
         expect(screen.getByRole("link", { name: /Open product detail for/ })).toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "Product Snapshots" })).toBeInTheDocument();

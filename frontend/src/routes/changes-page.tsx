@@ -1,5 +1,5 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { buildCategoryTreeData, getCategoryLabelById } from "../features/categories/options";
 import { useCategoriesQuery } from "../features/categories/queries";
 import { ChangesFilters } from "../features/runs/components/list/changes-filters";
@@ -12,7 +12,8 @@ import {
 } from "../features/runs/constants/run-filters.constants";
 import { useChangesListColumns } from "../features/runs/hooks/use-changes-list-columns";
 import { useChangesListQuery } from "../features/runs/queries";
-import { defaultChangesListSearch } from "../features/runs/search";
+import { defaultChangesListSearch, normalizeTableSearchQuery } from "../features/runs/search";
+import { useDebouncedValue } from "../shared/hooks/use-debounced-value";
 import { useClampedPage } from "../shared/hooks/use-clamped-page";
 import { useRouteSearchUpdater } from "../shared/hooks/use-route-search-updater";
 import {
@@ -41,10 +42,34 @@ export const ChangesPage = () => {
     const categoriesQuery = useCategoriesQuery();
     const changesQuery = useChangesListQuery(search);
     const setSearch = useRouteSearchUpdater(navigate);
+    const [queryInput, setQueryInput] = useState(search.query ?? "");
+    const debouncedQueryInput = useDebouncedValue(queryInput, 350);
 
     useEffect(() => {
         headingRef.current?.focus();
     }, []);
+
+    useEffect(() => {
+        // URL search is the source of truth, so this sync keeps local input state aligned for back/forward navigation.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setQueryInput(search.query ?? "");
+    }, [search.query]);
+
+    useEffect(() => {
+        const normalizedQuery = normalizeTableSearchQuery(debouncedQueryInput);
+
+        if (normalizedQuery === search.query) {
+            return;
+        }
+
+        setSearch(
+            {
+                query: normalizedQuery,
+                page: 1,
+            },
+            { replace: true },
+        );
+    }, [debouncedQueryInput, search.query, setSearch]);
 
     useClampedPage({
         currentPage: search.page,
@@ -100,12 +125,14 @@ export const ChangesPage = () => {
 
             <ChangesFilters
                 categoryId={search.categoryId}
+                query={queryInput}
                 categoryTreeData={categoryTreeData}
                 changeType={search.changeType}
                 preorder={search.preorder}
                 pageSize={search.pageSize}
                 windowDays={search.windowDays}
                 onCategoryChange={(value) => setSearch({ categoryId: value, page: 1 })}
+                onQueryChange={setQueryInput}
                 onChangeTypeChange={(value) => setSearch({ changeType: value, page: 1 })}
                 onPreorderChange={(value) => setSearch({ preorder: value, page: 1 })}
                 onWindowDaysChange={(value) => setSearch({ windowDays: value as 1 | 7 | 30, page: 1 })}
@@ -115,6 +142,7 @@ export const ChangesPage = () => {
                         ...defaultChangesListSearch,
                         changeType: undefined,
                         categoryId: undefined,
+                        query: undefined,
                     })
                 }
             />
@@ -125,6 +153,9 @@ export const ChangesPage = () => {
                 </p>
                 <p>
                     Category: <strong>{selectedCategoryLabel ?? "All tracked categories"}</strong>
+                </p>
+                <p>
+                    Search: <strong>{search.query ?? "All rows"}</strong>
                 </p>
                 <p>
                     Window: <strong>{windowLabel}</strong>
@@ -148,7 +179,7 @@ export const ChangesPage = () => {
                         ? PREORDER_EMPTY_FILTER_ONLY_MESSAGE
                         : search.preorder === "exclude"
                           ? PREORDER_EMPTY_FILTER_EXCLUDE_MESSAGE
-                          : search.changeType || search.categoryId
+                          : search.changeType || search.categoryId || search.query
                             ? "No changes matched the current filters. Adjust filters or reset all filters."
                             : "No changes were recorded for the selected window."
                 }

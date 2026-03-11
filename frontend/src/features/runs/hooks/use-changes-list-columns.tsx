@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
 import { SortHeader } from "../../../components/sort-header/SortHeader";
+import { TrackedProductBadge } from "../../../components/tracked-product-badge/TrackedProductBadge";
 import { defaultProductHistoryControls } from "../../products/history-controls";
 import { defaultRunDetailSectionSearch } from "../search";
 import { formatChangeDetails, formatDateTime, formatPreorderState, formatStatusLabel } from "../formatters";
@@ -52,13 +53,16 @@ export const useChangesListColumns = ({
                         />
                     ),
                     cell: (info) => (
-                        <Link
-                            params={{ productId: info.row.original.product.id }}
-                            search={defaultProductHistoryControls}
-                            to="/app/products/$productId"
-                        >
-                            {info.row.original.product.name}
-                        </Link>
+                        <span>
+                            <Link
+                                params={{ productId: info.row.original.product.id }}
+                                search={defaultProductHistoryControls}
+                                to="/app/products/$productId"
+                            >
+                                {info.row.original.product.name}
+                            </Link>
+                            {info.row.original.product.isWatched ? <TrackedProductBadge /> : null}
+                        </span>
                     ),
                 }),
                 changesColumnHelper.display({

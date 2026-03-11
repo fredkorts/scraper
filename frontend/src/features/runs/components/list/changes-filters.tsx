@@ -1,6 +1,8 @@
 import { AppButton } from "../../../../components/app-button/AppButton";
 import { AppSelect } from "../../../../components/app-select/AppSelect";
-import { CategoryTreeSelect } from "../../../categories/components/category-tree-select";
+import { CategoryTreeSelect } from "../../../../components/category-tree-select/CategoryTreeSelect";
+import { TableSearchInput } from "../../../../components/table-search-input/TableSearchInput";
+import { TABLE_SEARCH_QUERY_MAX_LENGTH } from "../../../../shared/search/query";
 import {
     RUN_CHANGE_TYPE_FILTER_OPTIONS,
     RUN_PREORDER_FILTER_OPTIONS,
@@ -12,12 +14,14 @@ import type { ChangesFiltersProps } from "../../types/run-list-sections.types";
 
 export const ChangesFilters = ({
     categoryId,
+    query,
     changeType,
     preorder,
     pageSize,
     windowDays,
     categoryTreeData,
     onCategoryChange,
+    onQueryChange,
     onChangeTypeChange,
     onPreorderChange,
     onWindowDaysChange,
@@ -25,6 +29,19 @@ export const ChangesFilters = ({
     onReset,
 }: ChangesFiltersProps) => (
     <div className={styles.filterRow}>
+        <div className={styles.filterGroup}>
+            <label className={styles.label} htmlFor="changes-query-filter">
+                Search
+            </label>
+            <TableSearchInput
+                id="changes-query-filter"
+                ariaLabel="Search change results"
+                placeholder="Search products, categories, or change type"
+                value={query}
+                maxLength={TABLE_SEARCH_QUERY_MAX_LENGTH}
+                onChange={onQueryChange}
+            />
+        </div>
         <div className={styles.filterGroup}>
             <label className={styles.label} htmlFor="changes-change-type-filter">
                 Change type

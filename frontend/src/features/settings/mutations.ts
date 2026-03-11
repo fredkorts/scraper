@@ -11,8 +11,10 @@ import { apiEndpoints } from "../../lib/api/endpoints";
 import { notificationChannelResponseSchema } from "../../lib/api/schemas";
 import { queryKeys } from "../../lib/query/query-keys";
 import {
+    subscriptionDeleteResponseSchema,
     subscriptionCreateResponseSchema,
     successResponseSchema,
+    trackProductResponseSchema,
     triggerRunResponseSchema,
     updateCategorySettingsResponseSchema,
     updateProfileRequestSchema,
@@ -56,12 +58,51 @@ export const useDeleteSubscriptionMutation = () => {
 
     return useMutation({
         mutationFn: (subscriptionId: string) =>
-            apiDelete(apiEndpoints.subscriptions.detail(subscriptionId), successResponseSchema),
+            apiDelete(apiEndpoints.subscriptions.detail(subscriptionId), subscriptionDeleteResponseSchema),
         onSuccess: async () => {
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: queryKeys.settings.subscriptions() }),
+                queryClient.invalidateQueries({ queryKey: queryKeys.settings.trackedProducts() }),
                 queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.home() }),
                 queryClient.invalidateQueries({ queryKey: queryKeys.runs.list() }),
+            ]);
+        },
+    });
+};
+
+export const useTrackProductMutation = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (productId: string) =>
+            apiPost(apiEndpoints.trackedProducts.list, { productId }, trackProductResponseSchema),
+        onSuccess: async (result) => {
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: queryKeys.settings.trackedProducts() }),
+                queryClient.invalidateQueries({ queryKey: queryKeys.settings.subscriptions() }),
+                queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(result.item.productId) }),
+                queryClient.invalidateQueries({ queryKey: ["runs", "products"] }),
+                queryClient.invalidateQueries({ queryKey: ["runs", "changes"] }),
+                queryClient.invalidateQueries({ queryKey: ["changes", "list"] }),
+            ]);
+        },
+    });
+};
+
+export const useUntrackProductMutation = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (productId: string) =>
+            apiDelete(apiEndpoints.trackedProducts.byProduct(productId), successResponseSchema),
+        onSuccess: async () => {
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: queryKeys.settings.trackedProducts() }),
+                queryClient.invalidateQueries({ queryKey: queryKeys.settings.subscriptions() }),
+                queryClient.invalidateQueries({ queryKey: ["products", "detail"] }),
+                queryClient.invalidateQueries({ queryKey: ["runs", "products"] }),
+                queryClient.invalidateQueries({ queryKey: ["runs", "changes"] }),
+                queryClient.invalidateQueries({ queryKey: ["changes", "list"] }),
             ]);
         },
     });

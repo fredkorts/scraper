@@ -1,5 +1,5 @@
 import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMeQuery } from "../features/auth/queries";
 import { RunChangesSection } from "../features/runs/components/detail/run-changes-section";
 import { RunFailurePanel } from "../features/runs/components/detail/run-failure-panel";
@@ -9,7 +9,8 @@ import sectionStyles from "../features/runs/components/detail/run-detail-section
 import { formatDateTime, formatDuration, formatStatusLabel } from "../features/runs/formatters";
 import { useRunDetailColumns } from "../features/runs/hooks/use-run-detail-columns";
 import { useRunChangesQuery, useRunDetailQuery, useRunProductsQuery } from "../features/runs/queries";
-import { defaultRunsListSearch } from "../features/runs/search";
+import { defaultRunsListSearch, normalizeTableSearchQuery } from "../features/runs/search";
+import { useDebouncedValue } from "../shared/hooks/use-debounced-value";
 import { useClampedPage } from "../shared/hooks/use-clamped-page";
 import { useRouteSearchUpdater } from "../shared/hooks/use-route-search-updater";
 import styles from "./scrape-views.module.scss";
@@ -25,18 +26,68 @@ export const RunDetailPage = () => {
         page: search.productsPage,
         pageSize: search.productsPageSize,
         inStock: search.productsInStock,
+        query: search.productsQuery,
     });
     const changesQuery = useRunChangesQuery(runId, {
         page: search.changesPage,
         pageSize: search.changesPageSize,
         changeType: search.changeType,
         preorder: search.preorder,
+        query: search.changesQuery,
     });
     const setSearch = useRouteSearchUpdater(navigate);
+    const [changesQueryInput, setChangesQueryInput] = useState(search.changesQuery ?? "");
+    const [productsQueryInput, setProductsQueryInput] = useState(search.productsQuery ?? "");
+    const debouncedChangesQueryInput = useDebouncedValue(changesQueryInput, 350);
+    const debouncedProductsQueryInput = useDebouncedValue(productsQueryInput, 350);
 
     useEffect(() => {
         headingRef.current?.focus();
     }, [runId]);
+
+    useEffect(() => {
+        // URL search is the source of truth, so this sync keeps local input state aligned for back/forward navigation.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setChangesQueryInput(search.changesQuery ?? "");
+    }, [search.changesQuery]);
+
+    useEffect(() => {
+        // URL search is the source of truth, so this sync keeps local input state aligned for back/forward navigation.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setProductsQueryInput(search.productsQuery ?? "");
+    }, [search.productsQuery]);
+
+    useEffect(() => {
+        const normalizedQuery = normalizeTableSearchQuery(debouncedChangesQueryInput);
+
+        if (normalizedQuery === search.changesQuery) {
+            return;
+        }
+
+        setSearch(
+            {
+                changesQuery: normalizedQuery,
+                changesPage: 1,
+            },
+            { replace: true },
+        );
+    }, [debouncedChangesQueryInput, search.changesQuery, setSearch]);
+
+    useEffect(() => {
+        const normalizedQuery = normalizeTableSearchQuery(debouncedProductsQueryInput);
+
+        if (normalizedQuery === search.productsQuery) {
+            return;
+        }
+
+        setSearch(
+            {
+                productsQuery: normalizedQuery,
+                productsPage: 1,
+            },
+            { replace: true },
+        );
+    }, [debouncedProductsQueryInput, search.productsQuery, setSearch]);
 
     useClampedPage({
         currentPage: search.changesPage,
@@ -126,6 +177,7 @@ export const RunDetailPage = () => {
             <RunChangesSection
                 changeColumns={changeColumns}
                 changeType={search.changeType}
+                query={changesQueryInput}
                 preorder={search.preorder}
                 changes={changesQuery.data}
                 errorMessage={changesQuery.isError ? changesQuery.error.message : undefined}
@@ -139,6 +191,7 @@ export const RunDetailPage = () => {
                         changesPage: 1,
                     })
                 }
+                onQueryChange={setChangesQueryInput}
                 onPreorderChange={(value) => setSearch({ preorder: value, changesPage: 1 })}
                 onPageChange={(nextPage) => setSearch({ changesPage: nextPage })}
                 onRetry={() => void changesQuery.refetch()}
@@ -153,12 +206,14 @@ export const RunDetailPage = () => {
                 productColumns={productColumns}
                 products={productsQuery.data}
                 productsInStock={search.productsInStock}
+                query={productsQueryInput}
                 onProductsStockChange={(value) =>
                     setSearch({
                         productsInStock: value ? (value as typeof search.productsInStock) : undefined,
                         productsPage: 1,
                     })
                 }
+                onQueryChange={setProductsQueryInput}
                 onPageChange={(nextPage) => setSearch({ productsPage: nextPage })}
             />
         </section>

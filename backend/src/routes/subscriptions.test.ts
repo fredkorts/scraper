@@ -47,9 +47,7 @@ describe("subscription routes", () => {
             ],
         });
 
-        const response = await request(app)
-            .get("/api/subscriptions")
-            .set("Cookie", authCookie(userA.id, userA.email));
+        const response = await request(app).get("/api/subscriptions").set("Cookie", authCookie(userA.id, userA.email));
 
         expect(response.status).toBe(200);
         expect(response.body.items).toHaveLength(1);
@@ -88,7 +86,7 @@ describe("subscription routes", () => {
             .send({ categoryId: categories[3].id });
 
         expect(limitResponse.status).toBe(409);
-        expect(limitResponse.body.error).toBe("subscription_limit_reached");
+        expect(limitResponse.body.error).toBe("tracking_limit_reached");
     });
 
     it("allows admin users unlimited subscriptions and supports deletion", async () => {
@@ -132,5 +130,6 @@ describe("subscription routes", () => {
 
         expect(deleteResponse.status).toBe(200);
         expect(deleteResponse.body.success).toBe(true);
+        expect(deleteResponse.body.autoDisabledWatchCount).toBe(0);
     });
 });

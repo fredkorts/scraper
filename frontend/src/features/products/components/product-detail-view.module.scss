@@ -10,6 +10,13 @@
     gap: var(--space-2xs);
 }
 
+.headerBadges {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+}
+
 .metaText {
     color: var(--color-text-muted);
 }

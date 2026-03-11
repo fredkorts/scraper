@@ -556,6 +556,49 @@ describe("dashboard and runs routes", () => {
         expect(response.body.items[0].externalUrl).toBe(inStockProduct.externalUrl);
     });
 
+    it("filters run products by search query across product name and URL", async () => {
+        const app = createApp();
+        const { user } = await createUser({ email: "products-search@example.com" });
+        const category = await createCategory("run-products-search", "Run Products Search");
+
+        await subscribeToCategory(user.id, category.id);
+        const run = await createRun(category.id, { totalProducts: 2 });
+
+        const deadpoolProduct = await createProduct("deadpool-deck", { name: "Deadpool Deck Box" });
+        const pokemonProduct = await createProduct("pokemon-sleeves", { name: "Pokemon Sleeves" });
+
+        await prisma.productSnapshot.createMany({
+            data: [
+                {
+                    scrapeRunId: run.id,
+                    productId: deadpoolProduct.id,
+                    name: deadpoolProduct.name,
+                    price: "11.99",
+                    originalPrice: null,
+                    inStock: true,
+                    imageUrl: deadpoolProduct.imageUrl,
+                },
+                {
+                    scrapeRunId: run.id,
+                    productId: pokemonProduct.id,
+                    name: pokemonProduct.name,
+                    price: "17.99",
+                    originalPrice: null,
+                    inStock: true,
+                    imageUrl: pokemonProduct.imageUrl,
+                },
+            ],
+        });
+
+        const response = await request(app)
+            .get(`/api/runs/${run.id}/products?page=1&pageSize=10&query=deadpool`)
+            .set("Cookie", authCookie(user.id, user.email));
+
+        expect(response.status).toBe(200);
+        expect(response.body.totalItems).toBe(1);
+        expect(response.body.items[0].productId).toBe(deadpoolProduct.id);
+    });
+
     it("rejects run products requests that exceed pagination page limits", async () => {
         const app = createApp();
         const { user } = await createUser({ email: "products-pagination-limit@example.com" });
@@ -624,6 +667,52 @@ describe("dashboard and runs routes", () => {
         expect(response.body.items[0].product.externalUrl).toBe(soldOutProduct.externalUrl);
         expect(response.body.items[0].oldStockStatus).toBe(true);
         expect(response.body.items[0].newStockStatus).toBe(false);
+    });
+
+    it("filters run changes by search query tokens", async () => {
+        const app = createApp();
+        const { user } = await createUser({ email: "changes-search@example.com" });
+        const category = await createCategory("run-changes-search", "Run Changes Search");
+
+        await subscribeToCategory(user.id, category.id);
+        const run = await createRun(category.id, { totalProducts: 2, soldOut: 1, priceChanges: 1 });
+        const report = await prisma.changeReport.create({
+            data: {
+                scrapeRunId: run.id,
+                totalChanges: 2,
+            },
+        });
+
+        const priceProduct = await createProduct("changes-search-price", { name: "Price Product" });
+        const soldOutProduct = await createProduct("changes-search-stock", { name: "Stock Product" });
+
+        await prisma.changeItem.createMany({
+            data: [
+                {
+                    changeReportId: report.id,
+                    productId: priceProduct.id,
+                    changeType: PrismaChangeType.PRICE_DECREASE,
+                    oldPrice: "29.99",
+                    newPrice: "19.99",
+                },
+                {
+                    changeReportId: report.id,
+                    productId: soldOutProduct.id,
+                    changeType: PrismaChangeType.SOLD_OUT,
+                    oldStockStatus: true,
+                    newStockStatus: false,
+                },
+            ],
+        });
+
+        const response = await request(app)
+            .get(`/api/runs/${run.id}/changes?page=1&pageSize=10&query=sold%20out`)
+            .set("Cookie", authCookie(user.id, user.email));
+
+        expect(response.status).toBe(200);
+        expect(response.body.totalItems).toBe(1);
+        expect(response.body.items[0].changeType).toBe("sold_out");
+        expect(response.body.items[0].product.id).toBe(soldOutProduct.id);
     });
 
     it("filters run changes by preorder state", async () => {
@@ -725,6 +814,47 @@ describe("dashboard and runs routes", () => {
         expect(response.body.items[0].category.id).toBe(visibleCategory.id);
         expect(response.body.items[0].run.id).toBe(visibleRun.id);
         expect(response.body.items[0].changedAt).toBeTruthy();
+    });
+
+    it("filters cross-run changes by search query", async () => {
+        const app = createApp();
+        const { user } = await createUser({ email: "global-changes-search@example.com" });
+        const category = await createCategory("global-search", "Global Search");
+        await subscribeToCategory(user.id, category.id);
+
+        const run = await createRun(category.id, { totalProducts: 2 });
+        const report = await prisma.changeReport.create({
+            data: {
+                scrapeRunId: run.id,
+                totalChanges: 2,
+            },
+        });
+
+        const deadpoolProduct = await createProduct("global-search-deadpool", { name: "Deadpool Dice" });
+        const pokemonProduct = await createProduct("global-search-pokemon", { name: "Pokemon Deck" });
+
+        await prisma.changeItem.createMany({
+            data: [
+                {
+                    changeReportId: report.id,
+                    productId: deadpoolProduct.id,
+                    changeType: PrismaChangeType.NEW_PRODUCT,
+                },
+                {
+                    changeReportId: report.id,
+                    productId: pokemonProduct.id,
+                    changeType: PrismaChangeType.NEW_PRODUCT,
+                },
+            ],
+        });
+
+        const response = await request(app)
+            .get("/api/changes?page=1&pageSize=25&windowDays=30&query=deadpool")
+            .set("Cookie", authCookie(user.id, user.email));
+
+        expect(response.status).toBe(200);
+        expect(response.body.totalItems).toBe(1);
+        expect(response.body.items[0].product.id).toBe(deadpoolProduct.id);
     });
 
     it("filters cross-run changes by preorder state", async () => {
@@ -943,9 +1073,10 @@ describe("dashboard and runs routes", () => {
     it("validates global changes query parameters", async () => {
         const app = createApp();
         const { user } = await createUser({ email: "global-changes-validation@example.com" });
+        const oversizedQuery = "a".repeat(101);
 
         const response = await request(app)
-            .get("/api/changes?sortBy=invalid&windowDays=99")
+            .get(`/api/changes?sortBy=invalid&windowDays=99&query=${oversizedQuery}`)
             .set("Cookie", authCookie(user.id, user.email));
 
         expect(response.status).toBe(400);

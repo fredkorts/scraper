@@ -5,6 +5,7 @@ import {
     defaultRunDetailSectionSearch,
     defaultRunsListSearch,
 } from "../../shared/navigation/default-searches";
+import { normalizeTableSearchQuery } from "../../shared/search/query";
 import { normalizePreorderFilterValue, preorderFilterValues } from "./hooks/use-preorder-filter";
 
 export const runsSortByValues = ["startedAt", "status", "totalChanges", "totalProducts", "durationMs"] as const;
@@ -22,14 +23,7 @@ export const runChangeTypeValues = [
 export const preorderFilterSearchValues = preorderFilterValues;
 export const changesWindowValues = [1, 7, 30] as const;
 
-const toOptionalString = (value: unknown): string | undefined => {
-    if (typeof value !== "string") {
-        return undefined;
-    }
-
-    const trimmed = value.trim();
-    return trimmed.length > 0 ? trimmed : undefined;
-};
+const toOptionalString = (value: unknown): string | undefined => normalizeTableSearchQuery(value);
 
 const toPositiveInt = (value: unknown, fallback: number): number => {
     if (typeof value === "number" && Number.isInteger(value) && value > 0) {
@@ -56,6 +50,7 @@ const toBooleanString = (value: unknown): "true" | "false" | undefined => {
 };
 
 export { defaultChangesListSearch, defaultDashboardHomeSearch, defaultRunDetailSectionSearch, defaultRunsListSearch };
+export { normalizeTableSearchQuery };
 
 export const parseDashboardHomeSearch = (
     search: Record<string, unknown>,
@@ -106,8 +101,10 @@ export const parseRunDetailSearch = (
     productsPage: number;
     productsPageSize: number;
     productsInStock?: "true" | "false";
+    productsQuery?: string;
     changesPage: number;
     changesPageSize: number;
+    changesQuery?: string;
     changeType?: (typeof runChangeTypeValues)[number];
     preorder: (typeof preorderFilterSearchValues)[number];
 } => {
@@ -120,11 +117,13 @@ export const parseRunDetailSearch = (
             100,
         ),
         productsInStock: toBooleanString(search.productsInStock),
+        productsQuery: normalizeTableSearchQuery(search.productsQuery),
         changesPage: toPositiveInt(search.changesPage, defaultRunDetailSectionSearch.changesPage),
         changesPageSize: Math.min(
             toPositiveInt(search.changesPageSize, defaultRunDetailSectionSearch.changesPageSize),
             100,
         ),
+        changesQuery: normalizeTableSearchQuery(search.changesQuery),
         changeType: runChangeTypeValues.includes(changeType as (typeof runChangeTypeValues)[number])
             ? (changeType as (typeof runChangeTypeValues)[number])
             : undefined,
@@ -143,6 +142,7 @@ export const parseChangesListSearch = (
     preorder: (typeof preorderFilterSearchValues)[number];
     categoryId?: string;
     windowDays: (typeof changesWindowValues)[number];
+    query?: string;
 } => {
     const sortBy = toOptionalString(search.sortBy);
     const sortOrder = toOptionalString(search.sortOrder);
@@ -173,5 +173,6 @@ export const parseChangesListSearch = (
         preorder: normalizePreorderFilterValue(search.preorder, defaultChangesListSearch.preorder),
         categoryId: categoryId && z.string().uuid().safeParse(categoryId).success ? categoryId : undefined,
         windowDays,
+        query: normalizeTableSearchQuery(search.query),
     };
 };

@@ -8,7 +8,8 @@ import { AppError } from "./lib/errors";
 import { logger, requestContextMiddleware } from "./lib/logger";
 import { prisma } from "./lib/prisma";
 import { isTrustedOrigin, trustedOrigins, trustedOriginsMetadata } from "./lib/trusted-origins";
-import { apiReadLimiter, paymentsMutationLimiter } from "./middleware/rate-limit";
+import { hydrateAuthOptional } from "./middleware/auth";
+import { apiAuthenticatedIpCeilingLimiter, apiReadLimiter, paymentsMutationLimiter } from "./middleware/rate-limit";
 import { authRouter } from "./routes/auth";
 import { adminRouter } from "./routes/admin";
 import { categoriesRouter } from "./routes/categories";
@@ -18,6 +19,7 @@ import { notificationsRouter } from "./routes/notifications";
 import { productsRouter } from "./routes/products";
 import { runsRouter } from "./routes/runs";
 import { subscriptionsRouter } from "./routes/subscriptions";
+import { trackedProductsRouter } from "./routes/tracked-products";
 
 export const createApp = () => {
     const app = express();
@@ -48,8 +50,18 @@ export const createApp = () => {
     app.use(cookieParser());
     app.use(express.json());
     app.use(requestContextMiddleware);
+    app.use(hydrateAuthOptional);
     app.use("/api", apiReadLimiter);
+    app.use("/api", apiAuthenticatedIpCeilingLimiter);
     app.use("/api/payments", paymentsMutationLimiter);
+
+    if (config.NODE_ENV !== "test") {
+        logger.info("rate_limit_configuration", {
+            trustProxyHops: config.TRUST_PROXY_HOPS,
+            userKeyingEnabled: config.RATE_LIMIT_USER_KEYING_ENABLED,
+            authenticatedIpCeilingLimit: config.RATE_LIMIT_AUTHENTICATED_IP_CEILING_LIMIT,
+        });
+    }
     app.use("/api/auth", authRouter);
     app.use("/api/admin", adminRouter);
     app.use("/api/categories", categoriesRouter);
@@ -59,6 +71,7 @@ export const createApp = () => {
     app.use("/api/products", productsRouter);
     app.use("/api/notifications", notificationsRouter);
     app.use("/api/subscriptions", subscriptionsRouter);
+    app.use("/api/tracked-products", trackedProductsRouter);
 
     app.get("/api/health", async (_req, res) => {
         try {

@@ -9,6 +9,14 @@ export const authUserSchema = z.object({
     emailVerifiedAt: z.string().optional(),
     mfaEnabled: z.boolean(),
     mfaEnabledAt: z.string().optional(),
+    capabilities: z
+        .object({
+            productWatchlist: z.boolean().optional(),
+        })
+        .optional()
+        .transform((capabilities) => ({
+            productWatchlist: capabilities?.productWatchlist ?? false,
+        })),
     createdAt: z.string(),
     updatedAt: z.string(),
 });

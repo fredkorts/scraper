@@ -19,6 +19,18 @@ export const NOTIFICATION_MESSAGES = {
         categoryUntrackFailed: {
             message: "Could not remove tracking",
         },
+        productWatched: {
+            message: "Product tracked",
+        },
+        productWatchFailed: {
+            message: "Could not track product",
+        },
+        productUnwatched: {
+            message: "Product untracked",
+        },
+        productUnwatchFailed: {
+            message: "Could not untrack product",
+        },
         channelCreated: {
             message: "Channel added",
         },
@@ -53,6 +65,10 @@ export const NOTIFICATION_MESSAGES = {
     session: {
         logoutFailed: {
             message: "Sign out failed",
+        },
+        authRateLimited: {
+            message: "Too many authentication requests",
+            description: "Please wait a moment and try again.",
         },
     },
 } as const;

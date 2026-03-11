@@ -247,6 +247,9 @@ export interface AuthUser {
     emailVerifiedAt?: string;
     mfaEnabled: boolean;
     mfaEnabledAt?: string;
+    capabilities?: {
+        productWatchlist?: boolean;
+    };
     createdAt: string;
     updatedAt: string;
 }
@@ -423,6 +426,10 @@ export interface SubscriptionsResponse {
     remaining: number | null;
 }
 
+export interface DeleteSubscriptionResponse extends SuccessResponse {
+    autoDisabledWatchCount: number;
+}
+
 export interface PaginatedResponse<TItem> {
     items: TItem[];
     page: number;
@@ -478,6 +485,7 @@ export interface RunProductSnapshot {
     originalPrice?: number;
     inStock: boolean;
     isPreorder: boolean;
+    isWatched?: boolean;
     preorderEta?: string;
     preorderDetectedFrom?: PreorderDetectedFrom;
     imageUrl: string;
@@ -499,6 +507,7 @@ export interface RunChangeItem {
         name: string;
         imageUrl: string;
         externalUrl: string;
+        isWatched?: boolean;
         isPreorder: boolean;
         preorderEta?: string;
         preorderDetectedFrom?: PreorderDetectedFrom;
@@ -585,6 +594,8 @@ export interface ProductDetail {
     currentPrice: number;
     originalPrice?: number;
     inStock: boolean;
+    isWatched: boolean;
+    trackedProductId?: string;
     isPreorder: boolean;
     preorderEta?: string;
     preorderDetectedFrom?: PreorderDetectedFrom;
@@ -612,6 +623,37 @@ export interface ProductHistoryPoint {
 
 export interface ProductHistoryResponse {
     items: ProductHistoryPoint[];
+}
+
+export interface TrackedProductListItem {
+    id: string;
+    productId: string;
+    createdAt: string;
+    updatedAt: string;
+    product: {
+        id: string;
+        name: string;
+        imageUrl: string;
+        externalUrl: string;
+        currentPrice: number;
+        inStock: boolean;
+        isPreorder: boolean;
+        preorderEta?: string;
+        preorderDetectedFrom?: PreorderDetectedFrom;
+        categories: ProductDetailCategory[];
+    };
+}
+
+export interface TrackedProductsResponse {
+    items: TrackedProductListItem[];
+}
+
+export interface TrackProductRequest {
+    productId: string;
+}
+
+export interface TrackProductResponse {
+    item: TrackedProductListItem;
 }
 
 export type NotificationChannelInputType = "email" | "discord" | "whatsapp" | "signal" | "sms";

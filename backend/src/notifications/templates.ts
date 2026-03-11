@@ -154,6 +154,47 @@ const renderHtmlSections = (
         })
         .join("");
 
+const WATCHED_SECTION_LABEL = "Watched products changed";
+const WATCHED_SECTION_CAP = 10;
+
+const renderWatchedTextSection = (
+    items: ImmediateDeliveryPayload["changeItems"] | DigestRecipientPayload["deliveries"][number]["changeItems"],
+) => {
+    const watchedItems = items.filter((item) => item.isWatchedAtSend);
+    if (watchedItems.length === 0) {
+        return [];
+    }
+
+    const visibleItems = watchedItems.slice(0, WATCHED_SECTION_CAP);
+    const overflowCount = watchedItems.length - visibleItems.length;
+    const lines = [`${WATCHED_SECTION_LABEL} (${watchedItems.length})`, ...visibleItems.map(renderItemText)];
+
+    if (overflowCount > 0) {
+        lines.push(`+${overflowCount} more watched changes`);
+    }
+
+    lines.push("");
+    return lines;
+};
+
+const renderWatchedHtmlSection = (
+    items: ImmediateDeliveryPayload["changeItems"] | DigestRecipientPayload["deliveries"][number]["changeItems"],
+) => {
+    const watchedItems = items.filter((item) => item.isWatchedAtSend);
+    if (watchedItems.length === 0) {
+        return "";
+    }
+
+    const visibleItems = watchedItems.slice(0, WATCHED_SECTION_CAP);
+    const overflowCount = watchedItems.length - visibleItems.length;
+
+    return `<section style="margin-bottom:24px;">
+        <h2 style="margin:0 0 12px 0;">${escapeHtml(WATCHED_SECTION_LABEL)} (${watchedItems.length})</h2>
+        <ul style="margin:0; padding-left:20px;">${visibleItems.map(renderItemHtml).join("")}</ul>
+        ${overflowCount > 0 ? `<p style="margin-top:8px;">+${overflowCount} more watched changes</p>` : ""}
+    </section>`;
+};
+
 export const renderImmediateEmail = (payload: ImmediateDeliveryPayload) => {
     const categoryName = payload.report.scrapeRun.category.nameEt;
     const groupedItems = groupChangeItems(payload.changeItems);
@@ -163,6 +204,8 @@ export const renderImmediateEmail = (payload: ImmediateDeliveryPayload) => {
     const dashboardCategoryUrl = buildDashboardCategoryUrl(payload.report.scrapeRun.category.id);
     const runTimestamp = formatUtcTimestamp(getRunTimestamp(payload));
     const preorderCount = getDistinctPreorderProductCount(payload.changeItems);
+    const watchedTextSection = renderWatchedTextSection(payload.changeItems);
+    const watchedHtmlSection = renderWatchedHtmlSection(payload.changeItems);
     const renderedTextSections = renderTextSections(sectionSummaries, groupedItems, IMMEDIATE_SECTION_ITEM_LIMIT);
     const renderedHtmlSections = renderHtmlSections(sectionSummaries, groupedItems, IMMEDIATE_SECTION_ITEM_LIMIT);
 
@@ -184,6 +227,7 @@ export const renderImmediateEmail = (payload: ImmediateDeliveryPayload) => {
             "Open category runs:",
             dashboardCategoryUrl,
             "",
+            ...watchedTextSection,
             ...renderedTextSections,
             "View all changes in dashboard:",
             categoryRunsUrl,
@@ -204,6 +248,7 @@ export const renderImmediateEmail = (payload: ImmediateDeliveryPayload) => {
             ${summaryText ? `<p>${escapeHtml(summaryText)}</p>` : ""}
             <p><a href="${escapeHtml(categoryRunsUrl)}"><strong>View all changes in dashboard</strong></a><br />
             <a href="${escapeHtml(dashboardCategoryUrl)}">Open category runs</a></p>
+            ${watchedHtmlSection}
             ${renderedHtmlSections}
             <p><a href="${escapeHtml(categoryRunsUrl)}"><strong>View all changes in dashboard</strong></a><br />
             <a href="${escapeHtml(dashboardCategoryUrl)}">Open category runs</a></p>
@@ -234,12 +279,14 @@ export const renderDigestEmail = (payload: DigestRecipientPayload) => {
             const dashboardCategoryUrl = buildDashboardCategoryUrl(delivery.report.scrapeRun.category.id);
             const runTimestamp = formatUtcTimestamp(getRunTimestamp(delivery));
             const preorderCount = getDistinctPreorderProductCount(delivery.changeItems);
+            const watchedTextSection = renderWatchedTextSection(delivery.changeItems);
             lines.push(`- Report ${delivery.report.id}: ${delivery.changeItems.length} changes`);
             lines.push(`  Category: ${delivery.report.scrapeRun.category.nameEt}`);
             lines.push(`  Run time: ${runTimestamp}`);
             lines.push(`  Changed products: ${delivery.report.totalChanges}`);
             lines.push(`  Sections: ${sectionSummaries.length}`);
             lines.push(`  Preorders in this report: ${preorderCount}`);
+            lines.push(...watchedTextSection.map((line) => (line ? `  ${line}` : line)));
             lines.push(
                 ...renderTextSections(sectionSummaries, groupedItems, DIGEST_SECTION_ITEM_LIMIT).map((line) =>
                     line ? `  ${line}` : line,
@@ -262,6 +309,7 @@ export const renderDigestEmail = (payload: DigestRecipientPayload) => {
                 const dashboardCategoryUrl = buildDashboardCategoryUrl(delivery.report.scrapeRun.category.id);
                 const runTimestamp = formatUtcTimestamp(getRunTimestamp(delivery));
                 const preorderCount = getDistinctPreorderProductCount(delivery.changeItems);
+                const watchedHtmlSection = renderWatchedHtmlSection(delivery.changeItems);
                 const renderedSections = renderHtmlSections(sectionSummaries, groupedItems, DIGEST_SECTION_ITEM_LIMIT);
 
                 return `<div style="margin-bottom:24px;">
@@ -273,6 +321,7 @@ export const renderDigestEmail = (payload: DigestRecipientPayload) => {
                     <strong>Preorders in this report:</strong> ${preorderCount}</p>
                     <p><a href="${escapeHtml(categoryRunsUrl)}"><strong>View all changes in dashboard</strong></a><br />
                     <a href="${escapeHtml(dashboardCategoryUrl)}">Open category runs</a></p>
+                    ${watchedHtmlSection}
                     ${renderedSections}
                 </div>`;
             })

@@ -206,6 +206,7 @@ const appRunDetailRoute = createRoute({
                     page: deps.productsPage,
                     pageSize: deps.productsPageSize,
                     inStock: deps.productsInStock,
+                    query: deps.productsQuery,
                 }),
             ),
             context.queryClient.ensureQueryData(
@@ -214,6 +215,7 @@ const appRunDetailRoute = createRoute({
                     pageSize: deps.changesPageSize,
                     changeType: deps.changeType,
                     preorder: deps.preorder,
+                    query: deps.changesQuery,
                 }),
             ),
         ]);

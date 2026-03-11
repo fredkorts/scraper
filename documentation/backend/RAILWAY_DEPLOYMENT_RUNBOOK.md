@@ -125,6 +125,16 @@ Recommended production hardening vars:
 8. `SCRAPER_PRICE_ANOMALY_MEDIAN_MIN=0.12`
 9. `SCRAPER_PRICE_ANOMALY_MEDIAN_MAX=0.18`
 10. `SCRAPER_PRICE_ANOMALY_STDDEV_MAX=0.02`
+11. `RATE_LIMIT_USER_KEYING_ENABLED=true` (after rollout validation)
+12. `RATE_LIMIT_AUTHENTICATED_IP_CEILING_LIMIT=1200`
+
+`TRUST_PROXY_HOPS` derive/verify checklist:
+
+1. Start with `TRUST_PROXY_HOPS=1`.
+2. Hit API from browser and inspect backend logs for effective `req.ip` and forwarded chain.
+3. Confirm requests from different client networks produce different effective IPs.
+4. If all traffic collapses to one proxy IP, increase hop count and retest.
+5. Keep the smallest value that yields real client IP behavior.
 
 ## Database Migration Strategy on Railway
 

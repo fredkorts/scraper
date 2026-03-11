@@ -67,6 +67,7 @@ model User {
   updatedAt             DateTime               @updatedAt @map("updated_at")
   refreshTokens         RefreshToken[]
   subscriptions         UserSubscription[]
+  trackedProducts       UserTrackedProduct[]
   notificationChannels  NotificationChannel[]
   notificationDeliveries NotificationDelivery[]
   emailVerificationTokens EmailVerificationToken[]
@@ -190,6 +191,23 @@ model UserSubscription {
   @@map("user_subscriptions")
 }
 
+model UserTrackedProduct {
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  productId         String   @map("product_id") @db.Uuid
+  isActive          Boolean  @default(true) @map("is_active")
+  deactivatedReason String?  @map("deactivated_reason")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, productId])
+  @@index([userId, isActive])
+  @@index([productId, isActive])
+  @@map("user_tracked_products")
+}
+
 model ScrapeRun {
   id            String         @id @default(uuid()) @db.Uuid
   categoryId    String         @map("category_id") @db.Uuid
@@ -242,6 +260,7 @@ model Product {
   lastSeenAt       DateTime          @default(now()) @map("last_seen_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
   productCategories ProductCategory[]
+  trackedByUsers    UserTrackedProduct[]
   productSnapshots  ProductSnapshot[]
   changeItems       ChangeItem[]
 
@@ -305,6 +324,7 @@ model ChangeItem {
   newStockStatus Boolean?   @map("new_stock_status")
   changeReport   ChangeReport @relation(fields: [changeReportId], references: [id], onDelete: Restrict)
   product        Product      @relation(fields: [productId], references: [id], onDelete: Restrict)
+  deliveryItems  NotificationDeliveryItem[]
 
   @@index([changeReportId])
   @@index([productId])
@@ -340,10 +360,26 @@ model NotificationDelivery {
   changeReport          ChangeReport               @relation(fields: [changeReportId], references: [id], onDelete: Cascade)
   user                  User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
   notificationChannel   NotificationChannel        @relation(fields: [notificationChannelId], references: [id], onDelete: Cascade)
+  items                 NotificationDeliveryItem[]
 
   @@unique([changeReportId, userId, notificationChannelId])
   @@index([changeReportId])
   @@index([userId])
   @@index([status])
   @@map("notification_deliveries")
+}
+
+model NotificationDeliveryItem {
+  id                     String               @id @default(uuid()) @db.Uuid
+  notificationDeliveryId String               @map("notification_delivery_id") @db.Uuid
+  changeItemId           String               @map("change_item_id") @db.Uuid
+  isWatchedAtSend        Boolean              @default(false) @map("is_watched_at_send")
+  createdAt              DateTime             @default(now()) @map("created_at")
+  notificationDelivery   NotificationDelivery @relation(fields: [notificationDeliveryId], references: [id], onDelete: Cascade)
+  changeItem             ChangeItem           @relation(fields: [changeItemId], references: [id], onDelete: Restrict)
+
+  @@unique([notificationDeliveryId, changeItemId])
+  @@index([notificationDeliveryId])
+  @@index([isWatchedAtSend])
+  @@map("notification_delivery_items")
 }
