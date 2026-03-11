@@ -2,6 +2,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express, { type NextFunction, type Request, type Response } from "express";
 import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { ZodError } from "zod";
 import { config } from "./config";
 import { AppError } from "./lib/errors";
@@ -23,6 +24,13 @@ import { trackedProductsRouter } from "./routes/tracked-products";
 
 export const createApp = () => {
     const app = express();
+
+    const globalLimiter = rateLimit({
+        windowMs: 60 * 1000, // 1 minute
+        max: 300, // allow up to 300 requests per minute per IP
+        standardHeaders: true,
+        legacyHeaders: false,
+    });
 
     if (trustedOriginsMetadata.hasLegacyMismatch) {
         logger.warn("frontend_origin_legacy_mismatch", {
@@ -50,6 +58,7 @@ export const createApp = () => {
     app.use(cookieParser());
     app.use(express.json());
     app.use(requestContextMiddleware);
+    app.use(globalLimiter);
     app.use(hydrateAuthOptional);
     app.use("/api", apiReadLimiter);
     app.use("/api", apiAuthenticatedIpCeilingLimiter);
