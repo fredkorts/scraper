@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { buildCategoryOptions, buildCategoryTreeData, getCategoryDisplayLabel } from "../../categories/options";
-import { useCategoriesQuery } from "../../categories/queries";
+import { buildCategoryOptions, buildCategoryTreeData, getCategoryDisplayLabel } from "../../categories";
+import { useCategoriesQuery } from "../../categories";
 import { useCreateSubscriptionMutation, useDeleteSubscriptionMutation, useUntrackProductMutation } from "../mutations";
 import { useSubscriptionsQuery, useTrackedProductsQuery } from "../queries";
 import type { UseSettingsTrackingResult } from "../types/use-settings-tracking.types";

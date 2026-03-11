@@ -14,11 +14,28 @@
     gap: var(--space-sm);
     flex-wrap: wrap;
     align-items: end;
+    width: 100%;
 }
 
 .filterGroup {
     display: grid;
     gap: var(--space-2xs);
+}
+
+.searchFilterGroup {
+    margin-right: auto;
+    flex: 1 1 18rem;
+    min-width: 14rem;
+    max-width: 30rem;
+}
+
+.filterTrailingGroup {
+    margin-left: auto;
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: flex-end;
 }
 
 .label {
@@ -51,6 +68,20 @@
 
 .select:global(.ant-select-focused) :global(.ant-select-selector) {
     @include mixins.focus-ring;
+}
+
+@include mixins.mq-md {
+    .searchFilterGroup {
+        margin-right: 0;
+        flex: 1 1 100%;
+        max-width: none;
+    }
+
+    .filterTrailingGroup {
+        margin-left: 0;
+        width: 100%;
+        justify-content: flex-start;
+    }
 }
 
 .tableControls {

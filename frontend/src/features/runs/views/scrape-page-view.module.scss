@@ -1,0 +1,92 @@
+@use "../../../styles/abstracts/mixins";
+@use "../../../styles/components/empty-states";
+@use "../../../styles/components/forms";
+@use "../../../styles/layout/containers";
+
+.page {
+    @include containers.page-shell(80rem);
+}
+
+.pageHeading {
+    margin: 0;
+    font-size: var(--font-size-2xl);
+}
+
+.pageHeading:focus {
+    outline: none;
+}
+
+.lede {
+    margin: 0;
+    color: var(--color-text-muted);
+}
+
+.stack {
+    display: grid;
+    gap: var(--space-xs);
+}
+
+.filterRow {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+    align-items: end;
+}
+
+.filterGroup {
+    display: grid;
+    gap: var(--space-2xs);
+}
+
+.label {
+    @include forms.field-label;
+}
+
+.select {
+    min-width: 10rem;
+}
+
+.select :global(.ant-select-selector) {
+    min-height: 2.5rem !important;
+    height: 2.5rem !important;
+    border-radius: var(--radius-sm) !important;
+    border-color: var(--color-border) !important;
+    background: var(--color-surface) !important;
+    color: var(--color-text) !important;
+    display: flex;
+    align-items: center;
+}
+
+.select :global(.ant-select-selection-item),
+.select :global(.ant-select-selection-placeholder) {
+    line-height: calc(2.5rem - 2px) !important;
+}
+
+.select :global(.ant-select-arrow) {
+    color: var(--color-text-muted);
+}
+
+.select:global(.ant-select-focused) :global(.ant-select-selector) {
+    @include mixins.focus-ring;
+}
+
+.subtle {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+}
+
+.emptyState {
+    @include empty-states.state-panel;
+}
+
+.errorState {
+    @include empty-states.state-panel-error;
+}
+
+.sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}

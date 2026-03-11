@@ -1,0 +1,1 @@
+export { ForbiddenPageView } from "./ForbiddenPageView";

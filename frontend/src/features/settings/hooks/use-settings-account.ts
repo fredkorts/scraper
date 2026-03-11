@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { useMeQuery } from "../../auth/queries";
+import { useMeQuery } from "../../auth";
 import { useUpdateProfileMutation } from "../mutations";
 import { updateProfileRequestSchema } from "../schemas";
 import type { UpdateProfileRequestData } from "../types/settings-schema.types";

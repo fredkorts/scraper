@@ -21,7 +21,7 @@ import { formatEligibilityStatusLabel, formatQueueStatusLabel } from "../formatt
 import { useAdminSchedulerColumns } from "../hooks/use-admin-scheduler-columns";
 import type { AdminSchedulerSortBy, AdminSchedulerSortOrder } from "../types/admin-scheduler-sort.types";
 import type { AdminSchedulerStateTableProps } from "../types/admin-scheduler-state-table.types";
-import type { CategoryTreeNode } from "../../categories/types/category-tree-node";
+import type { CategoryTreeNode } from "../../categories";
 import styles from "./settings-shared.module.scss";
 
 export const AdminSchedulerStateTable = ({
@@ -198,47 +198,8 @@ export const AdminSchedulerStateTable = ({
                     <h2 className={styles.sectionTitle}>Category Schedule State</h2>
                     <span className={styles.subtle}>Updated {generatedAt ? formatDateTime(generatedAt) : "-"}</span>
                 </div>
-                <div className={styles.tableMetaGroup}>
-                    <div className={styles.filterGroup}>
-                        <label className={styles.label} htmlFor="scheduler-page-size-filter">
-                            Page size
-                        </label>
-                        <AppSelect
-                            id="scheduler-page-size-filter"
-                            ariaLabel="Scheduler page size"
-                            className={[styles.select, styles.pageSizeSelect].join(" ")}
-                            options={SCHEDULER_TABLE_PAGE_SIZE_OPTIONS}
-                            value={String(pageSize)}
-                            onChange={(value) => {
-                                if (!value) {
-                                    return;
-                                }
-
-                                setPageSize(Number(value));
-                                setPage(1);
-                            }}
-                        />
-                    </div>
-                    <div className={styles.filterGroup}>
-                        <label className={styles.label} htmlFor="scheduler-category-filter">
-                            Category
-                        </label>
-                        <CategoryTreeSelect
-                            allowClear
-                            ariaLabel="Scheduler category filter"
-                            className={[styles.select, styles.schedulerFilterSelect].join(" ")}
-                            disabled={!categoryTreeData.length}
-                            id="scheduler-category-filter"
-                            treeData={categoryTreeData}
-                            placeholder="All tracked categories"
-                            value={effectiveSelectedCategoryId}
-                            onChange={(value) => {
-                                setSelectedCategoryId(value);
-                                setPage(1);
-                            }}
-                        />
-                    </div>
-                    <div className={styles.filterGroup}>
+                <div className={styles.tableFilterRow}>
+                    <div className={[styles.filterGroup, styles.tableSearchGroup].join(" ")}>
                         <label className={styles.label} htmlFor="scheduler-query-filter">
                             Search
                         </label>
@@ -253,6 +214,47 @@ export const AdminSchedulerStateTable = ({
                                 setPage(1);
                             }}
                         />
+                    </div>
+                    <div className={styles.tableMetaGroup}>
+                        <div className={styles.filterGroup}>
+                            <label className={styles.label} htmlFor="scheduler-page-size-filter">
+                                Page size
+                            </label>
+                            <AppSelect
+                                id="scheduler-page-size-filter"
+                                ariaLabel="Scheduler page size"
+                                className={[styles.select, styles.pageSizeSelect].join(" ")}
+                                options={SCHEDULER_TABLE_PAGE_SIZE_OPTIONS}
+                                value={String(pageSize)}
+                                onChange={(value) => {
+                                    if (!value) {
+                                        return;
+                                    }
+
+                                    setPageSize(Number(value));
+                                    setPage(1);
+                                }}
+                            />
+                        </div>
+                        <div className={styles.filterGroup}>
+                            <label className={styles.label} htmlFor="scheduler-category-filter">
+                                Category
+                            </label>
+                            <CategoryTreeSelect
+                                allowClear
+                                ariaLabel="Scheduler category filter"
+                                className={[styles.select, styles.schedulerFilterSelect].join(" ")}
+                                disabled={!categoryTreeData.length}
+                                id="scheduler-category-filter"
+                                treeData={categoryTreeData}
+                                placeholder="All tracked categories"
+                                value={effectiveSelectedCategoryId}
+                                onChange={(value) => {
+                                    setSelectedCategoryId(value);
+                                    setPage(1);
+                                }}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>

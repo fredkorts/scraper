@@ -1,0 +1,1 @@
+export { ResetPasswordPageView } from "./ResetPasswordPageView";

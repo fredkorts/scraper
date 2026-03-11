@@ -1,4 +1,4 @@
-@use "../styles/components/cards";
+@use "../../../../styles/components/cards";
 
 .contextSummary {
     @include cards.card-surface(var(--space-md));

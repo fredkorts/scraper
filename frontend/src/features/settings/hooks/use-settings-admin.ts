@@ -8,8 +8,8 @@ import { useAppNotification } from "../../../shared/hooks/use-app-notification";
 import { normalizeUserError } from "../../../shared/utils/normalize-user-error";
 import { useAdminSchedulerStateQuery } from "../queries";
 import type { AdminSchedulerStateItemData } from "../types/settings-schema.types";
-import { buildCategoryTreeData } from "../../categories/options";
-import { categoriesQueryOptions } from "../../categories/queries";
+import { buildCategoryTreeData } from "../../categories";
+import { categoriesQueryOptions } from "../../categories";
 
 export const useSettingsAdmin = (enabled: boolean): UseSettingsAdminResult => {
     const categoriesQuery = useQuery({ ...categoriesQueryOptions("all"), enabled });

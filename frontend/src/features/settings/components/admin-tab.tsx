@@ -4,7 +4,7 @@ import { SettingOutlined, ThunderboltOutlined } from "@ant-design/icons";
 import { AppButton } from "../../../components/app-button/AppButton";
 import { AppSelect } from "../../../components/app-select/AppSelect";
 import { CategoryTreeSelect } from "../../../components/category-tree-select/CategoryTreeSelect";
-import { defaultRunDetailSectionSearch } from "../../runs/search";
+import { defaultRunDetailSectionSearch } from "../../runs";
 import { getSettingsPanelId, getSettingsTabId } from "../constants/settings-tab-a11y.constants";
 import { AdminSchedulerStateTable } from "./admin-scheduler-state-table";
 import type { SettingsAdminTabProps } from "../types/settings-ui.types";

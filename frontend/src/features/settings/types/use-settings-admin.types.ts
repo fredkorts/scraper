@@ -1,5 +1,5 @@
 import type { ScrapeInterval } from "@mabrik/shared";
-import type { CategoryTreeNode } from "../../categories/types/category-tree-node";
+import type { CategoryTreeNode } from "../../categories";
 import type { useAdminSchedulerStateQuery } from "../queries";
 import type { useTriggerRunMutation } from "../mutations";
 import type { AdminSchedulerStateItemData } from "./settings-schema.types";

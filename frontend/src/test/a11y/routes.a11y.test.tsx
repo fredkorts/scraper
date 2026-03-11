@@ -66,7 +66,7 @@ describe("route a11y smoke checks", () => {
         });
 
         expect(await screen.findByRole("main")).toBeInTheDocument();
-        expect(await screen.findByText(/Loading product detail|Test Product/i)).toBeInTheDocument();
+        expect(await screen.findByRole("heading", { name: /Test Product/i })).toBeInTheDocument();
         expect(document.querySelector("a button")).toBeNull();
         expect(document.querySelector("button a")).toBeNull();
     });

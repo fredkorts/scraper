@@ -22,27 +22,12 @@ export const RunProductsSection = ({
     onProductsStockChange,
 }: RunProductsSectionProps) => (
     <section aria-labelledby="products-heading" className={styles.section}>
-        <div className={styles.sectionHeader}>
+        <div className={[styles.sectionHeader, styles.stackedSectionHeader].join(" ")}>
             <h2 className={styles.sectionTitle} id="products-heading">
                 Product Snapshots
             </h2>
             <div className={styles.filterRow}>
-                <div className={styles.filterGroup}>
-                    <label className={styles.label} htmlFor="stock-filter">
-                        Stock filter
-                    </label>
-                    <AppSelect
-                        allowClear
-                        ariaLabel="Stock filter"
-                        className={styles.select}
-                        id="stock-filter"
-                        options={RUN_PRODUCT_STOCK_FILTER_OPTIONS}
-                        placeholder="All stock states"
-                        value={productsInStock}
-                        onChange={(value) => onProductsStockChange(value || undefined)}
-                    />
-                </div>
-                <div className={styles.filterGroup}>
+                <div className={[styles.filterGroup, styles.searchFilterGroup].join(" ")}>
                     <label className={styles.label} htmlFor="run-products-search-filter">
                         Search
                     </label>
@@ -54,6 +39,23 @@ export const RunProductsSection = ({
                         maxLength={TABLE_SEARCH_QUERY_MAX_LENGTH}
                         onChange={onQueryChange}
                     />
+                </div>
+                <div className={styles.filterTrailingGroup}>
+                    <div className={styles.filterGroup}>
+                        <label className={styles.label} htmlFor="stock-filter">
+                            Stock filter
+                        </label>
+                        <AppSelect
+                            allowClear
+                            ariaLabel="Stock filter"
+                            className={styles.select}
+                            id="stock-filter"
+                            options={RUN_PRODUCT_STOCK_FILTER_OPTIONS}
+                            placeholder="All stock states"
+                            value={productsInStock}
+                            onChange={(value) => onProductsStockChange(value || undefined)}
+                        />
+                    </div>
                 </div>
             </div>
         </div>

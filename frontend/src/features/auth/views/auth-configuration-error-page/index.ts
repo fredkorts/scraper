@@ -1,0 +1,1 @@
+export { AuthConfigurationErrorPageView } from "./AuthConfigurationErrorPageView";

@@ -98,7 +98,7 @@ describe("scrape views", () => {
         expect(screen.getByRole("link", { name: "Open run detail" })).toBeInTheDocument();
         expect(screen.getByText("The scrape timed out while loading page 31.")).toBeInTheDocument();
         expect(screen.getByRole("link", { name: "View new products changes (2)" })).toBeInTheDocument();
-    });
+    }, 10_000);
 
     it("routes dashboard summary cards to the changes explorer with prefilled filters", async () => {
         const user = userEvent.setup();

@@ -1,5 +1,5 @@
 import type { AdminSchedulerStateItemData } from "./settings-schema.types";
-import type { CategoryTreeNode } from "../../categories/types/category-tree-node";
+import type { CategoryTreeNode } from "../../categories";
 
 export interface AdminSchedulerStateTableProps {
     items: AdminSchedulerStateItemData[];

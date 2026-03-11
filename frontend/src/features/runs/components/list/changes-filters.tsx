@@ -29,7 +29,7 @@ export const ChangesFilters = ({
     onReset,
 }: ChangesFiltersProps) => (
     <div className={styles.filterRow}>
-        <div className={styles.filterGroup}>
+        <div className={[styles.filterGroup, styles.searchFilterGroup].join(" ")}>
             <label className={styles.label} htmlFor="changes-query-filter">
                 Search
             </label>
@@ -42,87 +42,93 @@ export const ChangesFilters = ({
                 onChange={onQueryChange}
             />
         </div>
-        <div className={styles.filterGroup}>
-            <label className={styles.label} htmlFor="changes-change-type-filter">
-                Change type
-            </label>
-            <AppSelect
-                allowClear
-                ariaLabel="Change type"
-                className={styles.select}
-                id="changes-change-type-filter"
-                options={RUN_CHANGE_TYPE_FILTER_OPTIONS}
-                placeholder="All change types"
-                value={changeType}
-                onChange={(value) =>
-                    onChangeTypeChange(
-                        (value as "price_increase" | "price_decrease" | "new_product" | "sold_out" | "back_in_stock") ||
-                            undefined,
-                    )
-                }
-            />
-        </div>
+        <div className={styles.filterTrailingGroup}>
+            <div className={styles.filterGroup}>
+                <label className={styles.label} htmlFor="changes-change-type-filter">
+                    Change type
+                </label>
+                <AppSelect
+                    allowClear
+                    ariaLabel="Change type"
+                    className={styles.select}
+                    id="changes-change-type-filter"
+                    options={RUN_CHANGE_TYPE_FILTER_OPTIONS}
+                    placeholder="All change types"
+                    value={changeType}
+                    onChange={(value) =>
+                        onChangeTypeChange(
+                            (value as
+                                | "price_increase"
+                                | "price_decrease"
+                                | "new_product"
+                                | "sold_out"
+                                | "back_in_stock") || undefined,
+                        )
+                    }
+                />
+            </div>
 
-        <div className={styles.filterGroup}>
-            <label className={styles.label} htmlFor="changes-category-filter">
-                Category
-            </label>
-            <CategoryTreeSelect
-                allowClear
-                ariaLabel="Category"
-                className={styles.select}
-                id="changes-category-filter"
-                treeData={categoryTreeData}
-                placeholder="All tracked categories"
-                value={categoryId}
-                onChange={(value) => onCategoryChange(value || undefined)}
-            />
-        </div>
+            <div className={styles.filterGroup}>
+                <label className={styles.label} htmlFor="changes-category-filter">
+                    Category
+                </label>
+                <CategoryTreeSelect
+                    allowClear
+                    ariaLabel="Category"
+                    className={styles.select}
+                    id="changes-category-filter"
+                    treeData={categoryTreeData}
+                    placeholder="All tracked categories"
+                    value={categoryId}
+                    onChange={(value) => onCategoryChange(value || undefined)}
+                />
+            </div>
 
-        <div className={styles.filterGroup}>
-            <label className={styles.label} htmlFor="changes-preorder-filter">
-                Preorder
-            </label>
-            <AppSelect
-                ariaLabel="Preorder"
-                className={styles.select}
-                id="changes-preorder-filter"
-                options={RUN_PREORDER_FILTER_OPTIONS}
-                value={preorder}
-                onChange={(value) => onPreorderChange((value as "all" | "only" | "exclude") || "all")}
-            />
-        </div>
+            <div className={styles.filterGroup}>
+                <label className={styles.label} htmlFor="changes-preorder-filter">
+                    Preorder
+                </label>
+                <AppSelect
+                    ariaLabel="Preorder"
+                    className={styles.select}
+                    id="changes-preorder-filter"
+                    options={RUN_PREORDER_FILTER_OPTIONS}
+                    value={preorder}
+                    onChange={(value) => onPreorderChange((value as "all" | "only" | "exclude") || "all")}
+                />
+            </div>
 
-        <div className={styles.filterGroup}>
-            <label className={styles.label} htmlFor="changes-window-filter">
-                Window
-            </label>
-            <AppSelect
-                ariaLabel="Window"
-                className={styles.select}
-                id="changes-window-filter"
-                options={RUN_CHANGE_WINDOW_OPTIONS}
-                value={String(windowDays)}
-                onChange={(value) => onWindowDaysChange(Number(value ?? "7"))}
-            />
-        </div>
+            <div className={styles.filterGroup}>
+                <label className={styles.label} htmlFor="changes-window-filter">
+                    Window
+                </label>
+                <AppSelect
+                    ariaLabel="Window"
+                    className={styles.select}
+                    id="changes-window-filter"
+                    options={RUN_CHANGE_WINDOW_OPTIONS}
+                    value={String(windowDays)}
+                    onChange={(value) => onWindowDaysChange(Number(value ?? "7"))}
+                />
+            </div>
 
-        <div className={styles.filterGroup}>
-            <label className={styles.label} htmlFor="changes-page-size">
-                Page size
-            </label>
-            <AppSelect
-                ariaLabel="Page size"
-                className={styles.select}
-                id="changes-page-size"
-                options={RUN_PAGE_SIZE_OPTIONS}
-                value={String(pageSize)}
-                onChange={(value) => onPageSizeChange(value ?? "25")}
-            />
-        </div>
+            <div className={styles.filterGroup}>
+                <label className={styles.label} htmlFor="changes-page-size">
+                    Page size
+                </label>
+                <AppSelect
+                    ariaLabel="Page size"
+                    className={styles.select}
+                    id="changes-page-size"
+                    options={RUN_PAGE_SIZE_OPTIONS}
+                    value={String(pageSize)}
+                    onChange={(value) => onPageSizeChange(value ?? "25")}
+                />
+            </div>
 
-        <AppButton htmlType="button" intent="secondary" size="large" onClick={onReset}>
-            Reset all filters
-        </AppButton>
+            <AppButton htmlType="button" intent="secondary" size="large" onClick={onReset}>
+                Reset all filters
+            </AppButton>
+        </div>
     </div>
 );

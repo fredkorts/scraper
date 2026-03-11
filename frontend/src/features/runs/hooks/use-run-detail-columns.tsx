@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
 import { TrackedProductBadge } from "../../../components/tracked-product-badge/TrackedProductBadge";
-import { defaultProductHistoryControls } from "../../products/history-controls";
+import { defaultProductHistoryControls } from "../../products";
 import { STOCK_STATUS_LABELS } from "../../../shared/constants/stock.constants";
 import { formatChangeDetails, formatPreorderState, formatPrice, formatStatusLabel } from "../formatters";
 import type { RunChangesData, RunProductsData } from "../schemas";

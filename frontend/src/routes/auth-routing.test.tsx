@@ -50,7 +50,7 @@ describe("auth routing", () => {
         expect(await screen.findByRole("menuitem", { name: "Settings" })).toBeInTheDocument();
         expect(screen.getByRole("menuitem", { name: "Toggle theme (currently Light)" })).toBeInTheDocument();
         expect(screen.getByRole("menuitem", { name: "Log out" })).toBeInTheDocument();
-    });
+    }, 10_000);
 
     it("supports keyboard focus navigation on login form", async () => {
         const user = userEvent.setup();

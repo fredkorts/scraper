@@ -1,14 +1,12 @@
 import type { ScrapeInterval, UserRole } from "@mabrik/shared";
 import type { FormEventHandler } from "react";
 import type { UseFormReturn } from "react-hook-form";
-import type { CategoryOption } from "../../categories/types/category-option";
-import type { CategoryTreeNode } from "../../categories/types/category-tree-node";
+import type { CategoryTreeNode } from "../../categories";
 import type {
     AdminSchedulerStateItemData,
     ChannelData,
     SettingsTab,
     SubscriptionsData,
-    TrackedProductData,
     UpdateProfileRequestData,
     TriggerRunResponseData,
 } from "./settings-schema.types";
@@ -33,28 +31,6 @@ export interface SettingsAccountTabProps {
     isSaving: boolean;
     role: UserRole;
     onSubmitProfile: FormEventHandler<HTMLFormElement>;
-}
-
-export interface SettingsTrackingTabProps {
-    availableCategoryOptions: CategoryOption[];
-    availableCategoryTreeData: CategoryTreeNode[];
-    categoryLabelById: Map<string, string>;
-    role: UserRole;
-    selectedCategoryId: string;
-    subscriptions: SubscriptionsData;
-    trackedProducts: TrackedProductData[];
-    trackedProductsError: string | null;
-    isTrackedProductsLoading: boolean;
-    trackingError: string | null;
-    isCreatePending: boolean;
-    isDeletePending: boolean;
-    isUntrackProductPending: boolean;
-    canTrackProducts: boolean;
-    onRetryTrackedProducts: () => void;
-    onSelectCategory: (categoryId: string) => void;
-    onTrackCategory: () => void;
-    onUntrackCategory: (subscriptionId: string) => void;
-    onUntrackProduct: (productId: string, productName: string) => void;
 }
 
 export interface SettingsNotificationsTabProps {

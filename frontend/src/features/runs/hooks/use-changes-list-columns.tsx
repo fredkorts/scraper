@@ -3,7 +3,7 @@ import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
 import { SortHeader } from "../../../components/sort-header/SortHeader";
 import { TrackedProductBadge } from "../../../components/tracked-product-badge/TrackedProductBadge";
-import { defaultProductHistoryControls } from "../../products/history-controls";
+import { defaultProductHistoryControls } from "../../products";
 import { defaultRunDetailSectionSearch } from "../search";
 import { formatChangeDetails, formatDateTime, formatPreorderState, formatStatusLabel } from "../formatters";
 import type { ChangesListData } from "../schemas";

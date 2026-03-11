@@ -1,9 +1,6 @@
 import { AppSelect } from "../../../../components/app-select/AppSelect";
-import { CategoryTreeSelect } from "../../../categories/components/category-tree-select";
-import {
-    RUN_PAGE_SIZE_OPTIONS,
-    RUN_STATUS_FILTER_OPTIONS,
-} from "../../constants/run-filters.constants";
+import { CategoryTreeSelect } from "../../../categories";
+import { RUN_PAGE_SIZE_OPTIONS, RUN_STATUS_FILTER_OPTIONS } from "../../constants/run-filters.constants";
 import styles from "./run-list-sections.module.scss";
 import type { RunsFiltersProps } from "../../types/run-list-sections.types";
 

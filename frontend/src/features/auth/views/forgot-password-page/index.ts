@@ -1,0 +1,1 @@
+export { ForgotPasswordPageView } from "./ForgotPasswordPageView";

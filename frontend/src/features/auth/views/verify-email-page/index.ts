@@ -1,0 +1,1 @@
+export { VerifyEmailPageView } from "./VerifyEmailPageView";

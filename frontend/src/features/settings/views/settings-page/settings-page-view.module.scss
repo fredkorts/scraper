@@ -1,6 +1,6 @@
-@use "../styles/abstracts/mixins";
-@use "../styles/components/empty-states";
-@use "../styles/layout/containers";
+@use "../../../../styles/abstracts/mixins";
+@use "../../../../styles/components/empty-states";
+@use "../../../../styles/layout/containers";
 
 .page {
     @include containers.page-shell(72rem);

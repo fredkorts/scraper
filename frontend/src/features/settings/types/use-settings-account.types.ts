@@ -1,6 +1,6 @@
 import type { FormEventHandler } from "react";
 import type { useForm } from "react-hook-form";
-import type { useMeQuery } from "../../auth/queries";
+import type { useMeQuery } from "../../auth";
 import type { UpdateProfileRequestData } from "./settings-schema.types";
 
 export interface UseSettingsAccountResult {

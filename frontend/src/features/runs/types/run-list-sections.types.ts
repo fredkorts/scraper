@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import type { CategoryTreeNode } from "../../categories/types/category-tree-node";
+import type { CategoryTreeNode } from "../../categories";
 import type { RunsListData } from "../schemas";
 
 export interface RunsFiltersProps {

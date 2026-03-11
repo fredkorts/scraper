@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AppButton } from "../../../components/app-button/AppButton";
 import { AppInput } from "../../../components/app-input/AppInput";
-import { useMeQuery, useSessionsQuery } from "../../auth/queries";
+import { useMeQuery, useSessionsQuery } from "../../auth";
 import {
     useConfirmMfaSetupMutation,
     useDisableMfaMutation,
@@ -10,8 +10,8 @@ import {
     useRevokeOtherSessionsMutation,
     useRevokeSessionMutation,
     useStartMfaSetupMutation,
-} from "../../auth/mutations";
-import { broadcastAuthEvent } from "../../auth/auth-events";
+} from "../../auth";
+import { broadcastAuthEvent } from "../../auth";
 import { ROLE_LABELS } from "../constants/settings.constants";
 import { getSettingsPanelId, getSettingsTabId } from "../constants/settings-tab-a11y.constants";
 import type { SettingsAccountTabProps } from "../types/settings-ui.types";

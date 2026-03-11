@@ -1,0 +1,26 @@
+@use "../../../styles/layout/containers";
+
+.page {
+    @include containers.page-shell(64rem);
+}
+
+.heading {
+    margin: 0;
+    font-size: var(--font-size-2xl);
+}
+
+.subheading {
+    margin: 0;
+    color: var(--color-text-muted);
+}
+
+.actions {
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.errorMessage {
+    margin: 0;
+    color: var(--color-danger);
+}

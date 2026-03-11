@@ -23,7 +23,7 @@ export const ChangesTableSection = <TItem extends object>({
     onRetry,
 }: ChangesTableSectionProps<TItem>) => (
     <section aria-labelledby={headingId} className={styles.section}>
-        <div className={styles.sectionHeader}>
+        <div className={[styles.sectionHeader, headerContent ? styles.stackedSectionHeader : ""].join(" ")}>
             <h2 className={styles.sectionTitle} id={headingId}>
                 {title}
             </h2>

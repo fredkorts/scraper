@@ -1,6 +1,6 @@
 import { Col, Flex, Form, Row, Segmented, Select, Switch, Typography } from "antd";
 import { AppButton } from "../../../../components/app-button/AppButton";
-import { CategoryTreeSelect } from "../../../categories/components/category-tree-select";
+import { CategoryTreeSelect } from "../../../categories";
 import {
     PRODUCT_HISTORY_RANGE_OPTIONS,
     PRODUCT_HISTORY_STOCK_FILTER_OPTIONS,

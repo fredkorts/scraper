@@ -1,7 +1,7 @@
-import type { CategoryTreeNode } from "../../categories/types/category-tree-node";
-import type { useCategoriesQuery } from "../../categories/queries";
+import type { CategoryTreeNode } from "../../categories";
+import type { useCategoriesQuery } from "../../categories";
 import type { useSubscriptionsQuery, useTrackedProductsQuery } from "../queries";
-import type { CategoryOption } from "../../categories/types/category-option";
+import type { CategoryOption } from "../../categories";
 
 export interface UseSettingsTrackingResult {
     categoriesQuery: ReturnType<typeof useCategoriesQuery>;

@@ -1,0 +1,1 @@
+export { SettingsPageView } from "./SettingsPageView";
