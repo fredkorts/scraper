@@ -1,0 +1,93 @@
+@use "../../../../../styles/abstracts/mixins";
+@use "../../../../../styles/components/cards";
+@use "../../../../../styles/components/forms";
+
+.filterPanel {
+    @include cards.card-surface;
+    display: grid;
+    gap: var(--space-sm);
+}
+
+.primaryRow {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: end;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.primaryTrailing {
+    margin-left: auto;
+    display: flex;
+    gap: var(--space-sm);
+    align-items: end;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.advancedRow {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: end;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.filterGroup {
+    display: grid;
+    gap: var(--space-2xs);
+}
+
+.searchGroup {
+    margin-right: auto;
+    flex: 1 1 20rem;
+    min-width: 16rem;
+    max-width: 34rem;
+}
+
+.label {
+    @include forms.field-label;
+}
+
+.select {
+    min-width: 11rem;
+}
+
+.select :global(.ant-select-selector) {
+    min-height: 2.5rem !important;
+    height: 2.5rem !important;
+    border-radius: var(--radius-sm) !important;
+    border-color: var(--color-border) !important;
+    background: var(--color-surface) !important;
+    color: var(--color-text) !important;
+    display: flex;
+    align-items: center;
+}
+
+.select :global(.ant-select-selection-item),
+.select :global(.ant-select-selection-placeholder) {
+    line-height: calc(2.5rem - 2px) !important;
+}
+
+.select :global(.ant-select-arrow) {
+    color: var(--color-text-muted);
+}
+
+.select:global(.ant-select-focused) :global(.ant-select-selector) {
+    @include mixins.focus-ring;
+}
+
+@include mixins.mq-md {
+    .searchGroup {
+        margin-right: 0;
+        flex: 1 1 100%;
+        max-width: none;
+    }
+
+    .primaryTrailing,
+    .advancedRow {
+        margin-left: 0;
+        width: 100%;
+        justify-content: flex-start;
+    }
+}

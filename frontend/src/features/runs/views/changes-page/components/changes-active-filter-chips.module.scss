@@ -1,0 +1,45 @@
+@use "../../../../../styles/components/cards";
+
+.summaryRow {
+    @include cards.card-surface(var(--space-sm));
+    display: grid;
+    gap: var(--space-sm);
+}
+
+.sortingLine {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+}
+
+.chipList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.chipButton {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-page);
+    color: var(--color-text);
+    cursor: pointer;
+    font: inherit;
+    font-size: var(--font-size-sm);
+    padding: var(--space-2xs) var(--space-xs);
+}
+
+.chipButton:hover {
+    background: var(--color-surface);
+}
+
+.chipButton:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}

@@ -2,7 +2,6 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { buildCategoryTreeData, getCategoryLabelById } from "../../../categories";
 import { useCategoriesQuery } from "../../../categories";
-import { ChangesFilters } from "../../components/list/changes-filters";
 import { ChangesTableSection } from "../../components/shared/changes-table-section";
 import sectionStyles from "../../components/detail/run-detail-sections.module.scss";
 import {
@@ -21,7 +20,8 @@ import {
     PREORDER_EMPTY_FILTER_ONLY_MESSAGE,
 } from "../../../../shared/constants/preorder.constants";
 import styles from "../scrape-page-view.module.scss";
-import pageStyles from "./changes-page-view.module.scss";
+import { ChangesActiveFilterChips, type ActiveFilterChip } from "./components/ChangesActiveFilterChips";
+import { ChangesFilterBar } from "./components/ChangesFilterBar";
 
 const sortByLabelMap: Record<"changedAt" | "changeType" | "productName" | "categoryName", string> = {
     changedAt: "Changed at",
@@ -44,6 +44,11 @@ export const ChangesPageView = () => {
     const setSearch = useRouteSearchUpdater(navigate);
     const [queryInput, setQueryInput] = useState(search.query ?? "");
     const debouncedQueryInput = useDebouncedValue(queryInput, 350);
+    const activeAdvancedCount =
+        Number(search.preorder !== defaultChangesListSearch.preorder) +
+        Number(search.windowDays !== defaultChangesListSearch.windowDays) +
+        Number(search.pageSize !== defaultChangesListSearch.pageSize);
+    const [isAdvancedOpen, setIsAdvancedOpen] = useState(activeAdvancedCount > 0);
 
     useEffect(() => {
         headingRef.current?.focus();
@@ -51,7 +56,6 @@ export const ChangesPageView = () => {
 
     useEffect(() => {
         // URL search is the source of truth, so this sync keeps local input state aligned for back/forward navigation.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setQueryInput(search.query ?? "");
     }, [search.query]);
 
@@ -70,6 +74,10 @@ export const ChangesPageView = () => {
             { replace: true },
         );
     }, [debouncedQueryInput, search.query, setSearch]);
+
+    useEffect(() => {
+        setIsAdvancedOpen(activeAdvancedCount > 0);
+    }, [activeAdvancedCount]);
 
     useClampedPage({
         currentPage: search.page,
@@ -93,6 +101,7 @@ export const ChangesPageView = () => {
         const entry = RUN_PREORDER_FILTER_OPTIONS.find((option) => option.value === search.preorder);
         return entry?.label ?? "All products";
     }, [search.preorder]);
+    const pageSizeLabel = useMemo(() => String(search.pageSize), [search.pageSize]);
 
     const toggleSort = (sortBy: typeof search.sortBy) => {
         setSearch({
@@ -108,6 +117,78 @@ export const ChangesPageView = () => {
         onToggleSort: toggleSort,
         productLinkClassName: sectionStyles.productLink,
     });
+    const activeFilterChips: ActiveFilterChip[] = useMemo(() => {
+        const chips: ActiveFilterChip[] = [];
+
+        if (search.changeType) {
+            chips.push({
+                id: "changeType",
+                label: "Change type",
+                value: changeTypeLabel,
+                onRemove: () => setSearch({ changeType: undefined, page: 1 }),
+            });
+        }
+
+        if (search.categoryId) {
+            chips.push({
+                id: "category",
+                label: "Category",
+                value: selectedCategoryLabel ?? "Selected category",
+                onRemove: () => setSearch({ categoryId: undefined, page: 1 }),
+            });
+        }
+
+        if (search.preorder !== defaultChangesListSearch.preorder) {
+            chips.push({
+                id: "preorder",
+                label: "Preorder",
+                value: preorderLabel,
+                onRemove: () => setSearch({ preorder: defaultChangesListSearch.preorder, page: 1 }),
+            });
+        }
+
+        if (search.windowDays !== defaultChangesListSearch.windowDays) {
+            chips.push({
+                id: "window",
+                label: "Window",
+                value: windowLabel,
+                onRemove: () => setSearch({ windowDays: defaultChangesListSearch.windowDays, page: 1 }),
+            });
+        }
+
+        if (search.pageSize !== defaultChangesListSearch.pageSize) {
+            chips.push({
+                id: "pageSize",
+                label: "Page size",
+                value: pageSizeLabel,
+                onRemove: () => setSearch({ pageSize: defaultChangesListSearch.pageSize, page: 1 }),
+            });
+        }
+
+        if (search.query) {
+            chips.push({
+                id: "query",
+                label: "Search",
+                value: search.query,
+                onRemove: () => setSearch({ query: undefined, page: 1 }),
+            });
+        }
+
+        return chips;
+    }, [
+        changeTypeLabel,
+        pageSizeLabel,
+        preorderLabel,
+        search.categoryId,
+        search.changeType,
+        search.pageSize,
+        search.preorder,
+        search.query,
+        search.windowDays,
+        selectedCategoryLabel,
+        setSearch,
+        windowLabel,
+    ]);
 
     const showEmptyMismatchHelper =
         Boolean(search.changeType) && (changesQuery.data?.totalItems ?? 0) === 0 && !changesQuery.isError;
@@ -123,20 +204,23 @@ export const ChangesPageView = () => {
                 </p>
             </div>
 
-            <ChangesFilters
+            <ChangesFilterBar
                 categoryId={search.categoryId}
                 query={queryInput}
                 categoryTreeData={categoryTreeData}
                 changeType={search.changeType}
+                isAdvancedOpen={isAdvancedOpen}
+                activeAdvancedCount={activeAdvancedCount}
                 preorder={search.preorder}
                 pageSize={search.pageSize}
                 windowDays={search.windowDays}
+                onToggleAdvanced={() => setIsAdvancedOpen((previous) => !previous)}
                 onCategoryChange={(value) => setSearch({ categoryId: value, page: 1 })}
                 onQueryChange={setQueryInput}
                 onChangeTypeChange={(value) => setSearch({ changeType: value, page: 1 })}
                 onPreorderChange={(value) => setSearch({ preorder: value, page: 1 })}
-                onWindowDaysChange={(value) => setSearch({ windowDays: value as 1 | 7 | 30, page: 1 })}
-                onPageSizeChange={(value) => setSearch({ pageSize: Number(value), page: 1 })}
+                onWindowDaysChange={(value) => setSearch({ windowDays: value, page: 1 })}
+                onPageSizeChange={(value) => setSearch({ pageSize: value, page: 1 })}
                 onReset={() =>
                     setSearch({
                         ...defaultChangesListSearch,
@@ -147,29 +231,10 @@ export const ChangesPageView = () => {
                 }
             />
 
-            <div className={pageStyles.contextSummary}>
-                <p>
-                    Showing: <strong>{changeTypeLabel}</strong>
-                </p>
-                <p>
-                    Category: <strong>{selectedCategoryLabel ?? "All tracked categories"}</strong>
-                </p>
-                <p>
-                    Search: <strong>{search.query ?? "All rows"}</strong>
-                </p>
-                <p>
-                    Window: <strong>{windowLabel}</strong>
-                </p>
-                <p>
-                    Preorder: <strong>{preorderLabel}</strong>
-                </p>
-                <p>
-                    Sorted by:{" "}
-                    <strong>
-                        {sortByLabelMap[search.sortBy]} ({sortOrderLabelMap[search.sortOrder]})
-                    </strong>
-                </p>
-            </div>
+            <ChangesActiveFilterChips
+                chips={activeFilterChips}
+                sortingLabel={`${sortByLabelMap[search.sortBy]} (${sortOrderLabelMap[search.sortOrder]})`}
+            />
 
             <ChangesTableSection
                 columns={columns}

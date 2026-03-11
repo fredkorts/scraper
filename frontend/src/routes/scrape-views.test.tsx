@@ -276,11 +276,47 @@ describe("scrape views", () => {
         });
 
         expect(await screen.findByRole("heading", { name: "Changes Explorer" })).toBeInTheDocument();
-        expect(screen.getByText("Showing:")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /Advanced filters \(2\)/ })).toHaveAttribute("aria-expanded", "true");
+        expect(screen.getByText("Sorted by:")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Remove filter Change type: Sold out" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Remove filter Window: Last 30 days" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Remove filter Page size: 10" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Remove filter Search: change" })).toBeInTheDocument();
         expect(screen.getByText("Change Product")).toBeInTheDocument();
         expect(screen.getByLabelText("Search change results")).toHaveValue("change");
         expect(screen.getByRole("link", { name: /Open run for/ })).toBeInTheDocument();
         expect(screen.getByRole("link", { name: /View product page for/ })).toBeInTheDocument();
+    });
+
+    it("keeps advanced filters collapsed by default and allows toggling open", async () => {
+        const user = userEvent.setup();
+
+        await renderRouterApp({
+            initialEntry: "/app/changes",
+            session: mockUser,
+            apiResponses: {
+                changesList: {
+                    items: [],
+                    page: 1,
+                    pageSize: 25,
+                    totalItems: 0,
+                    totalPages: 0,
+                },
+            },
+        });
+
+        expect(await screen.findByRole("heading", { name: "Changes Explorer" })).toBeInTheDocument();
+        const toggle = screen.getByRole("button", { name: /Advanced filters/ });
+
+        expect(toggle).toHaveAttribute("aria-expanded", "false");
+        expect(screen.queryByLabelText("Preorder")).not.toBeInTheDocument();
+
+        await user.click(toggle);
+
+        expect(toggle).toHaveAttribute("aria-expanded", "true");
+        expect(screen.getByLabelText("Preorder")).toBeInTheDocument();
+        expect(screen.getByLabelText("Window")).toBeInTheDocument();
+        expect(screen.getByLabelText("Page size")).toBeInTheDocument();
     });
 
     it("renders run detail with readable failure metadata for non-admin users", async () => {
