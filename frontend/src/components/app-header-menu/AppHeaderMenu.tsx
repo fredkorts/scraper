@@ -15,6 +15,8 @@ import { AppButton } from "../app-button/AppButton";
 import type { AppHeaderMenuProps } from "./types/app-header-menu.types";
 import styles from "./app-header-menu.module.scss";
 
+const QUICK_SEARCH_EVENT_NAME = "pricepulse:header-overlay-open";
+
 export const AppHeaderMenu = ({
     userName,
     isDarkMode,
@@ -24,6 +26,22 @@ export const AppHeaderMenu = ({
 }: AppHeaderMenuProps) => {
     const navigate = useNavigate();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+    const handleOpenChange = (nextOpen: boolean) => {
+        setIsMenuOpen(nextOpen);
+
+        if (!nextOpen || typeof window === "undefined") {
+            return;
+        }
+
+        window.dispatchEvent(
+            new CustomEvent(QUICK_SEARCH_EVENT_NAME, {
+                detail: {
+                    source: "account-menu",
+                },
+            }),
+        );
+    };
 
     const menuItems = useMemo<MenuProps["items"]>(
         () => [
@@ -86,7 +104,7 @@ export const AppHeaderMenu = ({
         <Dropdown
             menu={{ items: menuItems, onClick: onMenuClick }}
             open={isMenuOpen}
-            onOpenChange={setIsMenuOpen}
+            onOpenChange={handleOpenChange}
             trigger={["click"]}
         >
             <AppButton

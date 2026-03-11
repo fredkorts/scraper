@@ -35,6 +35,7 @@ interface RenderRouterOptions {
         runDetail: unknown;
         runProducts: unknown;
         runChanges: unknown;
+        productSearch: unknown;
         productDetail: unknown;
         productHistory: unknown;
         adminSchedulerState: unknown;
@@ -217,6 +218,9 @@ const defaultApiResponses = {
             recentRuns: [],
         },
     },
+    productSearch: {
+        items: [],
+    },
     productHistory: {
         items: [
             {
@@ -337,6 +341,10 @@ export const renderRouterApp = async ({
 
         if (url.includes("/api/dashboard/home")) {
             return jsonResponse(mutableResponses.dashboardHome);
+        }
+
+        if (url.includes("/api/products/search")) {
+            return jsonResponse(mutableResponses.productSearch);
         }
 
         if (url.includes("/api/products/") && url.includes("/history")) {

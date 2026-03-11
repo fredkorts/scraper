@@ -33,6 +33,7 @@ export const apiEndpoints = {
         settings: (id: string) => `/api/categories/${id}/settings`,
     },
     products: {
+        search: "/api/products/search",
         detail: (id: string) => `/api/products/${id}`,
         history: (id: string) => `/api/products/${id}/history`,
     },

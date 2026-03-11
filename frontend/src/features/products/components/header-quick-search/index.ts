@@ -1,0 +1,1 @@
+export { HeaderProductQuickSearch } from "./HeaderProductQuickSearch";

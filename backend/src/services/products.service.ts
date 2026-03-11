@@ -1,9 +1,14 @@
 import { PreorderDetectionSource, ScrapeRunStatus } from "@prisma/client";
-import type { ProductDetailResponse, ProductHistoryResponse, UserRole } from "@mabrik/shared";
+import type {
+    ProductDetailResponse,
+    ProductHistoryResponse,
+    ProductQuickSearchResponse,
+    UserRole,
+} from "@mabrik/shared";
 import { ScrapeStatus } from "@mabrik/shared";
 import { prisma } from "../lib/prisma";
 import { AppError } from "../lib/errors";
-import type { ProductDetailQuery, ProductHistoryQuery } from "../schemas/products";
+import type { ProductDetailQuery, ProductHistoryQuery, ProductSearchQuery } from "../schemas/products";
 import { buildCategoryScopeWhere, getAccessibleCategoryIds } from "./access-scope.service";
 import { getActiveTrackedProductRecord } from "./tracked-product.service";
 
@@ -28,6 +33,36 @@ const assertIncludeSystemNoiseAccess = (role: UserRole, includeSystemNoise: bool
     if (includeSystemNoise && role !== "admin") {
         throw new AppError(403, "forbidden", "includeSystemNoise is only available to admin users");
     }
+};
+
+const tokenizeSearchQuery = (query: string): string[] =>
+    query
+        .toLocaleLowerCase()
+        .split(" ")
+        .map((token) => token.trim())
+        .filter((token) => token.length > 0);
+
+const categoryMatchesToken = (category: { nameEt: string; nameEn: string }, token: string): boolean => {
+    const normalizedEt = category.nameEt.toLocaleLowerCase();
+    const normalizedEn = category.nameEn.toLocaleLowerCase();
+
+    return normalizedEt.includes(token) || normalizedEn.includes(token);
+};
+
+const pickCategoryLabel = (
+    categories: Array<{ nameEt: string; nameEn: string }>,
+    searchTokens: string[],
+): string | undefined => {
+    if (categories.length === 0) {
+        return undefined;
+    }
+
+    const matchedCategories = categories.filter((category) =>
+        searchTokens.some((token) => categoryMatchesToken(category, token)),
+    );
+    const candidates = matchedCategories.length > 0 ? matchedCategories : categories;
+
+    return candidates[0]?.nameEt;
 };
 
 const getAccessibleProductScope = async (userId: string, role: UserRole, productId: string) => {
@@ -227,5 +262,112 @@ export const getProductHistory = async (
             inStock: snapshot.inStock,
             scrapedAt: snapshot.scrapedAt.toISOString(),
         })),
+    };
+};
+
+export const searchProducts = async (
+    userId: string,
+    role: UserRole,
+    query: ProductSearchQuery,
+): Promise<ProductQuickSearchResponse> => {
+    const categoryIds = await getAccessibleCategoryIds(userId, role);
+
+    if (categoryIds !== null && categoryIds.length === 0) {
+        return { items: [] };
+    }
+
+    const searchTokens = tokenizeSearchQuery(query.query);
+    const categoryScopeWhere = {
+        isActive: true,
+        ...(categoryIds === null ? {} : { id: { in: categoryIds } }),
+    };
+
+    const products = await prisma.product.findMany({
+        where: {
+            productCategories: {
+                some: {
+                    category: categoryScopeWhere,
+                },
+            },
+            AND: searchTokens.map((token) => ({
+                OR: [
+                    {
+                        name: {
+                            contains: token,
+                            mode: "insensitive",
+                        },
+                    },
+                    {
+                        productCategories: {
+                            some: {
+                                category: {
+                                    ...categoryScopeWhere,
+                                    OR: [
+                                        {
+                                            nameEt: {
+                                                contains: token,
+                                                mode: "insensitive",
+                                            },
+                                        },
+                                        {
+                                            nameEn: {
+                                                contains: token,
+                                                mode: "insensitive",
+                                            },
+                                        },
+                                    ],
+                                },
+                            },
+                        },
+                    },
+                ],
+            })),
+        },
+        select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+            lastSeenAt: true,
+            productCategories: {
+                where: {
+                    category: categoryScopeWhere,
+                },
+                select: {
+                    category: {
+                        select: {
+                            nameEt: true,
+                            nameEn: true,
+                        },
+                    },
+                },
+                orderBy: {
+                    category: {
+                        nameEt: "asc",
+                    },
+                },
+            },
+        },
+        orderBy: [{ lastSeenAt: "desc" }, { id: "desc" }],
+        take: query.limit,
+    });
+
+    return {
+        items: products
+            .map((product) => {
+                const categories = product.productCategories.map((entry) => entry.category);
+                const categoryName = pickCategoryLabel(categories, searchTokens);
+
+                if (!categoryName) {
+                    return null;
+                }
+
+                return {
+                    id: product.id,
+                    name: product.name,
+                    imageUrl: product.imageUrl,
+                    categoryName,
+                };
+            })
+            .filter((item): item is NonNullable<typeof item> => item !== null),
     };
 };

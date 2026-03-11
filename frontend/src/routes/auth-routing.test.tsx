@@ -43,6 +43,7 @@ describe("auth routing", () => {
 
         const logoLink = await screen.findByRole("link", { name: "PricePulse" });
         expect(logoLink).toHaveAttribute("href", "/app");
+        expect(screen.getByRole("button", { name: "Open product search" })).toBeInTheDocument();
 
         const menuTrigger = screen.getByRole("button", { name: "Open account menu" });
         await user.click(menuTrigger);

@@ -55,5 +55,17 @@ export const productHistoryResponseSchema = z.object({
     ),
 });
 
+export const productQuickSearchResponseSchema = z.object({
+    items: z.array(
+        z.object({
+            id: z.string().uuid(),
+            name: z.string(),
+            imageUrl: z.string(),
+            categoryName: z.string(),
+        }),
+    ),
+});
+
 export type ProductDetailData = z.infer<typeof productDetailResponseSchema>;
 export type ProductHistoryData = z.infer<typeof productHistoryResponseSchema>;
+export type ProductQuickSearchData = z.infer<typeof productQuickSearchResponseSchema>;

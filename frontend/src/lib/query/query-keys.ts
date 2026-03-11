@@ -21,6 +21,7 @@ export const queryKeys = {
         list: (params?: Record<string, unknown>) => ["changes", "list", params ?? {}] as const,
     },
     products: {
+        search: (params?: Record<string, unknown>) => ["products", "search", params ?? {}] as const,
         detail: (productId: string) => ["products", "detail", productId] as const,
         history: (productId: string, params?: Record<string, unknown>) =>
             ["products", "history", productId, params ?? {}] as const,

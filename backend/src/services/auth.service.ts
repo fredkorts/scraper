@@ -251,7 +251,7 @@ const verifyUserMfaCode = async (
             },
         });
 
-        await sendSecurityEventEmail(
+        void sendSecurityEventEmail(
             user.email,
             "Recovery code used",
             "A recovery code was used to complete authentication on your account.",
@@ -303,7 +303,7 @@ export const register = async (input: RegisterRequest, context: SessionContext):
             };
         });
 
-        await sendVerificationEmail(transactionResult.user.email, transactionResult.verificationToken);
+        void sendVerificationEmail(transactionResult.user.email, transactionResult.verificationToken);
 
         return {
             user: sanitizeUser(transactionResult.user),
@@ -358,7 +358,7 @@ export const login = async (input: LoginRequest, context: SessionContext): Promi
 
     const session = await prisma.$transaction((tx) => issueSession(tx, user, context));
 
-    await sendSecurityEventEmail(
+    void sendSecurityEventEmail(
         user.email,
         "New login",
         `A new login was detected from IP ${context.ip ?? "unknown"}.`,
@@ -403,14 +403,14 @@ export const verifyMfaLogin = async (input: MfaVerifyLoginRequest, context: Sess
     });
 
     if (mfaResult.usedRecoveryCode) {
-        await sendSecurityEventEmail(
+        void sendSecurityEventEmail(
             challenge.user.email,
             "MFA recovery code used",
             "A recovery code was used during login.",
         );
     }
 
-    await sendSecurityEventEmail(
+    void sendSecurityEventEmail(
         challenge.user.email,
         "New login",
         `A new login was detected from IP ${context.ip ?? "unknown"}.`,
@@ -564,7 +564,7 @@ export const resendEmailVerification = async (userId: string): Promise<{ success
     }
 
     const token = await prisma.$transaction((tx) => createEmailVerificationToken(tx, user.id));
-    await sendVerificationEmail(user.email, token);
+    void sendVerificationEmail(user.email, token);
     return { success: true };
 };
 
@@ -611,7 +611,7 @@ export const requestPasswordReset = async (email: string): Promise<{ success: tr
     }
 
     const token = await prisma.$transaction((tx) => createPasswordResetToken(tx, user.id));
-    await sendPasswordResetEmail(user.email, token);
+    void sendPasswordResetEmail(user.email, token);
     return { success: true };
 };
 
@@ -645,7 +645,7 @@ export const resetPassword = async (token: string, newPassword: string): Promise
         await invalidateAllActiveUserSessions(tx, passwordResetToken.userId, "password_reset");
     });
 
-    await sendSecurityEventEmail(
+    void sendSecurityEventEmail(
         passwordResetToken.user.email,
         "Password reset completed",
         "Your password was reset and all active sessions were signed out.",
@@ -733,7 +733,7 @@ export const confirmMfaSetup = async (
         });
     });
 
-    await sendSecurityEventEmail(user.email, "MFA enabled", "Multi-factor authentication was enabled on your account.");
+    void sendSecurityEventEmail(user.email, "MFA enabled", "Multi-factor authentication was enabled on your account.");
 
     return { recoveryCodes };
 };
@@ -764,7 +764,7 @@ export const disableMfa = async (userId: string, input: MfaDisableRequest): Prom
         });
     });
 
-    await sendSecurityEventEmail(
+    void sendSecurityEventEmail(
         user.email,
         "MFA disabled",
         "Multi-factor authentication was disabled on your account.",
@@ -800,7 +800,7 @@ export const regenerateRecoveryCodes = async (
         });
     });
 
-    await sendSecurityEventEmail(
+    void sendSecurityEventEmail(
         user.email,
         "Recovery codes regenerated",
         "Recovery codes were regenerated for your account.",

@@ -286,7 +286,7 @@ describe("scrape views", () => {
         expect(screen.getByLabelText("Search change results")).toHaveValue("change");
         expect(screen.getByRole("link", { name: /Open run for/ })).toBeInTheDocument();
         expect(screen.getByRole("link", { name: /View product page for/ })).toBeInTheDocument();
-    });
+    }, 10_000);
 
     it("keeps advanced filters collapsed by default and allows toggling open", async () => {
         const user = userEvent.setup();

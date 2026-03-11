@@ -625,6 +625,17 @@ export interface ProductHistoryResponse {
     items: ProductHistoryPoint[];
 }
 
+export interface ProductQuickSearchItem {
+    id: string;
+    name: string;
+    imageUrl: string;
+    categoryName: string;
+}
+
+export interface ProductQuickSearchResponse {
+    items: ProductQuickSearchItem[];
+}
+
 export interface TrackedProductListItem {
     id: string;
     productId: string;

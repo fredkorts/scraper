@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Link, Outlet, useNavigate } from "@tanstack/react-router";
+import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useMeQuery } from "../features/auth/queries";
 import { useLogoutMutation } from "../features/auth/mutations";
 import { subscribeAuthEvents } from "../features/auth/auth-events";
@@ -13,10 +13,14 @@ import { normalizeUserError } from "../shared/utils/normalize-user-error";
 import { PricePulseLogo } from "../components/price-pulse-logo/PricePulseLogo";
 import { AppHeaderMenu } from "../components/app-header-menu/AppHeaderMenu";
 import { useAppTheme } from "../app/theme/context/app-theme-context";
+import { HeaderProductQuickSearch } from "../features/products";
 import styles from "./app-layout.module.scss";
 
 export const AppLayout = () => {
     const navigate = useNavigate();
+    const locationHref = useRouterState({
+        select: (state) => state.location.href,
+    });
     const queryClient = useQueryClient();
     const logoutMutation = useLogoutMutation();
     const session = useMeQuery();
@@ -74,6 +78,9 @@ export const AppLayout = () => {
                 <Link className={styles.logoLink} search={defaultDashboardHomeSearch} to="/app">
                     <PricePulseLogo />
                 </Link>
+                <div className={styles.center}>
+                    <HeaderProductQuickSearch key={locationHref} />
+                </div>
                 <div className={styles.actions}>
                     <AppHeaderMenu
                         isDarkMode={theme.isDarkMode}

@@ -37,11 +37,11 @@ const subscribeToCategory = async (userId: string, categoryId: string) =>
         },
     });
 
-const createProduct = async (suffix: string, currentPrice = "39.99") =>
+const createProduct = async (suffix: string, currentPrice = "39.99", name?: string) =>
     prisma.product.create({
         data: {
             externalUrl: `https://mabrik.ee/toode/${suffix}`,
-            name: `Product ${suffix}`,
+            name: name ?? `Product ${suffix}`,
             imageUrl: `https://mabrik.ee/images/${suffix}.jpg`,
             currentPrice,
             originalPrice: null,
@@ -54,9 +54,11 @@ describe("categories and products routes", () => {
         const app = createApp();
         const categoryResponse = await request(app).get("/api/categories");
         const productResponse = await request(app).get("/api/products/11111111-1111-4111-8111-111111111111");
+        const searchResponse = await request(app).get("/api/products/search?query=magic");
 
         expect(categoryResponse.status).toBe(401);
         expect(productResponse.status).toBe(401);
+        expect(searchResponse.status).toBe(401);
     });
 
     it("lists only tracked categories for non-admin users", async () => {
@@ -305,5 +307,103 @@ describe("categories and products routes", () => {
 
         expect(response.status).toBe(403);
         expect(response.body.error).toBe("forbidden");
+    });
+
+    it("searches products within accessible scope and matches category text", async () => {
+        const app = createApp();
+        const { user } = await createUser({ email: "product-search-scope@example.com" });
+        const visibleCategory = await createCategory("mtg-visible", "Magic Decks");
+        const hiddenCategory = await createCategory("pokemon-hidden", "Pokemon");
+        const visibleProduct = await createProduct("deck-one", "39.99", "Arcane Box");
+        const hiddenProduct = await createProduct("deck-two", "39.99", "Hidden Product");
+
+        await subscribeToCategory(user.id, visibleCategory.id);
+
+        await prisma.productCategory.createMany({
+            data: [
+                {
+                    productId: visibleProduct.id,
+                    categoryId: visibleCategory.id,
+                },
+                {
+                    productId: hiddenProduct.id,
+                    categoryId: hiddenCategory.id,
+                },
+            ],
+        });
+
+        const response = await request(app)
+            .get("/api/products/search?query=magic&limit=8")
+            .set("Cookie", authCookie(user.id, user.email));
+
+        expect(response.status).toBe(200);
+        expect(response.body.items).toHaveLength(1);
+        expect(response.body.items[0]).toMatchObject({
+            id: visibleProduct.id,
+            name: "Arcane Box",
+            categoryName: "Magic Decks",
+        });
+    });
+
+    it("returns deterministic category labels for multi-category products", async () => {
+        const app = createApp();
+        const { user } = await createUser({ email: "product-search-categories@example.com", role: UserRole.ADMIN });
+        const alphaCategory = await createCategory("alpha-category", "Alpha Category");
+        const omegaCategory = await createCategory("omega-category", "Omega Category");
+        const product = await createProduct("multi-category", "39.99", "Rune Box");
+
+        await prisma.productCategory.createMany({
+            data: [
+                {
+                    productId: product.id,
+                    categoryId: omegaCategory.id,
+                },
+                {
+                    productId: product.id,
+                    categoryId: alphaCategory.id,
+                },
+            ],
+        });
+
+        const response = await request(app)
+            .get("/api/products/search?query=category")
+            .set("Cookie", authCookie(user.id, user.email, "admin"));
+
+        expect(response.status).toBe(200);
+        expect(response.body.items).toHaveLength(1);
+        expect(response.body.items[0]).toMatchObject({
+            id: product.id,
+            categoryName: "Alpha Category",
+        });
+    });
+
+    it("returns no-store cache headers and validates search query shape", async () => {
+        const app = createApp();
+        const { user } = await createUser({ email: "product-search-cache@example.com" });
+        const category = await createCategory("cache-category", "Cache Category");
+        const product = await createProduct("cache-product", "39.99", "Cache Product");
+
+        await subscribeToCategory(user.id, category.id);
+        await prisma.productCategory.create({
+            data: {
+                productId: product.id,
+                categoryId: category.id,
+            },
+        });
+
+        const okResponse = await request(app)
+            .get("/api/products/search?query=cache")
+            .set("Cookie", authCookie(user.id, user.email));
+
+        expect(okResponse.status).toBe(200);
+        expect(okResponse.headers["cache-control"]).toContain("private");
+        expect(okResponse.headers["cache-control"]).toContain("no-store");
+
+        const invalidResponse = await request(app)
+            .get("/api/products/search?query=a")
+            .set("Cookie", authCookie(user.id, user.email));
+
+        expect(invalidResponse.status).toBe(400);
+        expect(invalidResponse.body.error).toBe("validation_error");
     });
 });

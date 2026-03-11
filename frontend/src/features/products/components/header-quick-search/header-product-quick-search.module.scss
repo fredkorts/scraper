@@ -1,0 +1,110 @@
+.root {
+    position: relative;
+    width: min(44rem, 100%);
+}
+
+.inputShell {
+    position: relative;
+    width: 100%;
+}
+
+.input:global(.ant-input-affix-wrapper) {
+    min-height: 2.75rem;
+    border-radius: var(--radius-md);
+}
+
+.panel {
+    position: absolute;
+    top: calc(100% + var(--space-2xs));
+    left: 0;
+    right: 0;
+    z-index: 40;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+}
+
+.stateRow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    min-height: 2.75rem;
+    padding: var(--space-sm);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+}
+
+.resultList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 21rem;
+    overflow-y: auto;
+}
+
+.resultButton {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 2.25rem 1fr;
+    align-items: center;
+    gap: var(--space-sm);
+    border: 0;
+    border-top: 1px solid var(--color-border);
+    background: transparent;
+    text-align: left;
+    padding: var(--space-sm);
+    cursor: pointer;
+    color: var(--color-text);
+}
+
+.resultButton[data-active="true"],
+.resultButton:hover {
+    background: var(--color-surface-hover);
+}
+
+.resultButton:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: -2px;
+}
+
+.resultList li:first-child .resultButton {
+    border-top: 0;
+}
+
+.thumbnail {
+    width: 2.25rem;
+    height: 2.25rem;
+    object-fit: cover;
+    border-radius: var(--radius-xs);
+    background: var(--color-page);
+}
+
+.resultText {
+    min-width: 0;
+    display: grid;
+    gap: var(--space-3xs);
+}
+
+.productName {
+    color: var(--color-text);
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.categoryName {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@media (max-width: 900px) {
+    .root {
+        width: 100%;
+    }
+}

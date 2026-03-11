@@ -1,6 +1,11 @@
 import type { NextFunction, Request, Response } from "express";
-import { productDetailQuerySchema, productHistoryQuerySchema, productIdParamSchema } from "../schemas/products";
-import { getProductDetail, getProductHistory } from "../services/products.service";
+import {
+    productDetailQuerySchema,
+    productHistoryQuerySchema,
+    productIdParamSchema,
+    productSearchQuerySchema,
+} from "../schemas/products";
+import { getProductDetail, getProductHistory, searchProducts } from "../services/products.service";
 
 export const getProductDetailHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -18,6 +23,17 @@ export const getProductHistoryHandler = async (req: Request, res: Response, next
         const params = productIdParamSchema.parse(req.params);
         const query = productHistoryQuerySchema.parse(req.query);
         const payload = await getProductHistory(req.auth!.userId, req.auth!.role, params.id, query);
+        res.status(200).json(payload);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const searchProductsHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const query = productSearchQuerySchema.parse(req.query);
+        const payload = await searchProducts(req.auth!.userId, req.auth!.role, query);
+        res.setHeader("Cache-Control", "private, no-store");
         res.status(200).json(payload);
     } catch (error) {
         next(error);
