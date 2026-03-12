@@ -1,0 +1,39 @@
+.root {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.topRow {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0;
+    white-space: nowrap;
+}
+
+.oldPrice {
+    color: var(--color-text-muted);
+}
+
+.arrow {
+    display: inline-flex;
+    margin-inline: 0;
+}
+
+.delta {
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-tight);
+    white-space: nowrap;
+}
+
+.deltaIncrease {
+    color: var(--color-danger-text);
+}
+
+.deltaDecrease {
+    color: var(--color-success);
+}
+
+.deltaUnavailable {
+    color: var(--color-text-muted);
+}

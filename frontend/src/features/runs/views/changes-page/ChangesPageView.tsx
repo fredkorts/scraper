@@ -2,8 +2,8 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { buildCategoryTreeData, getCategoryLabelById } from "../../../categories";
 import { useCategoriesQuery } from "../../../categories";
+import { defaultProductHistoryControls } from "../../../products";
 import { ChangesTableSection } from "../../components/shared/changes-table-section";
-import sectionStyles from "../../components/detail/run-detail-sections.module.scss";
 import {
     RUN_CHANGE_TYPE_FILTER_OPTIONS,
     RUN_PREORDER_FILTER_OPTIONS,
@@ -115,7 +115,6 @@ export const ChangesPageView = () => {
         sortBy: search.sortBy,
         sortOrder: search.sortOrder,
         onToggleSort: toggleSort,
-        productLinkClassName: sectionStyles.productLink,
     });
     const activeFilterChips: ActiveFilterChip[] = useMemo(() => {
         const chips: ActiveFilterChip[] = [];
@@ -257,6 +256,13 @@ export const ChangesPageView = () => {
                 paginationAriaLabel="Changes pagination"
                 retryLabel="Retry loading changes"
                 title="Change Results"
+                onRowClick={(item) =>
+                    void navigate({
+                        to: "/app/products/$productId",
+                        params: { productId: item.product.id },
+                        search: defaultProductHistoryControls,
+                    })
+                }
                 onPageChange={(nextPage) => setSearch({ page: nextPage })}
                 onRetry={() => void changesQuery.refetch()}
             />

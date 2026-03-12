@@ -238,7 +238,8 @@ describe("scrape views", () => {
     });
 
     it("renders changes explorer from URL-backed query state", async () => {
-        await renderRouterApp({
+        const user = userEvent.setup();
+        const { router } = await renderRouterApp({
             initialEntry:
                 "/app/changes?page=2&pageSize=10&sortBy=changedAt&sortOrder=desc&changeType=sold_out&windowDays=30&query=change",
             session: mockUser,
@@ -284,9 +285,102 @@ describe("scrape views", () => {
         expect(screen.getByRole("button", { name: "Remove filter Search: change" })).toBeInTheDocument();
         expect(screen.getByText("Change Product")).toBeInTheDocument();
         expect(screen.getByLabelText("Search change results")).toHaveValue("change");
-        expect(screen.getByRole("link", { name: /Open run for/ })).toBeInTheDocument();
-        expect(screen.getByRole("link", { name: /View product page for/ })).toBeInTheDocument();
+        expect(screen.queryByRole("columnheader", { name: "Run" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("columnheader", { name: "Link" })).not.toBeInTheDocument();
+
+        await user.click(screen.getByText("Board Games"));
+
+        await waitFor(() => {
+            expect(router.state.location.pathname).toBe("/app/products/44444444-4444-4444-8444-444444444444");
+        });
     }, 10_000);
+
+    it("renders PriceTag variants in changes explorer details cells", async () => {
+        await renderRouterApp({
+            initialEntry: "/app/changes",
+            session: mockUser,
+            apiResponses: {
+                changesList: {
+                    items: [
+                        {
+                            id: "11111111-1111-4111-8111-111111111111",
+                            changeType: "new_product",
+                            newPrice: 11.2,
+                            changedAt: new Date().toISOString(),
+                            category: {
+                                id: "22222222-2222-4222-8222-222222222222",
+                                nameEt: "Board Games",
+                            },
+                            run: {
+                                id: "33333333-3333-4333-8333-333333333333",
+                                startedAt: new Date().toISOString(),
+                            },
+                            product: {
+                                id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                                name: "New Product",
+                                imageUrl: "https://mabrik.ee/images/new-product.jpg",
+                                externalUrl: "https://mabrik.ee/toode/new-product",
+                            },
+                        },
+                        {
+                            id: "22222222-2222-4222-8222-222222222222",
+                            changeType: "price_increase",
+                            oldPrice: 9.5,
+                            newPrice: 11.2,
+                            changedAt: new Date().toISOString(),
+                            category: {
+                                id: "22222222-2222-4222-8222-222222222222",
+                                nameEt: "Board Games",
+                            },
+                            run: {
+                                id: "33333333-3333-4333-8333-333333333333",
+                                startedAt: new Date().toISOString(),
+                            },
+                            product: {
+                                id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+                                name: "Increase Product",
+                                imageUrl: "https://mabrik.ee/images/increase-product.jpg",
+                                externalUrl: "https://mabrik.ee/toode/increase-product",
+                            },
+                        },
+                        {
+                            id: "33333333-3333-4333-8333-333333333333",
+                            changeType: "price_decrease",
+                            oldPrice: 24.99,
+                            newPrice: 19.99,
+                            changedAt: new Date().toISOString(),
+                            category: {
+                                id: "22222222-2222-4222-8222-222222222222",
+                                nameEt: "Board Games",
+                            },
+                            run: {
+                                id: "33333333-3333-4333-8333-333333333333",
+                                startedAt: new Date().toISOString(),
+                            },
+                            product: {
+                                id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+                                name: "Decrease Product",
+                                imageUrl: "https://mabrik.ee/images/decrease-product.jpg",
+                                externalUrl: "https://mabrik.ee/toode/decrease-product",
+                            },
+                        },
+                    ],
+                    page: 1,
+                    pageSize: 25,
+                    totalItems: 3,
+                    totalPages: 1,
+                },
+            },
+        });
+
+        expect(await screen.findByRole("heading", { name: "Changes Explorer" })).toBeInTheDocument();
+        expect(screen.getByLabelText(/New product price/)).toBeInTheDocument();
+        expect(screen.getByLabelText(/Price increased from/)).toBeInTheDocument();
+        expect(screen.getByLabelText(/Price decreased from/)).toBeInTheDocument();
+        expect(screen.getByText(/\+.*1[.,]70/)).toBeInTheDocument();
+        expect(screen.getByText(/-.*5[.,]00/)).toBeInTheDocument();
+        expect(screen.getAllByText("→").length).toBeGreaterThanOrEqual(2);
+    });
 
     it("keeps advanced filters collapsed by default and allows toggling open", async () => {
         const user = userEvent.setup();
@@ -320,7 +414,8 @@ describe("scrape views", () => {
     });
 
     it("renders run detail with readable failure metadata for non-admin users", async () => {
-        await renderRouterApp({
+        const user = userEvent.setup();
+        const { router } = await renderRouterApp({
             initialEntry: "/app/runs/11111111-1111-4111-8111-111111111111?changesQuery=test&productsQuery=snapshot",
             session: mockUser,
             apiResponses: {
@@ -353,6 +448,29 @@ describe("scrape views", () => {
                 },
                 runChanges: {
                     items: [
+                        {
+                            id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                            changeType: "new_product",
+                            newPrice: 11.2,
+                            product: {
+                                id: "66666666-6666-4666-8666-666666666666",
+                                name: "Fresh Product",
+                                imageUrl: "https://mabrik.ee/images/fresh.jpg",
+                                externalUrl: "https://mabrik.ee/toode/fresh-product",
+                            },
+                        },
+                        {
+                            id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+                            changeType: "price_increase",
+                            oldPrice: 9.5,
+                            newPrice: 11.2,
+                            product: {
+                                id: "77777777-7777-4777-8777-777777777777",
+                                name: "Growing Product",
+                                imageUrl: "https://mabrik.ee/images/growing.jpg",
+                                externalUrl: "https://mabrik.ee/toode/growing-product",
+                            },
+                        },
                         {
                             id: "44444444-4444-4444-8444-444444444444",
                             changeType: "price_decrease",
@@ -406,8 +524,57 @@ describe("scrape views", () => {
         expect(screen.getByLabelText("Search diff items")).toHaveValue("test");
         expect(screen.getByLabelText("Search product snapshots")).toHaveValue("snapshot");
         expect(screen.getAllByText("Test Product").length).toBeGreaterThan(0);
-        expect(screen.getByRole("link", { name: /Open product detail for/ })).toBeInTheDocument();
+        expect(screen.queryByRole("columnheader", { name: "Dashboard" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("columnheader", { name: "Link" })).not.toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "Product Snapshots" })).toBeInTheDocument();
+        expect(screen.getByLabelText(/New product price/)).toBeInTheDocument();
+        expect(screen.getByLabelText(/Price increased from/)).toBeInTheDocument();
+        expect(screen.getByLabelText(/Price decreased from/)).toBeInTheDocument();
+        expect(screen.getByText(/\+.*1[.,]70/)).toBeInTheDocument();
+        expect(screen.getByText(/-.*5[.,]00/)).toBeInTheDocument();
+
+        await user.click(screen.getByText("Price Decrease"));
+        await waitFor(() => {
+            expect(router.state.location.pathname).toBe("/app/products/55555555-5555-4555-8555-555555555555");
+        });
+    });
+
+    it("navigates to product detail when clicking run detail product snapshot rows", async () => {
+        const user = userEvent.setup();
+        const { router } = await renderRouterApp({
+            initialEntry: "/app/runs/11111111-1111-4111-8111-111111111111",
+            session: mockUser,
+            apiResponses: {
+                runProducts: {
+                    items: [
+                        {
+                            id: "66666666-6666-4666-8666-666666666666",
+                            scrapeRunId: "11111111-1111-4111-8111-111111111111",
+                            productId: "55555555-5555-4555-8555-555555555555",
+                            name: "Test Product",
+                            price: 19.99,
+                            originalPrice: 24.99,
+                            inStock: true,
+                            imageUrl: "https://mabrik.ee/images/test.jpg",
+                            externalUrl: "https://mabrik.ee/toode/test-product",
+                            scrapedAt: new Date().toISOString(),
+                        },
+                    ],
+                    page: 1,
+                    pageSize: 10,
+                    totalItems: 1,
+                    totalPages: 1,
+                },
+            },
+        });
+
+        expect(await screen.findByRole("heading", { name: "Board Games" })).toBeInTheDocument();
+
+        await user.click(screen.getByText("In stock"));
+
+        await waitFor(() => {
+            expect(router.state.location.pathname).toBe("/app/products/55555555-5555-4555-8555-555555555555");
+        });
     });
 
     it("renders technical failure details for admin users only", async () => {
@@ -526,6 +693,7 @@ describe("scrape views", () => {
 
         await user.click(screen.getByRole("button", { name: "Show table fallback" }));
         expect(screen.getByRole("heading", { name: "History Table" })).toBeInTheDocument();
+        expect(screen.queryByRole("columnheader", { name: "Run" })).not.toBeInTheDocument();
         expect(document.querySelector("a button")).toBeNull();
         expect(document.querySelector("button a")).toBeNull();
     }, 15_000);
@@ -613,6 +781,7 @@ describe("scrape views", () => {
         expect(screen.getByText("3 filtered state-change snapshots")).toBeInTheDocument();
         await user.click(screen.getByRole("button", { name: "Show table fallback" }));
         expect(screen.getByRole("heading", { name: "History Table" })).toBeInTheDocument();
+        expect(screen.queryByRole("columnheader", { name: "Run" })).not.toBeInTheDocument();
 
         await selectAntOption(user, "Category", "Card Games");
         expect(await screen.findByText("1 filtered state-change snapshots")).toBeInTheDocument();

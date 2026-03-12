@@ -1,3 +1,1 @@
-export interface UseRunDetailColumnsOptions {
-    productLinkClassName: string;
-}
+export type UseRunDetailColumnsOptions = Record<string, never>;

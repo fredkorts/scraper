@@ -32,6 +32,8 @@ export interface RunChangesSectionProps {
     isFetching: boolean;
     page: number;
     pageSize: number;
+    onRowClick?: (item: RunChangesData["items"][number]) => void;
+    isRowClickable?: (item: RunChangesData["items"][number]) => boolean;
     onChangeTypeChange: (value?: string) => void;
     onQueryChange: (value: string) => void;
     onPreorderChange: (value: "all" | "only" | "exclude") => void;
@@ -49,6 +51,8 @@ export interface RunProductsSectionProps {
     isFetching: boolean;
     page: number;
     pageSize: number;
+    onRowClick?: (item: RunProductsData["items"][number]) => void;
+    isRowClickable?: (item: RunProductsData["items"][number]) => boolean;
     onQueryChange: (value: string) => void;
     onProductsStockChange: (value?: string) => void;
     onPageChange: (page: number) => void;

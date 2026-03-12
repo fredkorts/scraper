@@ -1,6 +1,7 @@
 import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useMeQuery } from "../../../auth";
+import { defaultProductHistoryControls } from "../../../products";
 import { RunChangesSection } from "../../components/detail/run-changes-section";
 import { RunFailurePanel } from "../../components/detail/run-failure-panel";
 import { RunMetricsGrid } from "../../components/detail/run-metrics-grid";
@@ -101,9 +102,7 @@ export const RunDetailPageView = () => {
         onPageChange: (page, options) => setSearch({ productsPage: page }, options),
     });
 
-    const { productColumns, changeColumns } = useRunDetailColumns({
-        productLinkClassName: sectionStyles.productLink,
-    });
+    const { productColumns, changeColumns } = useRunDetailColumns();
 
     if (detailQuery.isError) {
         return (
@@ -185,6 +184,13 @@ export const RunDetailPageView = () => {
                 isLoading={changesQuery.isPending}
                 page={search.changesPage}
                 pageSize={search.changesPageSize}
+                onRowClick={(item) =>
+                    void navigate({
+                        to: "/app/products/$productId",
+                        params: { productId: item.product.id },
+                        search: defaultProductHistoryControls,
+                    })
+                }
                 onChangeTypeChange={(value) =>
                     setSearch({
                         changeType: value ? (value as typeof search.changeType) : undefined,
@@ -207,6 +213,13 @@ export const RunDetailPageView = () => {
                 products={productsQuery.data}
                 productsInStock={search.productsInStock}
                 query={productsQueryInput}
+                onRowClick={(item) =>
+                    void navigate({
+                        to: "/app/products/$productId",
+                        params: { productId: item.productId },
+                        search: defaultProductHistoryControls,
+                    })
+                }
                 onProductsStockChange={(value) =>
                     setSearch({
                         productsInStock: value ? (value as typeof search.productsInStock) : undefined,

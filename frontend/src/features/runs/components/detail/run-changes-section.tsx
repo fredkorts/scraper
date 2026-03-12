@@ -21,6 +21,8 @@ export const RunChangesSection = ({
     isLoading,
     page,
     pageSize,
+    onRowClick,
+    isRowClickable,
     onChangeTypeChange,
     onQueryChange,
     onPreorderChange,
@@ -43,6 +45,8 @@ export const RunChangesSection = ({
         isLoading={isLoading}
         page={page}
         pageSize={pageSize}
+        onRowClick={onRowClick}
+        isRowClickable={isRowClickable}
         paginationAriaLabel="Run changes pagination"
         retryLabel="Retry loading diff items"
         title="Diff Items"

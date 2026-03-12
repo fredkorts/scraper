@@ -17,6 +17,14 @@
     @include tables.table-cell;
 }
 
+.clickableRow {
+    cursor: pointer;
+}
+
+.clickableRow:hover {
+    background: var(--table-row-hover-bg);
+}
+
 .empty {
     @include empty-states.state-panel;
 }

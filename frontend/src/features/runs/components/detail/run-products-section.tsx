@@ -17,6 +17,8 @@ export const RunProductsSection = ({
     products,
     productsInStock,
     query,
+    onRowClick,
+    isRowClickable,
     onPageChange,
     onQueryChange,
     onProductsStockChange,
@@ -69,7 +71,12 @@ export const RunProductsSection = ({
                 {products.items.length === 0 ? (
                     <p className={styles.emptyState}>No product snapshots matched the current filter.</p>
                 ) : (
-                    <DataTable columns={productColumns} data={products.items} />
+                    <DataTable
+                        columns={productColumns}
+                        data={products.items}
+                        onRowClick={onRowClick}
+                        isRowClickable={isRowClickable}
+                    />
                 )}
                 <PaginationControls
                     page={page}

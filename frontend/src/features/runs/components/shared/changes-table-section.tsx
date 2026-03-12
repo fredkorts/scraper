@@ -1,10 +1,11 @@
+import type { RowData } from "@tanstack/react-table";
 import { DataTable } from "../../../../components/data-table/DataTable";
 import { PaginationControls } from "../../../../components/pagination/PaginationControls";
 import { AppButton } from "../../../../components/app-button/AppButton";
 import styles from "../detail/run-detail-sections.module.scss";
 import type { ChangesTableSectionProps } from "../../types/changes-table-section.types";
 
-export const ChangesTableSection = <TItem extends object>({
+export const ChangesTableSection = <TItem extends RowData>({
     title,
     headingId,
     headerContent,
@@ -19,6 +20,8 @@ export const ChangesTableSection = <TItem extends object>({
     loadingText = "Loading changes...",
     retryLabel = "Retry",
     paginationAriaLabel,
+    onRowClick,
+    isRowClickable,
     onPageChange,
     onRetry,
 }: ChangesTableSectionProps<TItem>) => (
@@ -44,7 +47,12 @@ export const ChangesTableSection = <TItem extends object>({
                 {data.items.length === 0 ? (
                     <p className={styles.emptyState}>{emptyText}</p>
                 ) : (
-                    <DataTable columns={columns} data={data.items} />
+                    <DataTable
+                        columns={columns}
+                        data={data.items}
+                        onRowClick={onRowClick}
+                        isRowClickable={isRowClickable}
+                    />
                 )}
                 <PaginationControls
                     page={page}

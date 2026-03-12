@@ -22,6 +22,8 @@ export interface ChangesTableSectionProps<TItem extends RowData> {
     loadingText?: string;
     retryLabel?: string;
     paginationAriaLabel: string;
+    onRowClick?: (item: TItem) => void;
+    isRowClickable?: (item: TItem) => boolean;
     onPageChange: (page: number) => void;
     onRetry?: () => void;
 }
