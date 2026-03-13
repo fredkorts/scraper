@@ -4,16 +4,41 @@
 @use "../../../../styles/components/forms";
 @use "../../../../styles/components/status-badges";
 
-.summaryGrid {
-    display: grid;
-    gap: var(--space-md);
-    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+.summaryBlock {
+    @include cards.card-surface;
+    padding: var(--space-md);
 }
 
-.card {
-    @include cards.card-surface;
+.keyValueList {
+    margin: 0;
     display: grid;
+    gap: var(--space-xs);
+}
+
+.keyValueRow {
+    display: grid;
+    grid-template-columns: minmax(10rem, 16rem) 1fr;
     gap: var(--space-sm);
+    align-items: baseline;
+    padding-bottom: var(--space-xs);
+    border-bottom: 1px solid var(--color-border-muted);
+}
+
+.keyValueRow:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+
+.keyLabel {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+}
+
+.keyValue {
+    margin: 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
 }
 
 .eyebrow {
@@ -182,6 +207,10 @@
 }
 
 @include mixins.mq-md {
+    .keyValueRow {
+        grid-template-columns: 1fr;
+    }
+
     .searchFilterGroup {
         margin-right: 0;
         flex: 1 1 100%;

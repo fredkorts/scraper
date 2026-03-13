@@ -1,12 +1,31 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "../lib/prisma";
 import { useTestDatabase } from "../test/db";
 import { createRefreshTokenRecord, createUser } from "../test/factories";
 import { getCurrentUser, listSessions, login, logout, refreshSession, register } from "./auth.service";
 
+const sendSecurityEventEmail = vi.fn();
+const sendVerificationEmail = vi.fn();
+const sendPasswordResetEmail = vi.fn();
+
+vi.mock("./auth-email.service", () => ({
+    sendSecurityEventEmail: (...args: unknown[]) => sendSecurityEventEmail(...args),
+    sendVerificationEmail: (...args: unknown[]) => sendVerificationEmail(...args),
+    sendPasswordResetEmail: (...args: unknown[]) => sendPasswordResetEmail(...args),
+}));
+
 useTestDatabase();
 
 describe("auth.service", () => {
+    beforeEach(() => {
+        sendSecurityEventEmail.mockReset();
+        sendVerificationEmail.mockReset();
+        sendPasswordResetEmail.mockReset();
+        sendSecurityEventEmail.mockResolvedValue(undefined);
+        sendVerificationEmail.mockResolvedValue(undefined);
+        sendPasswordResetEmail.mockResolvedValue(undefined);
+    });
+
     it("registers a user, notification channel, and refresh token in one flow", async () => {
         const result = await register(
             {
@@ -173,5 +192,64 @@ describe("auth.service", () => {
         expect(result.sessions).toHaveLength(1);
         expect(result.sessions[0]?.id).toBe(active.record.id);
         expect(result.sessions[0]?.isCurrent).toBe(true);
+    });
+
+    it("sends new-login email only once for a previously seen IP", async () => {
+        const { user, password } = await createUser({
+            email: "login-ip-repeat@example.com",
+        });
+
+        await login(
+            {
+                email: user.email,
+                password,
+            },
+            { ip: "198.51.100.20" },
+        );
+
+        await login(
+            {
+                email: user.email,
+                password,
+            },
+            { ip: "198.51.100.20" },
+        );
+
+        expect(sendSecurityEventEmail).toHaveBeenCalledTimes(1);
+        expect(sendSecurityEventEmail).toHaveBeenCalledWith(
+            user.email,
+            "New login",
+            "A new login was detected from IP 198.51.100.20.",
+        );
+    });
+
+    it("sends a new-login email when the user logs in from a new IP", async () => {
+        const { user, password } = await createUser({
+            email: "login-new-ip@example.com",
+        });
+
+        await login(
+            {
+                email: user.email,
+                password,
+            },
+            { ip: "198.51.100.21" },
+        );
+
+        await login(
+            {
+                email: user.email,
+                password,
+            },
+            { ip: "198.51.100.22" },
+        );
+
+        expect(sendSecurityEventEmail).toHaveBeenCalledTimes(2);
+        expect(sendSecurityEventEmail).toHaveBeenNthCalledWith(
+            2,
+            user.email,
+            "New login",
+            "A new login was detected from IP 198.51.100.22.",
+        );
     });
 });

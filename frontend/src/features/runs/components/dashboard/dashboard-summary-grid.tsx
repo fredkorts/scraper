@@ -16,7 +16,7 @@ export const DashboardSummaryGrid = ({ summary, categoryId }: DashboardSummaryGr
             changeType: "new_product" as const,
         },
         {
-            label: "Sold out",
+            label: "Sold Out",
             value: summary.soldOut,
             changeType: "sold_out" as const,
         },

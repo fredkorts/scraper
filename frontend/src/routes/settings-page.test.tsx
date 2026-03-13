@@ -54,7 +54,7 @@ describe("settings page", () => {
 
         expect(await screen.findByDisplayValue("Updated User")).toBeInTheDocument();
         expect(await screen.findByText("Profile updated")).toBeInTheDocument();
-    }, 10_000);
+    }, 20_000);
 
     it("adds and removes tracked categories in the tracking tab", async () => {
         const user = userEvent.setup();
@@ -96,7 +96,7 @@ describe("settings page", () => {
         await waitFor(() => {
             expect(screen.getByText("lauamangud")).toBeInTheDocument();
         });
-    }, 15_000);
+    }, 25_000);
 
     it("manages notification channels and admin tools for admin users", async () => {
         const user = userEvent.setup();

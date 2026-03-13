@@ -3,17 +3,24 @@
 .info,
 .warning {
     box-shadow: var(--notification-shadow);
+    color: var(--notification-foreground);
 
     :global(.ant-notification-notice-message),
     :global(.ant-notification-notice-description) {
-        color: inherit;
+        color: var(--notification-foreground) !important;
     }
 
     :global(.ant-notification-notice-icon),
     :global(.ant-notification-notice-icon .anticon),
     :global(.ant-notification-notice-close),
+    :global(.ant-notification-notice-close svg),
+    :global(.ant-notification-notice-icon svg) {
+        color: var(--notification-foreground) !important;
+    }
+
+    :global(.ant-notification-notice-icon svg),
     :global(.ant-notification-notice-close svg) {
-        color: inherit;
+        fill: currentColor !important;
     }
 
     :global(.ant-notification-notice-description) {
@@ -41,25 +48,25 @@
 }
 
 .success {
+    --notification-foreground: var(--notification-success-text);
     background: var(--notification-success-bg);
     border: 1px solid var(--notification-success-border);
-    color: var(--notification-success-text);
 }
 
 .error {
+    --notification-foreground: var(--notification-error-text);
     background: var(--notification-error-bg);
     border: 1px solid var(--notification-error-border);
-    color: var(--notification-error-text);
 }
 
 .info {
+    --notification-foreground: var(--notification-info-text);
     background: var(--notification-info-bg);
     border: 1px solid var(--notification-info-border);
-    color: var(--notification-info-text);
 }
 
 .warning {
+    --notification-foreground: var(--notification-warning-text);
     background: var(--notification-warning-bg);
     border: 1px solid var(--notification-warning-border);
-    color: var(--notification-warning-text);
 }

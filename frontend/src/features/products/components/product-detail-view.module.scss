@@ -23,10 +23,37 @@
 
 .gridRow {
     width: 100%;
+    align-items: stretch;
 }
 
 .criticalCard {
     height: 100%;
+}
+
+.overviewImageColumn,
+.overviewInfoColumn {
+    display: flex;
+}
+
+.overviewStack {
+    height: 100%;
+    justify-content: space-between;
+}
+
+.imageCard :global(.ant-card-body) {
+    height: 100%;
+    display: flex;
+}
+
+.imageCard :global(.ant-image) {
+    width: 100%;
+    height: 100%;
+}
+
+.imageCard :global(.ant-image-img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .sectionCard :global(.ant-card-head-title h2) {
@@ -106,6 +133,44 @@
     font-weight: 600;
 }
 
+.discountBadge {
+    font-weight: 600;
+}
+
+.sparseHistoryCard {
+    min-height: 20rem;
+    border-color: var(--color-border-muted);
+    background: var(--table-row-hover-bg);
+    margin-bottom: 2rem;
+}
+
+.sparseHistoryCard :global(.ant-card-body) {
+    min-height: 20rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.sparseHistoryContent {
+    display: grid;
+    gap: var(--space-sm);
+    justify-items: center;
+}
+
+.sparseHistoryHeadline {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    line-height: var(--line-height-tight);
+}
+
+.sparseHistoryMeta {
+    display: inline-block;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    text-align: center;
+}
+
 .srOnly {
     position: absolute;
     width: 1px;
@@ -162,5 +227,27 @@
 
     .resetControlAction {
         justify-content: flex-start;
+    }
+}
+
+@media (max-width: 47.99rem) {
+    .overviewImageColumn,
+    .overviewInfoColumn {
+        display: block;
+    }
+
+    .overviewStack {
+        height: auto;
+        justify-content: flex-start;
+    }
+
+    .imageCard :global(.ant-card-body),
+    .imageCard :global(.ant-image),
+    .imageCard :global(.ant-image-img) {
+        height: auto;
+    }
+
+    .imageCard :global(.ant-image-img) {
+        object-fit: contain;
     }
 }

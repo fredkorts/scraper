@@ -19,5 +19,5 @@ export const PRODUCT_HISTORY_STOCK_FILTER_OPTIONS: Array<{
 }> = [
     { label: "All stock states", value: "all" },
     { label: "In stock only", value: "in_stock" },
-    { label: "Out of stock only", value: "out_of_stock" },
+    { label: "Sold out only", value: "out_of_stock" },
 ];

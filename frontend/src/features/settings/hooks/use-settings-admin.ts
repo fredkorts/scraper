@@ -49,19 +49,11 @@ export const useSettingsAdmin = (enabled: boolean): UseSettingsAdminResult => {
             }),
         [categoriesQuery.data?.categories, triggerCategoryIds],
     );
-    const intervalCategoryOptions = useMemo(
-        () =>
-            schedulerStateItems.map((item) => ({
-                value: item.categoryId,
-                label: item.categoryPathNameEt,
-            })),
-        [schedulerStateItems],
-    );
     const triggerCategoryIdsOrdered = useMemo(
         () => schedulerStateItems.filter((item) => item.isActive).map((item) => item.categoryId),
         [schedulerStateItems],
     );
-    const effectiveIntervalCategoryId = selectedIntervalCategoryId || intervalCategoryOptions[0]?.value || "";
+    const effectiveIntervalCategoryId = selectedIntervalCategoryId;
     const effectiveTriggerCategoryId = selectedTriggerCategoryId || triggerCategoryIdsOrdered[0] || "";
     const selectedIntervalCategory = schedulerStateItemsById.get(effectiveIntervalCategoryId);
     const effectiveScrapeInterval =
@@ -73,7 +65,10 @@ export const useSettingsAdmin = (enabled: boolean): UseSettingsAdminResult => {
 
         if (nextCategory) {
             setSelectedScrapeInterval(nextCategory.scrapeIntervalHours);
+            return;
         }
+
+        setSelectedScrapeInterval(null);
     };
 
     const onSelectTriggerCategory = (categoryId: string) => {

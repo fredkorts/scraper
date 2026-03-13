@@ -17,7 +17,7 @@ export const RUN_CHANGE_TYPE_FILTER_OPTIONS: AppSelectOption[] = [
     { label: "Price decrease", value: "price_decrease" },
     { label: "Price increase", value: "price_increase" },
     { label: "New product", value: "new_product" },
-    { label: "Sold out", value: "sold_out" },
+    { label: "Sold Out", value: "sold_out" },
     { label: "Back in stock", value: "back_in_stock" },
 ];
 
@@ -35,5 +35,5 @@ export const RUN_PREORDER_FILTER_OPTIONS: AppSelectOption[] = [
 
 export const RUN_PRODUCT_STOCK_FILTER_OPTIONS: AppSelectOption[] = [
     { label: "In stock", value: "true" },
-    { label: "Out of stock", value: "false" },
+    { label: "Sold Out", value: "false" },
 ];

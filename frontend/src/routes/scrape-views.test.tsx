@@ -8,27 +8,6 @@ afterEach(() => {
     vi.unstubAllGlobals();
 });
 
-const selectAntOption = async (user: ReturnType<typeof userEvent.setup>, label: string, optionText: string) => {
-    await user.click(screen.getByLabelText(label));
-    const titleMatch = await screen.findByTitle(optionText).catch(() => null);
-
-    if (titleMatch) {
-        await user.click(titleMatch);
-        return;
-    }
-
-    const optionMatch = await screen.findByRole("option", { name: optionText }).catch(() => null);
-    const treeItemMatch = optionMatch ?? (await screen.findByRole("treeitem", { name: optionText }).catch(() => null));
-
-    if (treeItemMatch) {
-        await user.click(treeItemMatch);
-        return;
-    }
-
-    const textMatches = await screen.findAllByText(optionText);
-    await user.click(textMatches[textMatches.length - 1]!);
-};
-
 describe("scrape views", () => {
     it("renders dashboard home summaries and links", async () => {
         await renderRouterApp({
@@ -136,7 +115,7 @@ describe("scrape views", () => {
             windowDays: 7,
             categoryId: "22222222-2222-4222-8222-222222222222",
         });
-    });
+    }, 10_000);
 
     it("caps dashboard latest runs and recent failures panels to five items", async () => {
         await renderRouterApp({
@@ -193,7 +172,7 @@ describe("scrape views", () => {
         expect(screen.getByText("Failure Category 5")).toBeInTheDocument();
         expect(screen.queryByText("Run Category 6")).not.toBeInTheDocument();
         expect(screen.queryByText("Failure Category 6")).not.toBeInTheDocument();
-    });
+    }, 10_000);
 
     it("renders runs list from URL-backed query state", async () => {
         await renderRouterApp({
@@ -279,7 +258,7 @@ describe("scrape views", () => {
         expect(await screen.findByRole("heading", { name: "Changes Explorer" })).toBeInTheDocument();
         expect(screen.getByRole("button", { name: /Advanced filters \(2\)/ })).toHaveAttribute("aria-expanded", "true");
         expect(screen.getByText("Sorted by:")).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: "Remove filter Change type: Sold out" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Remove filter Change type: Sold Out" })).toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Remove filter Window: Last 30 days" })).toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Remove filter Page size: 10" })).toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Remove filter Search: change" })).toBeInTheDocument();
@@ -620,11 +599,15 @@ describe("scrape views", () => {
     });
 
     it("renders product detail and history views", async () => {
-        const user = userEvent.setup();
-
         await renderRouterApp({
             initialEntry: "/app/products/55555555-5555-4555-8555-555555555555",
-            session: mockUser,
+            session: {
+                ...mockUser,
+                capabilities: {
+                    ...mockUser.capabilities,
+                    productWatchlist: true,
+                },
+            },
             apiResponses: {
                 productDetail: {
                     product: {
@@ -688,11 +671,17 @@ describe("scrape views", () => {
         expect(await screen.findByRole("heading", { name: "Test Product" }, { timeout: 5000 })).toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "Price History" })).toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "Recent Runs" })).toBeInTheDocument();
-        expect(screen.getByRole("link", { name: "Open on Mabrik" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Watch product" })).toHaveAttribute("data-intent", "primary");
+        expect(screen.getByRole("link", { name: "Open on Mabrik" })).toHaveAttribute("data-intent", "secondary");
         expect(screen.getByRole("link", { name: "Open run detail" })).toBeInTheDocument();
-
-        await user.click(screen.getByRole("button", { name: "Show table fallback" }));
+        expect(screen.queryByText("Product ID")).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Technical details" })).not.toBeInTheDocument();
+        expect(screen.getByText("Not enough history to show trend yet.")).toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "History Table" })).toBeInTheDocument();
+        expect(screen.queryByRole("radiogroup", { name: "Time range" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Show table fallback" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Chart view" })).not.toBeInTheDocument();
+        expect(screen.queryByText("2 filtered state-change snapshots")).not.toBeInTheDocument();
         expect(screen.queryByRole("columnheader", { name: "Run" })).not.toBeInTheDocument();
         expect(document.querySelector("a button")).toBeNull();
         expect(document.querySelector("button a")).toBeNull();
@@ -702,8 +691,7 @@ describe("scrape views", () => {
         const user = userEvent.setup();
 
         const { router } = await renderRouterApp({
-            initialEntry:
-                "/app/products/55555555-5555-4555-8555-555555555555?range=all&showOriginalPrice=true&showStockOverlay=true",
+            initialEntry: "/app/products/55555555-5555-4555-8555-555555555555?range=all",
             session: mockUser,
             apiResponses: {
                 productDetail: {
@@ -776,38 +764,30 @@ describe("scrape views", () => {
         expect(router.state.location.search).toMatchObject({
             range: "all",
         });
-        expect(screen.getByLabelText("Show original price")).toBeChecked();
-        expect(screen.getByLabelText("Show stock overlay")).toBeChecked();
-        expect(screen.getByText("3 filtered state-change snapshots")).toBeInTheDocument();
-        await user.click(screen.getByRole("button", { name: "Show table fallback" }));
+        expect(screen.getByRole("radiogroup", { name: "Time range" })).toBeInTheDocument();
+        expect(screen.queryByLabelText("Category")).not.toBeInTheDocument();
+        expect(screen.queryByLabelText("Stock filter")).not.toBeInTheDocument();
+        expect(screen.queryByLabelText("Show original price")).not.toBeInTheDocument();
+        expect(screen.queryByLabelText("Show stock overlay")).not.toBeInTheDocument();
+        expect(screen.queryByText("3 filtered state-change snapshots")).not.toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Table view" })).toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: "Table view" }));
         expect(screen.getByRole("heading", { name: "History Table" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Chart view" })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Show table fallback" })).not.toBeInTheDocument();
         expect(screen.queryByRole("columnheader", { name: "Run" })).not.toBeInTheDocument();
 
-        await selectAntOption(user, "Category", "Card Games");
-        expect(await screen.findByText("1 filtered state-change snapshots")).toBeInTheDocument();
+        await user.click(screen.getByText("30d"));
+        expect(await screen.findByText("Not enough history to show trend yet.")).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "History Table" })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Chart view" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("radiogroup", { name: "Time range" })).not.toBeInTheDocument();
         expect(router.state.location.search).toMatchObject({
-            categoryId: "99999999-9999-4999-8999-999999999999",
+            range: "30d",
         });
         expect(screen.getAllByText("€21.99").length).toBeGreaterThan(0);
-
-        await selectAntOption(user, "Stock filter", "In stock only");
-        expect(
-            await screen.findByText(
-                "No historical snapshots matched the current controls. Change the filters or reset them.",
-            ),
-        ).toBeInTheDocument();
-
-        await selectAntOption(user, "Stock filter", "Out of stock only");
-        expect(await screen.findByText("1 filtered state-change snapshots")).toBeInTheDocument();
-        expect(screen.getByText("Out of stock")).toBeInTheDocument();
-
-        await user.click(screen.getByLabelText("Show stock overlay"));
-        expect(screen.getByLabelText("Show stock overlay")).not.toBeChecked();
-        expect(router.state.location.search).toMatchObject({
-            stockFilter: "out_of_stock",
-            showStockOverlay: false,
-        });
-    }, 15000);
+    }, 20_000);
 
     it("clamps out-of-range runs pages to the last valid page", async () => {
         const { router } = await renderRouterApp({

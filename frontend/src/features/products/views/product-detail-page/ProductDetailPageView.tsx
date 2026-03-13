@@ -28,6 +28,13 @@ export const ProductDetailPageView = () => {
     const navigate = useNavigate({ from: "/app/products/$productId" });
     const { productId } = useParams({ from: "/app/products/$productId" });
     const search = useSearch({ from: "/app/products/$productId" });
+    const effectiveControls = {
+        ...search,
+        categoryId: undefined,
+        stockFilter: defaultProductHistoryControls.stockFilter,
+        showOriginalPrice: defaultProductHistoryControls.showOriginalPrice,
+        showStockOverlay: defaultProductHistoryControls.showStockOverlay,
+    };
     const detailQuery = useProductDetailQuery(productId);
     const historyQuery = useProductHistoryQuery(productId);
     const trackProductMutation = useTrackProductMutation();
@@ -35,7 +42,7 @@ export const ProductDetailPageView = () => {
     const setSearch = useRouteSearchUpdater(navigate);
     const historyColumns = useProductHistoryColumns();
     const historyItems = historyQuery.data?.items ?? [];
-    const viewModel = useProductDetailPageViewModel(detailQuery.data?.product, historyItems, search);
+    const viewModel = useProductDetailPageViewModel(detailQuery.data?.product, historyItems, effectiveControls);
     const canToggleWatch = session.data?.capabilities?.productWatchlist ?? false;
     const isWatchPending = trackProductMutation.isPending || untrackProductMutation.isPending;
     const resolvedWatchState = optimisticWatchState ?? detailQuery.data?.product.isWatched ?? false;
@@ -172,7 +179,7 @@ export const ProductDetailPageView = () => {
         <section className={styles.page}>
             <ProductDetailView
                 canToggleWatch={canToggleWatch}
-                controls={search}
+                controls={effectiveControls}
                 headingRef={headingRef}
                 historyColumns={historyColumns}
                 historyErrorMessage={historyQuery.isError ? historyQuery.error.message : undefined}
@@ -187,18 +194,10 @@ export const ProductDetailPageView = () => {
                 onResetFilters={() =>
                     setSearch({
                         range: defaultProductHistoryControls.range,
-                        categoryId: undefined,
-                        stockFilter: defaultProductHistoryControls.stockFilter,
-                        showOriginalPrice: defaultProductHistoryControls.showOriginalPrice,
-                        showStockOverlay: defaultProductHistoryControls.showStockOverlay,
                     })
                 }
                 onRetryHistory={() => void historyQuery.refetch()}
-                onSetCategoryId={(value) => setSearch({ categoryId: value })}
                 onSetRange={(value) => setSearch({ range: value })}
-                onSetShowOriginalPrice={(checked) => setSearch({ showOriginalPrice: checked })}
-                onSetShowStockOverlay={(checked) => setSearch({ showStockOverlay: checked })}
-                onSetStockFilter={(value) => setSearch({ stockFilter: value })}
             />
         </section>
     );

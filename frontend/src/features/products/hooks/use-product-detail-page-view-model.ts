@@ -23,11 +23,19 @@ export const useProductDetailPageViewModel = (
           };
 
     const historyScreenReaderSummary = `Filtered history has ${history.historySummary.pointCount} snapshots. Latest price is ${history.historySummary.latestPrice ?? "unavailable"}. Min price is ${history.historySummary.minPrice ?? "unavailable"}. Max price is ${history.historySummary.maxPrice ?? "unavailable"}.`;
+    const historyVisualMode: "empty" | "sparse" | "chart" =
+        history.historySummary.pointCount === 0 ? "empty" : history.historySummary.pointCount < 3 ? "sparse" : "chart";
+    const discountBadgeLabel =
+        discount.hasDiscount && typeof discount.discountPercent === "number"
+            ? `${discount.discountPercent}% below original`
+            : undefined;
 
     return {
         history,
         freshness,
         discount,
+        discountBadgeLabel,
+        historyVisualMode,
         historyScreenReaderSummary,
     };
 };

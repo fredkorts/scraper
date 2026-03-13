@@ -33,6 +33,7 @@ export const AppButton = ({
             loading={resolvedLoading}
             disabled={disabled || isBusy}
             aria-busy={isBusy || undefined}
+            data-intent={intent ?? "default"}
         />
     );
 };

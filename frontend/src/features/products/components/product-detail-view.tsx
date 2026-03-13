@@ -21,11 +21,7 @@ export const ProductDetailView = ({
     onToggleWatch,
     onResetFilters,
     onRetryHistory,
-    onSetCategoryId,
     onSetRange,
-    onSetShowOriginalPrice,
-    onSetShowStockOverlay,
-    onSetStockFilter,
 }: ProductDetailViewProps) => (
     <div className={styles.page}>
         <ProductDetailHeader
@@ -37,7 +33,11 @@ export const ProductDetailView = ({
             onToggleWatch={onToggleWatch}
         />
 
-        <ProductCriticalOverview discount={viewModel.discount} product={product} />
+        <ProductCriticalOverview
+            discount={viewModel.discount}
+            discountBadgeLabel={viewModel.discountBadgeLabel}
+            product={product}
+        />
 
         <Card
             className={styles.sectionCard}
@@ -48,21 +48,9 @@ export const ProductDetailView = ({
             }
         >
             <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
-                <Typography.Text id="price-history-summary" type="secondary">
-                    {viewModel.history.historySummary.pointCount} filtered state-change snapshots
-                </Typography.Text>
-
-                <ProductHistoryControlsSection
-                    availableCategoryOptions={viewModel.history.availableCategoryOptions}
-                    controls={controls}
-                    hasOriginalPriceData={viewModel.history.hasOriginalPriceData}
-                    onResetFilters={onResetFilters}
-                    onSetCategoryId={onSetCategoryId}
-                    onSetRange={onSetRange}
-                    onSetShowOriginalPrice={onSetShowOriginalPrice}
-                    onSetShowStockOverlay={onSetShowStockOverlay}
-                    onSetStockFilter={onSetStockFilter}
-                />
+                {viewModel.historyVisualMode === "chart" ? (
+                    <ProductHistoryControlsSection controls={controls} onSetRange={onSetRange} />
+                ) : null}
 
                 <ProductHistorySummaryCards historySummary={viewModel.history.historySummary} />
 
@@ -73,6 +61,7 @@ export const ProductDetailView = ({
                     historyErrorMessage={historyErrorMessage}
                     historyItems={viewModel.history.filteredHistoryItems}
                     historyScreenReaderSummary={viewModel.historyScreenReaderSummary}
+                    historyVisualMode={viewModel.historyVisualMode}
                     isHistoryLoading={isHistoryLoading}
                     showOriginalPriceLine={viewModel.history.showOriginalPriceLine}
                     onResetFilters={onResetFilters}

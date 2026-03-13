@@ -2,11 +2,12 @@ import type { ColumnDef } from "@tanstack/react-table";
 import type { RefObject } from "react";
 import type { ProductDetailData, ProductHistoryData } from "../schemas";
 import type { useProductDetailPageViewModel } from "../hooks/use-product-detail-page-view-model";
-import type { ProductHistoryControls, ProductHistoryRange, ProductHistoryStockFilter } from "../history-controls";
+import type { ProductHistoryControls, ProductHistoryRange } from "../history-controls";
 
 export type ProductDetailRecord = ProductDetailData["product"];
 export type ProductHistoryRecord = ProductHistoryData["items"][number];
 export type ProductDetailViewModel = ReturnType<typeof useProductDetailPageViewModel>;
+export type ProductHistoryVisualMode = "empty" | "sparse" | "chart";
 
 export interface ProductDetailHeaderProps {
     product: ProductDetailRecord;
@@ -20,18 +21,22 @@ export interface ProductDetailHeaderProps {
 export interface ProductCriticalOverviewProps {
     product: ProductDetailRecord;
     discount: ProductDetailViewModel["discount"];
+    discountBadgeLabel?: string;
+}
+
+export interface ProductHeroPriceBlockProps {
+    product: ProductDetailRecord;
+    discountBadgeLabel?: string;
+}
+
+export interface ProductSupportingDetailsProps {
+    product: ProductDetailRecord;
+    discount: ProductDetailViewModel["discount"];
 }
 
 export interface ProductHistoryControlsSectionProps {
     controls: ProductHistoryControls;
-    availableCategoryOptions: ProductDetailViewModel["history"]["availableCategoryOptions"];
-    hasOriginalPriceData: boolean;
-    onResetFilters: () => void;
     onSetRange: (value: ProductHistoryRange) => void;
-    onSetCategoryId: (value?: string) => void;
-    onSetStockFilter: (value: ProductHistoryStockFilter) => void;
-    onSetShowOriginalPrice: (checked: boolean) => void;
-    onSetShowStockOverlay: (checked: boolean) => void;
 }
 
 export interface ProductHistorySummaryCardsProps {
@@ -50,6 +55,7 @@ export interface ProductHistoryVisualStateProps {
     historyColumns: Array<ColumnDef<ProductHistoryRecord, unknown>>;
     historyItems: ProductHistoryRecord[];
     historyScreenReaderSummary: string;
+    historyVisualMode: ProductHistoryVisualMode;
     showOriginalPriceLine: boolean;
     historyErrorMessage?: string;
     isHistoryLoading: boolean;

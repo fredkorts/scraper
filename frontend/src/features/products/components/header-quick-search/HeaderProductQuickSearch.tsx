@@ -251,8 +251,9 @@ export const HeaderProductQuickSearch = () => {
                 <AppButton
                     aria-label="Open product search"
                     htmlType="button"
+                    className={styles.triggerButton}
                     icon={<SearchOutlined aria-hidden="true" />}
-                    intent="secondary"
+                    intent="text"
                     onClick={openSearch}
                 />
             ) : (

@@ -90,6 +90,34 @@ const getPasswordResetExpiry = (): Date => new Date(Date.now() + config.AUTH_PAS
 
 const getMfaChallengeExpiry = (): Date => new Date(Date.now() + config.AUTH_MFA_CHALLENGE_TTL_MINUTES * 60 * 1000);
 
+const normalizeSessionIp = (ip?: string): string | undefined => {
+    const normalized = ip?.trim();
+    return normalized && normalized.length > 0 ? normalized : undefined;
+};
+
+const normalizeSessionContext = (context: SessionContext): SessionContext => ({
+    ...context,
+    ip: normalizeSessionIp(context.ip),
+});
+
+const shouldSendNewLoginEmail = async (userId: string, ip?: string): Promise<boolean> => {
+    if (!ip) {
+        return false;
+    }
+
+    const existingLoginFromIp = await prisma.refreshToken.findFirst({
+        where: {
+            userId,
+            createdByIp: ip,
+        },
+        select: {
+            id: true,
+        },
+    });
+
+    return !existingLoginFromIp;
+};
+
 const issueSession = async (
     tx: Prisma.TransactionClient,
     user: User,
@@ -320,6 +348,7 @@ export const register = async (input: RegisterRequest, context: SessionContext):
 };
 
 export const login = async (input: LoginRequest, context: SessionContext): Promise<LoginResult> => {
+    const normalizedContext = normalizeSessionContext(context);
     const user = await prisma.user.findUnique({
         where: { email: input.email },
     });
@@ -356,13 +385,16 @@ export const login = async (input: LoginRequest, context: SessionContext): Promi
         };
     }
 
-    const session = await prisma.$transaction((tx) => issueSession(tx, user, context));
+    const notifyNewIpLogin = await shouldSendNewLoginEmail(user.id, normalizedContext.ip);
+    const session = await prisma.$transaction((tx) => issueSession(tx, user, normalizedContext));
 
-    void sendSecurityEventEmail(
-        user.email,
-        "New login",
-        `A new login was detected from IP ${context.ip ?? "unknown"}.`,
-    );
+    if (notifyNewIpLogin) {
+        void sendSecurityEventEmail(
+            user.email,
+            "New login",
+            `A new login was detected from IP ${normalizedContext.ip}.`,
+        );
+    }
 
     return {
         user: sanitizeUser(user),
@@ -372,6 +404,7 @@ export const login = async (input: LoginRequest, context: SessionContext): Promi
 };
 
 export const verifyMfaLogin = async (input: MfaVerifyLoginRequest, context: SessionContext): Promise<AuthResult> => {
+    const normalizedContext = normalizeSessionContext(context);
     const challenge = await prisma.mfaLoginChallenge.findUnique({
         where: {
             challengeTokenHash: hashToken(input.challengeToken),
@@ -394,12 +427,13 @@ export const verifyMfaLogin = async (input: MfaVerifyLoginRequest, context: Sess
         throw new AppError(401, "unauthorized", "Invalid MFA code");
     }
 
+    const notifyNewIpLogin = await shouldSendNewLoginEmail(challenge.user.id, normalizedContext.ip);
     const session = await prisma.$transaction(async (tx) => {
         await tx.mfaLoginChallenge.update({
             where: { id: challenge.id },
             data: { usedAt: new Date() },
         });
-        return issueSession(tx, challenge.user, context);
+        return issueSession(tx, challenge.user, normalizedContext);
     });
 
     if (mfaResult.usedRecoveryCode) {
@@ -410,11 +444,13 @@ export const verifyMfaLogin = async (input: MfaVerifyLoginRequest, context: Sess
         );
     }
 
-    void sendSecurityEventEmail(
-        challenge.user.email,
-        "New login",
-        `A new login was detected from IP ${context.ip ?? "unknown"}.`,
-    );
+    if (notifyNewIpLogin) {
+        void sendSecurityEventEmail(
+            challenge.user.email,
+            "New login",
+            `A new login was detected from IP ${normalizedContext.ip}.`,
+        );
+    }
 
     return {
         user: sanitizeUser(challenge.user),

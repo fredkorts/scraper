@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import Redis from "ioredis";
 import { config } from "../config";
+import { logger } from "../lib/logger";
 
 const LOCK_ACQUIRE_SCRIPT = "return redis.call('SET', KEYS[1], ARGV[1], 'NX', 'EX', ARGV[2])";
 const LOCK_REFRESH_SCRIPT =
@@ -33,16 +34,47 @@ const getLockClient = (): Redis => {
 
     lockClient = new Redis(config.REDIS_URL, {
         enableOfflineQueue: false,
+        lazyConnect: true,
         maxRetriesPerRequest: 1,
+    });
+    lockClient.on("error", (error) => {
+        logger.warn("category_lock_redis_error", {
+            error,
+        });
     });
 
     return lockClient;
 };
 
+const ensureLockClientReady = async (): Promise<Redis> => {
+    let client = getLockClient();
+
+    if (client.status === "ready") {
+        return client;
+    }
+
+    if (client.status === "end") {
+        lockClient = null;
+        client = getLockClient();
+    }
+
+    if (client.status === "wait") {
+        await client.connect();
+    }
+
+    return client;
+};
+
 const lockKeyForCategory = (categoryId: string): string => `scrape:category:${categoryId}`;
 
 export const acquireCategoryScrapeLock = async (categoryId: string): Promise<CategoryScrapeLockHandle> => {
-    const client = getLockClient();
+    let client: Redis;
+    try {
+        client = await ensureLockClientReady();
+    } catch (error) {
+        throw new CategoryScrapeLockError("Category lock backend unavailable", true, { cause: error });
+    }
+
     const key = lockKeyForCategory(categoryId);
     const token = randomUUID();
     const ttlSeconds = config.SCRAPER_CATEGORY_LOCK_TTL_SECONDS;

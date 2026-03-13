@@ -155,23 +155,21 @@ export const RunDetailPageView = () => {
 
             <RunMetricsGrid
                 items={[
+                    { label: "Status", value: formatStatusLabel(run.status) },
                     { label: "Started", value: formatDateTime(run.startedAt) },
                     { label: "Completed", value: formatDateTime(run.completedAt) },
                     { label: "Duration", value: formatDuration(run.durationMs) },
-                    { label: "Changes", value: run.totalChanges },
+                    { label: "Total products", value: run.totalProducts },
+                    { label: "Total changes", value: run.totalChanges },
+                    { label: "New products", value: run.newProducts },
+                    { label: "Price changes", value: run.priceChanges },
+                    { label: "Sold out", value: run.soldOut },
+                    { label: "Back in stock", value: run.backInStock },
+                    { label: "Pages scraped", value: run.pagesScraped },
                 ]}
             />
 
             {run.failure ? <RunFailurePanel failure={run.failure} isAdmin={isAdmin} /> : null}
-
-            <RunMetricsGrid
-                items={[
-                    { label: "Total products", value: run.totalProducts },
-                    { label: "New products", value: run.newProducts },
-                    { label: "Price changes", value: run.priceChanges },
-                    { label: "Sold out / Back in stock", value: `${run.soldOut} / ${run.backInStock}` },
-                ]}
-            />
 
             <RunChangesSection
                 changeColumns={changeColumns}

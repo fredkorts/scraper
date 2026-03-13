@@ -2,12 +2,14 @@ import styles from "./run-detail-sections.module.scss";
 import type { RunMetricsGridProps } from "../../types/run-detail-sections.types";
 
 export const RunMetricsGrid = ({ items }: RunMetricsGridProps) => (
-    <div className={styles.summaryGrid}>
-        {items.map((item) => (
-            <article className={styles.card} key={item.label}>
-                <span className={styles.eyebrow}>{item.label}</span>
-                <span>{item.value}</span>
-            </article>
-        ))}
+    <div className={styles.summaryBlock}>
+        <dl className={styles.keyValueList}>
+            {items.map((item) => (
+                <div className={styles.keyValueRow} key={item.label}>
+                    <dt className={styles.keyLabel}>{item.label}</dt>
+                    <dd className={styles.keyValue}>{item.value}</dd>
+                </div>
+            ))}
+        </dl>
     </div>
 );

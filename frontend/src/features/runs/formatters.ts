@@ -60,10 +60,11 @@ export const formatChangeDetails = (value: ChangeDetailsInput): string => {
     }
 
     if (value.oldStockStatus !== undefined || value.newStockStatus !== undefined) {
-        const oldStockLabel = value.oldStockStatus ? STOCK_STATUS_LABELS.inStock : STOCK_STATUS_LABELS.outOfStock;
-        const newStockLabel = value.newStockStatus ? STOCK_STATUS_LABELS.inStock : STOCK_STATUS_LABELS.outOfStock;
+        const resolvedStockStatus = value.newStockStatus ?? value.oldStockStatus;
 
-        return `${oldStockLabel} -> ${newStockLabel}`;
+        if (resolvedStockStatus !== undefined) {
+            return resolvedStockStatus ? STOCK_STATUS_LABELS.inStock : STOCK_STATUS_LABELS.outOfStock;
+        }
     }
 
     return "State change recorded";

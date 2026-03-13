@@ -1,5 +1,5 @@
 import { EyeInvisibleOutlined, EyeOutlined } from "@ant-design/icons";
-import { Alert, Breadcrumb, Flex, Space, Tag, Typography } from "antd";
+import { Alert, Breadcrumb, Space, Tag, Typography } from "antd";
 import { Link } from "@tanstack/react-router";
 import { AppButton } from "../../../../components/app-button/AppButton";
 import { formatDateTime } from "../../../../shared/formatters/display";
@@ -49,24 +49,26 @@ export const ProductDetailHeader = ({
                 ) : null}
                 {canToggleWatch ? (
                     <AppButton
-                        aria-label={product.isWatched ? "Untrack product" : "Track product"}
+                        aria-label={product.isWatched ? "Unwatch product" : "Watch product"}
                         aria-pressed={product.isWatched}
-                        intent={product.isWatched ? "warning" : "secondary"}
+                        data-testid="watch-product-button"
+                        intent={product.isWatched ? "warning" : "primary"}
                         icon={product.isWatched ? <EyeInvisibleOutlined aria-hidden /> : <EyeOutlined aria-hidden />}
                         isLoading={isWatchPending}
-                        size="small"
+                        size="middle"
                         onClick={onToggleWatch}
                     >
                         {product.isWatched ? "Watching" : "Watch product"}
                     </AppButton>
                 ) : null}
+                <AppButton href={product.externalUrl} intent="secondary" rel="noreferrer" target="_blank">
+                    Open on Mabrik
+                </AppButton>
             </div>
         </div>
-        <Flex gap="small" wrap>
-            <Typography.Text type="secondary">First seen: {formatDateTime(product.firstSeenAt)}</Typography.Text>
-            <Typography.Text type="secondary">Last seen: {formatDateTime(product.lastSeenAt)}</Typography.Text>
-            <Typography.Text type="secondary">{freshness.relativeLabel}</Typography.Text>
-        </Flex>
+        <Typography.Text type="secondary">
+            Added {formatDateTime(product.firstSeenAt)} · {freshness.relativeLabel}
+        </Typography.Text>
         {freshness.isStale ? (
             <Alert
                 title="Product data may be stale"

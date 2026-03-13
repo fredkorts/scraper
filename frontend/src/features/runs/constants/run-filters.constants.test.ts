@@ -31,7 +31,7 @@ describe("run filter constants", () => {
             { label: "Price decrease", value: "price_decrease" },
             { label: "Price increase", value: "price_increase" },
             { label: "New product", value: "new_product" },
-            { label: "Sold out", value: "sold_out" },
+            { label: "Sold Out", value: "sold_out" },
             { label: "Back in stock", value: "back_in_stock" },
         ]);
     });
@@ -39,7 +39,7 @@ describe("run filter constants", () => {
     it("defines run stock options", () => {
         expect(RUN_PRODUCT_STOCK_FILTER_OPTIONS).toEqual([
             { label: "In stock", value: "true" },
-            { label: "Out of stock", value: "false" },
+            { label: "Sold Out", value: "false" },
         ]);
     });
 
