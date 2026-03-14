@@ -56,8 +56,13 @@ describe("auth routing", () => {
     it("supports keyboard focus navigation on login form", async () => {
         const user = userEvent.setup();
         await renderRouterApp({ initialEntry: "/login", session: null });
+        const continueWithGoogleLink = screen.queryByRole("link", { name: "Continue with Google" });
 
         await user.tab();
+        if (continueWithGoogleLink) {
+            expect(continueWithGoogleLink).toHaveFocus();
+            await user.tab();
+        }
         expect(screen.getByLabelText("Email")).toHaveFocus();
 
         await user.tab();
