@@ -10,7 +10,7 @@ import { normalizePreorderFilterValue, preorderFilterValues } from "./hooks/use-
 
 export const runsSortByValues = ["startedAt", "status", "totalChanges", "totalProducts", "durationMs"] as const;
 export const runsSortOrderValues = ["asc", "desc"] as const;
-export const changesSortByValues = ["changedAt", "changeType", "productName", "categoryName"] as const;
+export const changesSortByValues = ["changedAt", "productName", "categoryName"] as const;
 export const changesSortOrderValues = ["asc", "desc"] as const;
 export const runStatusValues = ["pending", "running", "completed", "failed"] as const;
 export const runChangeTypeValues = [

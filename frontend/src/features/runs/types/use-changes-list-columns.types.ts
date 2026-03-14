@@ -1,5 +1,5 @@
 export interface UseChangesListColumnsOptions {
-    sortBy: "changedAt" | "changeType" | "productName" | "categoryName";
+    sortBy: "changedAt" | "productName" | "categoryName";
     sortOrder: "asc" | "desc";
-    onToggleSort: (value: "changedAt" | "changeType" | "productName" | "categoryName") => void;
+    onToggleSort: (value: "changedAt" | "productName" | "categoryName") => void;
 }

@@ -5,13 +5,7 @@ import { PriceTag } from "../../../components/price-tag/PriceTag";
 import { SortHeader } from "../../../components/sort-header/SortHeader";
 import { TrackedProductBadge } from "../../../components/tracked-product-badge/TrackedProductBadge";
 import { defaultProductHistoryControls } from "../../products";
-import {
-    formatChangeDetails,
-    formatDateTime,
-    formatPreorderState,
-    formatStatusLabel,
-    getChangePriceTagConfig,
-} from "../formatters";
+import { formatChangeDetails, formatDateTime, formatPreorderState, getChangePriceTagConfig } from "../formatters";
 import type { ChangesListData } from "../schemas";
 import type { UseChangesListColumnsOptions } from "../types/use-changes-list-columns.types";
 
@@ -32,16 +26,17 @@ export const useChangesListColumns = ({ sortBy, sortOrder, onToggleSort }: UseCh
                     ),
                     cell: (info) => formatDateTime(info.getValue()),
                 }),
-                changesColumnHelper.accessor("changeType", {
+                changesColumnHelper.display({
+                    id: "categoryName",
                     header: () => (
                         <SortHeader
-                            isActive={sortBy === "changeType"}
-                            label="Change"
+                            isActive={sortBy === "categoryName"}
+                            label="Category"
                             order={sortOrder}
-                            onToggle={() => onToggleSort("changeType")}
+                            onToggle={() => onToggleSort("categoryName")}
                         />
                     ),
-                    cell: (info) => formatStatusLabel(info.getValue()),
+                    cell: (info) => info.row.original.category.nameEt,
                 }),
                 changesColumnHelper.display({
                     id: "productName",
@@ -83,18 +78,6 @@ export const useChangesListColumns = ({ sortBy, sortOrder, onToggleSort }: UseCh
                     id: "preorder",
                     header: "Preorder",
                     cell: (info) => formatPreorderState(info.row.original.product),
-                }),
-                changesColumnHelper.display({
-                    id: "categoryName",
-                    header: () => (
-                        <SortHeader
-                            isActive={sortBy === "categoryName"}
-                            label="Category"
-                            order={sortOrder}
-                            onToggle={() => onToggleSort("categoryName")}
-                        />
-                    ),
-                    cell: (info) => info.row.original.category.nameEt,
                 }),
             ] satisfies Array<ColumnDef<ChangesListData["items"][number], unknown>>,
         [onToggleSort, sortBy, sortOrder],

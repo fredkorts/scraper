@@ -1,7 +1,7 @@
 type RunStatusValue = "pending" | "running" | "completed" | "failed";
 type RunChangeTypeValue = "price_increase" | "price_decrease" | "new_product" | "sold_out" | "back_in_stock";
 type PreorderFilterValue = "all" | "only" | "exclude";
-type ChangesSortByValue = "changedAt" | "changeType" | "productName" | "categoryName";
+type ChangesSortByValue = "changedAt" | "productName" | "categoryName";
 type ChangesSortOrderValue = "asc" | "desc";
 
 export const defaultRunsListSearch = {

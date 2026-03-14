@@ -23,9 +23,8 @@ import styles from "../scrape-page-view.module.scss";
 import { ChangesActiveFilterChips, type ActiveFilterChip } from "./components/ChangesActiveFilterChips";
 import { ChangesFilterBar } from "./components/ChangesFilterBar";
 
-const sortByLabelMap: Record<"changedAt" | "changeType" | "productName" | "categoryName", string> = {
+const sortByLabelMap: Record<"changedAt" | "productName" | "categoryName", string> = {
     changedAt: "Changed at",
-    changeType: "Change type",
     productName: "Product",
     categoryName: "Category",
 };
