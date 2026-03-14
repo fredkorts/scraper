@@ -72,6 +72,33 @@ describe("auth.service", () => {
         });
     });
 
+    it("rejects password login for oauth-only accounts with a generic invalid-credentials error", async () => {
+        const { user } = await createUser({
+            email: "oauth-only-login@example.com",
+        });
+
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                passwordHash: null,
+            },
+        });
+
+        await expect(
+            login(
+                {
+                    email: user.email,
+                    password: "Password123",
+                },
+                {},
+            ),
+        ).rejects.toMatchObject({
+            statusCode: 401,
+            code: "unauthorized",
+            message: "Invalid email or password",
+        });
+    });
+
     it("rotates refresh tokens and links the replacement token", async () => {
         const { user, password } = await createUser();
         const loginResult = await login(
@@ -192,6 +219,28 @@ describe("auth.service", () => {
         expect(result.sessions).toHaveLength(1);
         expect(result.sessions[0]?.id).toBe(active.record.id);
         expect(result.sessions[0]?.isCurrent).toBe(true);
+    });
+
+    it("does not issue password reset tokens for oauth-only accounts", async () => {
+        const { user } = await createUser({
+            email: "oauth-reset@example.com",
+        });
+
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                passwordHash: null,
+            },
+        });
+
+        const service = await import("./auth.service");
+        const result = await service.requestPasswordReset(user.email);
+        expect(result.success).toBe(true);
+
+        const tokens = await prisma.passwordResetToken.findMany({
+            where: { userId: user.id },
+        });
+        expect(tokens).toHaveLength(0);
     });
 
     it("sends new-login email only once for a previously seen IP", async () => {

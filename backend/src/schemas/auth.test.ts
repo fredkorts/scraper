@@ -33,4 +33,13 @@ describe("loginSchema", () => {
 
         expect(parsed.email).toBe("test@example.com");
     });
+
+    it("normalizes unicode forms and preserves provider-specific aliases", () => {
+        const parsed = loginSchema.parse({
+            email: " Ｔｅｓｔ＋alias@Ｅxample.com ",
+            password: "Password123",
+        });
+
+        expect(parsed.email).toBe("test+alias@example.com");
+    });
 });

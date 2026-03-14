@@ -1,6 +1,7 @@
 import type { Response } from "express";
 import { config } from "../config";
 import { generateOneTimeToken } from "./hash";
+import { getOAuthChallengeCookieName } from "./oauth-security";
 
 const secure = config.NODE_ENV === "production";
 const sameSite = config.AUTH_COOKIE_SAMESITE;
@@ -35,6 +36,7 @@ export const authCookieNames = {
     accessToken: "access_token",
     refreshToken: "refresh_token",
     csrfToken: "csrf_token",
+    oauthChallenge: getOAuthChallengeCookieName(),
 };
 
 export const setAuthCookies = (res: Response, accessToken: string, refreshToken: string): void => {
@@ -59,6 +61,25 @@ export const setCsrfCookie = (res: Response, csrfToken = generateOneTimeToken())
     });
 
     return csrfToken;
+};
+
+export const setOAuthChallengeCookie = (res: Response, value: string): void => {
+    res.cookie(authCookieNames.oauthChallenge, value, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure,
+        path: "/",
+        maxAge: 10 * 60 * 1000,
+    });
+};
+
+export const clearOAuthChallengeCookie = (res: Response): void => {
+    res.clearCookie(authCookieNames.oauthChallenge, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure,
+        path: "/",
+    });
 };
 
 export const clearAuthCookies = (res: Response): void => {

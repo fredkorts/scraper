@@ -47,8 +47,12 @@ const envSchema = z
         AUTH_REQUIRE_VERIFIED_EMAIL: booleanStringSchema.default(false),
         AUTH_ENABLE_MFA: booleanStringSchema.default(false),
         AUTH_ENABLE_SESSION_MANAGEMENT: booleanStringSchema.default(true),
+        AUTH_GOOGLE_OAUTH_ENABLED: booleanStringSchema.default(false),
         PRODUCT_WATCHLIST_ENABLED: booleanStringSchema.default(false),
         AUTH_MFA_ENCRYPTION_KEY: z.string().min(32).optional(),
+        AUTH_OAUTH_COOKIE_SIGNING_KEY: z.string().min(32).optional(),
+        AUTH_OAUTH_COOKIE_SIGNING_KEY_PREVIOUS: z.string().min(32).optional(),
+        AUTH_OAUTH_CODE_VERIFIER_ENCRYPTION_KEY: z.string().min(32).optional(),
         AUTH_CSRF_TOKEN_TTL_HOURS: z.coerce.number().int().positive().default(24),
         AUTH_EMAIL_VERIFICATION_TTL_HOURS: z.coerce.number().int().positive().default(24),
         AUTH_PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().positive().default(30),
@@ -77,6 +81,9 @@ const envSchema = z
         FRONTEND_URL: z.string().url(),
         FRONTEND_ORIGINS: z.string().optional(),
         AUTH_COOKIE_SAMESITE: authCookieSameSiteSchema.optional(),
+        GOOGLE_OAUTH_CLIENT_ID: z.string().min(1).optional(),
+        GOOGLE_OAUTH_CLIENT_SECRET: z.string().min(1).optional(),
+        GOOGLE_OAUTH_REDIRECT_URI: z.string().url().optional(),
     })
     .refine((value) => value.SCRAPER_MAX_DELAY_MS >= value.SCRAPER_MIN_DELAY_MS, {
         message: "SCRAPER_MAX_DELAY_MS must be greater than or equal to SCRAPER_MIN_DELAY_MS",
@@ -142,6 +149,48 @@ const envSchema = z
                 message: "AUTH_MFA_ENCRYPTION_KEY is required when AUTH_ENABLE_MFA=true",
                 path: ["AUTH_MFA_ENCRYPTION_KEY"],
             });
+        }
+
+        if (value.AUTH_GOOGLE_OAUTH_ENABLED) {
+            if (!value.GOOGLE_OAUTH_CLIENT_ID) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "GOOGLE_OAUTH_CLIENT_ID is required when AUTH_GOOGLE_OAUTH_ENABLED=true",
+                    path: ["GOOGLE_OAUTH_CLIENT_ID"],
+                });
+            }
+
+            if (!value.GOOGLE_OAUTH_CLIENT_SECRET) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "GOOGLE_OAUTH_CLIENT_SECRET is required when AUTH_GOOGLE_OAUTH_ENABLED=true",
+                    path: ["GOOGLE_OAUTH_CLIENT_SECRET"],
+                });
+            }
+
+            if (!value.GOOGLE_OAUTH_REDIRECT_URI) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "GOOGLE_OAUTH_REDIRECT_URI is required when AUTH_GOOGLE_OAUTH_ENABLED=true",
+                    path: ["GOOGLE_OAUTH_REDIRECT_URI"],
+                });
+            }
+
+            if (!value.AUTH_OAUTH_COOKIE_SIGNING_KEY) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "AUTH_OAUTH_COOKIE_SIGNING_KEY is required when AUTH_GOOGLE_OAUTH_ENABLED=true",
+                    path: ["AUTH_OAUTH_COOKIE_SIGNING_KEY"],
+                });
+            }
+
+            if (!value.AUTH_OAUTH_CODE_VERIFIER_ENCRYPTION_KEY) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "AUTH_OAUTH_CODE_VERIFIER_ENCRYPTION_KEY is required when AUTH_GOOGLE_OAUTH_ENABLED=true",
+                    path: ["AUTH_OAUTH_CODE_VERIFIER_ENCRYPTION_KEY"],
+                });
+            }
         }
 
         if (value.AUTH_COOKIE_SAMESITE === "none" && value.NODE_ENV !== "production") {

@@ -5,6 +5,7 @@ import {
     csrfHandler,
     disableMfaHandler,
     forgotPasswordHandler,
+    googleOAuthCallbackHandler,
     loginHandler,
     listSessionsHandler,
     logoutHandler,
@@ -14,6 +15,7 @@ import {
     refreshHandler,
     registerHandler,
     resetPasswordHandler,
+    startGoogleOAuthHandler,
     revokeOtherSessionsHandler,
     revokeSessionHandler,
     startMfaSetupHandler,
@@ -28,6 +30,8 @@ import { authMutationLimiter, authenticatedMutationLimiter, highCostReadLimiter 
 const authRouter = Router();
 
 authRouter.get("/csrf", csrfHandler);
+authRouter.get("/oauth/google/start", authMutationLimiter, startGoogleOAuthHandler);
+authRouter.get("/oauth/google/callback", authMutationLimiter, googleOAuthCallbackHandler);
 authRouter.post("/register", authMutationLimiter, requireTrustedOrigin, registerHandler);
 authRouter.post("/login", authMutationLimiter, requireTrustedOrigin, loginHandler);
 authRouter.post("/mfa/verify-login", authMutationLimiter, requireTrustedOrigin, verifyMfaLoginHandler);

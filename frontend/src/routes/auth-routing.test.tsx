@@ -81,6 +81,12 @@ describe("auth routing", () => {
         expect(screen.getByText("Password is required")).toHaveAttribute("id", "login-password-error");
     });
 
+    it("shows oauth callback error feedback on login route", async () => {
+        await renderRouterApp({ initialEntry: "/login?oauthError=account_action_required", session: null });
+
+        expect(await screen.findByText("Account action is required before Google sign-in.")).toBeInTheDocument();
+    });
+
     it("renders dedicated 404 page for unknown routes", async () => {
         await renderRouterApp({ initialEntry: "/this-route-does-not-exist", session: null });
 

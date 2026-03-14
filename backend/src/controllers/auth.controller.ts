@@ -13,7 +13,9 @@ import {
 } from "../schemas/auth";
 import { updateProfileSchema } from "../schemas/settings";
 import {
+    beginGoogleOAuth,
     cleanupExpiredAuthTokens,
+    completeGoogleOAuth,
     confirmMfaSetup,
     disableMfa,
     getCurrentUser,
@@ -33,20 +35,106 @@ import {
     verifyEmail,
     verifyMfaLogin,
 } from "../services/auth.service";
-import { authCookieNames, clearAuthCookies, setAuthCookies, setCsrfCookie } from "../lib/cookies";
+import {
+    authCookieNames,
+    clearAuthCookies,
+    clearOAuthChallengeCookie,
+    setAuthCookies,
+    setCsrfCookie,
+    setOAuthChallengeCookie,
+} from "../lib/cookies";
+import { config } from "../config";
 
 const getSessionContext = (request: Request): { ip?: string; userAgent?: string } => ({
     ip: request.ip || undefined,
     userAgent: request.get("user-agent") || undefined,
 });
 
-export const csrfHandler = (req: Request, res: Response): void => {
-    void req;
-    const csrfToken = setCsrfCookie(res);
+const setNoStoreHeaders = (res: Response): void => {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
+};
+
+const setOauthCallbackHeaders = (res: Response): void => {
+    setNoStoreHeaders(res);
+    res.setHeader("Referrer-Policy", "no-referrer");
+};
+
+const getFrontendRedirectUrl = (path: string, params?: URLSearchParams): string => {
+    const url = new URL(path, config.FRONTEND_URL);
+    if (params) {
+        params.forEach((value, key) => {
+            url.searchParams.set(key, value);
+        });
+    }
+
+    return url.toString();
+};
+
+const mapOAuthErrorToLoginCode = (error: unknown): string => {
+    if (!(error instanceof Error) || !("code" in error)) {
+        return "auth_failed";
+    }
+
+    const code = String((error as { code?: string }).code ?? "");
+
+    switch (code) {
+        case "oauth_account_inactive":
+            return "account_inactive";
+        case "oauth_account_action_required":
+            return "account_action_required";
+        case "oauth_admin_not_allowed":
+            return "account_restricted";
+        case "oauth_mfa_step_up_required":
+            return "additional_auth_required";
+        default:
+            return "auth_failed";
+    }
+};
+
+export const csrfHandler = (req: Request, res: Response): void => {
+    void req;
+    const csrfToken = setCsrfCookie(res);
+    setNoStoreHeaders(res);
     res.status(200).json({ success: true, csrfToken });
+};
+
+export const startGoogleOAuthHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const result = await beginGoogleOAuth(getSessionContext(req));
+        setOAuthChallengeCookie(res, result.challengeCookieValue);
+        setNoStoreHeaders(res);
+        res.redirect(302, result.redirectUrl);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const googleOAuthCallbackHandler = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const result = await completeGoogleOAuth(
+            {
+                state: typeof req.query.state === "string" ? req.query.state : undefined,
+                code: typeof req.query.code === "string" ? req.query.code : undefined,
+                challengeCookieValue: req.cookies[authCookieNames.oauthChallenge] as string | undefined,
+            },
+            getSessionContext(req),
+        );
+
+        setAuthCookies(res, result.accessToken, result.refreshToken);
+        setCsrfCookie(res);
+        clearOAuthChallengeCookie(res);
+        setOauthCallbackHeaders(res);
+        res.redirect(302, getFrontendRedirectUrl("/app"));
+    } catch (error) {
+        clearOAuthChallengeCookie(res);
+        setOauthCallbackHeaders(res);
+        const redirectParams = new URLSearchParams({
+            oauthError: mapOAuthErrorToLoginCode(error),
+        });
+        res.redirect(302, getFrontendRedirectUrl("/login", redirectParams));
+    }
 };
 
 export const registerHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

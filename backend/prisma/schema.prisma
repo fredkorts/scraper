@@ -49,10 +49,14 @@ enum NotificationDeliveryStatus {
   SKIPPED
 }
 
+enum AuthProvider {
+  GOOGLE
+}
+
 model User {
   id                    String                 @id @default(uuid()) @db.Uuid
   email                 String                 @unique
-  passwordHash          String                 @map("password_hash")
+  passwordHash          String?                @map("password_hash")
   name                  String
   role                  UserRole               @default(FREE)
   emailVerifiedAt       DateTime?              @map("email_verified_at")
@@ -74,6 +78,7 @@ model User {
   passwordResetTokens   PasswordResetToken[]
   mfaRecoveryCodes      MfaRecoveryCode[]
   mfaLoginChallenges    MfaLoginChallenge[]
+  authIdentities        AuthIdentity[]
 
   @@map("users")
 }
@@ -153,6 +158,39 @@ model MfaLoginChallenge {
   @@index([userId])
   @@index([expiresAt])
   @@map("mfa_login_challenges")
+}
+
+model AuthIdentity {
+  id             String       @id @default(uuid()) @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+  provider       AuthProvider
+  providerUserId String       @map("provider_user_id")
+  providerEmail  String?      @map("provider_email")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+  @@index([provider, providerEmail])
+  @@map("auth_identities")
+}
+
+model OAuthChallenge {
+  id                  String       @id @default(uuid()) @db.Uuid
+  provider            AuthProvider
+  stateHash           String       @unique @map("state_hash")
+  nonce               String
+  codeVerifierEncrypted String     @map("code_verifier_encrypted")
+  expiresAt           DateTime     @map("expires_at")
+  usedAt              DateTime?    @map("used_at")
+  createdByIp         String?      @map("created_by_ip")
+  createdByUserAgent  String?      @map("created_by_user_agent")
+  createdAt           DateTime     @default(now()) @map("created_at")
+
+  @@index([provider, expiresAt])
+  @@index([usedAt])
+  @@map("oauth_challenges")
 }
 
 model Category {

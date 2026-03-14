@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import {
+    AuthProvider,
     Prisma,
     UserRole as PrismaUserRole,
     type NotificationChannelType,
@@ -24,9 +25,21 @@ import type {
     UserRole,
 } from "@mabrik/shared";
 import { config } from "../config";
+import { normalizeEmailAddress } from "../lib/email";
 import { AppError } from "../lib/errors";
 import { generateOneTimeToken, generateRefreshToken, hashToken } from "../lib/hash";
 import { signAccessToken } from "../lib/jwt";
+import {
+    decryptOAuthCodeVerifier,
+    encryptOAuthCodeVerifier,
+    generateOAuthNonce,
+    generateOAuthState,
+    generatePkceCodeChallenge,
+    generatePkceCodeVerifier,
+    hashOAuthState,
+    signOAuthChallengeCookieValue,
+    verifyOAuthChallengeCookieValue,
+} from "../lib/oauth-security";
 import {
     decryptMfaSecret,
     encryptMfaSecret,
@@ -38,6 +51,11 @@ import {
 import { logger } from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { sendPasswordResetEmail, sendSecurityEventEmail, sendVerificationEmail } from "./auth-email.service";
+import {
+    buildGoogleAuthorizationUrl,
+    exchangeGoogleAuthorizationCode,
+    verifyGoogleIdToken,
+} from "./google-oauth.service";
 
 interface SessionContext {
     ip?: string;
@@ -58,6 +76,17 @@ type MfaLoginChallengeResult = {
 };
 
 type LoginResult = AuthResult | MfaLoginChallengeResult;
+
+interface OAuthStartResult {
+    redirectUrl: string;
+    challengeCookieValue: string;
+}
+
+interface OAuthCompleteInput {
+    state?: string;
+    code?: string;
+    challengeCookieValue?: string;
+}
 
 const roleMap: Record<PrismaUserRole, UserRole> = {
     FREE: "free",
@@ -89,6 +118,24 @@ const getEmailVerificationExpiry = (): Date =>
 const getPasswordResetExpiry = (): Date => new Date(Date.now() + config.AUTH_PASSWORD_RESET_TTL_MINUTES * 60 * 1000);
 
 const getMfaChallengeExpiry = (): Date => new Date(Date.now() + config.AUTH_MFA_CHALLENGE_TTL_MINUTES * 60 * 1000);
+
+const getOAuthChallengeExpiry = (): Date => new Date(Date.now() + 10 * 60 * 1000);
+
+const deriveNameFromEmail = (email: string): string => {
+    const localPart = email.split("@")[0]?.trim() ?? "User";
+    const normalized = localPart.replace(/[\W_]+/g, " ").trim();
+
+    if (normalized.length === 0) {
+        return "User";
+    }
+
+    const titled = normalized
+        .split(/\s+/)
+        .map((token) => token[0]?.toUpperCase() + token.slice(1).toLowerCase())
+        .join(" ");
+
+    return titled.length > 60 ? titled.slice(0, 60) : titled;
+};
 
 const normalizeSessionIp = (ip?: string): string | undefined => {
     const normalized = ip?.trim();
@@ -220,6 +267,10 @@ const verifyStepUp = async (
     options: { currentPassword?: string; mfaCode?: string; recoveryCode?: string },
 ): Promise<void> => {
     if (options.currentPassword) {
+        if (!user.passwordHash) {
+            throw new AppError(403, "forbidden", "Step-up authentication failed");
+        }
+
         const ok = await bcrypt.compare(options.currentPassword, user.passwordHash);
         if (!ok) {
             throw new AppError(403, "forbidden", "Step-up authentication failed");
@@ -291,10 +342,11 @@ const verifyUserMfaCode = async (
 };
 
 export const register = async (input: RegisterRequest, context: SessionContext): Promise<AuthResult> => {
+    const normalizedEmail = normalizeEmailAddress(input.email);
     try {
         const transactionResult = await prisma.$transaction(async (tx) => {
             const existingUser = await tx.user.findUnique({
-                where: { email: input.email },
+                where: { email: normalizedEmail },
             });
 
             if (existingUser) {
@@ -304,7 +356,7 @@ export const register = async (input: RegisterRequest, context: SessionContext):
             const passwordHash = await bcrypt.hash(input.password, config.BCRYPT_ROUNDS);
             const user = await tx.user.create({
                 data: {
-                    email: input.email,
+                    email: normalizedEmail,
                     passwordHash,
                     name: input.name,
                 },
@@ -347,10 +399,224 @@ export const register = async (input: RegisterRequest, context: SessionContext):
     }
 };
 
+export const beginGoogleOAuth = async (context: SessionContext): Promise<OAuthStartResult> => {
+    if (!config.AUTH_GOOGLE_OAUTH_ENABLED) {
+        throw new AppError(404, "not_found", "Google OAuth is not enabled");
+    }
+
+    const state = generateOAuthState();
+    const nonce = generateOAuthNonce();
+    const codeVerifier = generatePkceCodeVerifier();
+    const codeChallenge = generatePkceCodeChallenge(codeVerifier);
+    const normalizedContext = normalizeSessionContext(context);
+
+    const challenge = await prisma.oAuthChallenge.create({
+        data: {
+            provider: AuthProvider.GOOGLE,
+            stateHash: hashOAuthState(state),
+            nonce,
+            codeVerifierEncrypted: encryptOAuthCodeVerifier(codeVerifier),
+            expiresAt: getOAuthChallengeExpiry(),
+            createdByIp: normalizedContext.ip,
+            createdByUserAgent: normalizedContext.userAgent,
+        },
+    });
+
+    return {
+        redirectUrl: buildGoogleAuthorizationUrl({
+            state,
+            nonce,
+            codeChallenge,
+        }),
+        challengeCookieValue: signOAuthChallengeCookieValue(challenge.id),
+    };
+};
+
+export const completeGoogleOAuth = async (input: OAuthCompleteInput, context: SessionContext): Promise<AuthResult> => {
+    if (!config.AUTH_GOOGLE_OAUTH_ENABLED) {
+        throw new AppError(404, "not_found", "Google OAuth is not enabled");
+    }
+
+    if (!input.state || !input.code) {
+        throw new AppError(401, "oauth_google_callback_invalid", "Google authentication failed");
+    }
+
+    const challengeId = verifyOAuthChallengeCookieValue(input.challengeCookieValue);
+    if (!challengeId) {
+        throw new AppError(401, "oauth_google_challenge_invalid", "Google authentication failed");
+    }
+
+    const stateHash = hashOAuthState(input.state);
+    const challenge = await prisma.oAuthChallenge.findFirst({
+        where: {
+            id: challengeId,
+            provider: AuthProvider.GOOGLE,
+            stateHash,
+        },
+    });
+
+    if (!challenge || challenge.usedAt || challenge.expiresAt <= new Date()) {
+        throw new AppError(401, "oauth_google_challenge_invalid", "Google authentication failed");
+    }
+
+    let codeVerifier: string;
+    try {
+        codeVerifier = decryptOAuthCodeVerifier(challenge.codeVerifierEncrypted);
+    } catch {
+        throw new AppError(401, "oauth_google_challenge_invalid", "Google authentication failed");
+    }
+
+    const tokenResponse = await exchangeGoogleAuthorizationCode({
+        code: input.code,
+        codeVerifier,
+    });
+    const claims = await verifyGoogleIdToken({
+        idToken: tokenResponse.idToken,
+        expectedNonce: challenge.nonce,
+    });
+
+    const normalizedEmail = normalizeEmailAddress(claims.email);
+    const normalizedContext = normalizeSessionContext(context);
+
+    try {
+        const result = await prisma.$transaction(async (tx) => {
+            const consumed = await tx.oAuthChallenge.updateMany({
+                where: {
+                    id: challenge.id,
+                    usedAt: null,
+                    expiresAt: {
+                        gt: new Date(),
+                    },
+                },
+                data: {
+                    usedAt: new Date(),
+                },
+            });
+
+            if (consumed.count !== 1) {
+                throw new AppError(401, "oauth_google_challenge_replay", "Google authentication failed");
+            }
+
+            const existingIdentity = await tx.authIdentity.findUnique({
+                where: {
+                    provider_providerUserId: {
+                        provider: AuthProvider.GOOGLE,
+                        providerUserId: claims.subject,
+                    },
+                },
+                include: {
+                    user: true,
+                },
+            });
+
+            let targetUser: User;
+
+            if (existingIdentity) {
+                targetUser = existingIdentity.user;
+            } else {
+                const existingUser = await tx.user.findUnique({
+                    where: {
+                        email: normalizedEmail,
+                    },
+                });
+
+                if (existingUser) {
+                    if (!existingUser.isActive) {
+                        throw new AppError(403, "oauth_account_inactive", "This account is inactive");
+                    }
+
+                    if (existingUser.role === PrismaUserRole.ADMIN) {
+                        throw new AppError(
+                            403,
+                            "oauth_admin_not_allowed",
+                            "Google sign-in is not available for this account",
+                        );
+                    }
+
+                    if (existingUser.mfaEnabled) {
+                        throw new AppError(403, "oauth_mfa_step_up_required", "Additional authentication is required");
+                    }
+
+                    if (!existingUser.emailVerifiedAt) {
+                        throw new AppError(
+                            403,
+                            "oauth_account_action_required",
+                            "Account action is required before Google sign-in",
+                        );
+                    }
+
+                    targetUser = existingUser;
+                } else {
+                    targetUser = await tx.user.create({
+                        data: {
+                            email: normalizedEmail,
+                            name: deriveNameFromEmail(normalizedEmail),
+                            passwordHash: null,
+                            emailVerifiedAt: new Date(),
+                        },
+                    });
+
+                    await tx.notificationChannel.create({
+                        data: {
+                            userId: targetUser.id,
+                            channelType: "EMAIL" satisfies NotificationChannelType,
+                            destination: normalizedEmail,
+                            isDefault: true,
+                            isActive: true,
+                        },
+                    });
+                }
+
+                await tx.authIdentity.create({
+                    data: {
+                        userId: targetUser.id,
+                        provider: AuthProvider.GOOGLE,
+                        providerUserId: claims.subject,
+                        providerEmail: normalizedEmail,
+                    },
+                });
+            }
+
+            if (!targetUser.isActive) {
+                throw new AppError(403, "oauth_account_inactive", "This account is inactive");
+            }
+
+            if (targetUser.role === PrismaUserRole.ADMIN) {
+                throw new AppError(403, "oauth_admin_not_allowed", "Google sign-in is not available for this account");
+            }
+
+            if (targetUser.mfaEnabled) {
+                throw new AppError(403, "oauth_mfa_step_up_required", "Additional authentication is required");
+            }
+
+            const session = await issueSession(tx, targetUser, normalizedContext);
+
+            return {
+                user: targetUser,
+                accessToken: session.accessToken,
+                refreshToken: session.refreshToken,
+            };
+        });
+
+        return {
+            user: sanitizeUser(result.user),
+            accessToken: result.accessToken,
+            refreshToken: result.refreshToken,
+        };
+    } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+            throw new AppError(409, "oauth_identity_conflict", "Google account is already linked");
+        }
+
+        throw error;
+    }
+};
+
 export const login = async (input: LoginRequest, context: SessionContext): Promise<LoginResult> => {
     const normalizedContext = normalizeSessionContext(context);
+    const normalizedEmail = normalizeEmailAddress(input.email);
     const user = await prisma.user.findUnique({
-        where: { email: input.email },
+        where: { email: normalizedEmail },
     });
 
     if (!user) {
@@ -359,6 +625,10 @@ export const login = async (input: LoginRequest, context: SessionContext): Promi
 
     if (!user.isActive) {
         throw new AppError(403, "forbidden", "This account is inactive");
+    }
+
+    if (!user.passwordHash) {
+        throw new AppError(401, "unauthorized", "Invalid email or password");
     }
 
     const passwordMatches = await bcrypt.compare(input.password, user.passwordHash);
@@ -638,11 +908,12 @@ export const verifyEmail = async (token: string): Promise<{ success: true }> => 
 };
 
 export const requestPasswordReset = async (email: string): Promise<{ success: true }> => {
+    const normalizedEmail = normalizeEmailAddress(email);
     const user = await prisma.user.findUnique({
-        where: { email },
+        where: { email: normalizedEmail },
     });
 
-    if (!user || !user.isActive) {
+    if (!user || !user.isActive || !user.passwordHash) {
         return { success: true };
     }
 
@@ -951,30 +1222,38 @@ export const cleanupExpiredAuthTokens = async (): Promise<{
     emailVerificationDeleted: number;
     passwordResetDeleted: number;
     mfaChallengesDeleted: number;
+    oauthChallengesDeleted: number;
 }> => {
     const now = new Date();
 
-    const [emailVerificationDeleted, passwordResetDeleted, mfaChallengesDeleted] = await prisma.$transaction([
-        prisma.emailVerificationToken.deleteMany({
-            where: {
-                OR: [{ expiresAt: { lt: now } }, { usedAt: { not: null } }],
-            },
-        }),
-        prisma.passwordResetToken.deleteMany({
-            where: {
-                OR: [{ expiresAt: { lt: now } }, { usedAt: { not: null } }],
-            },
-        }),
-        prisma.mfaLoginChallenge.deleteMany({
-            where: {
-                OR: [{ expiresAt: { lt: now } }, { usedAt: { not: null } }],
-            },
-        }),
-    ]);
+    const [emailVerificationDeleted, passwordResetDeleted, mfaChallengesDeleted, oauthChallengesDeleted] =
+        await prisma.$transaction([
+            prisma.emailVerificationToken.deleteMany({
+                where: {
+                    OR: [{ expiresAt: { lt: now } }, { usedAt: { not: null } }],
+                },
+            }),
+            prisma.passwordResetToken.deleteMany({
+                where: {
+                    OR: [{ expiresAt: { lt: now } }, { usedAt: { not: null } }],
+                },
+            }),
+            prisma.mfaLoginChallenge.deleteMany({
+                where: {
+                    OR: [{ expiresAt: { lt: now } }, { usedAt: { not: null } }],
+                },
+            }),
+            prisma.oAuthChallenge.deleteMany({
+                where: {
+                    OR: [{ expiresAt: { lt: now } }, { usedAt: { not: null } }],
+                },
+            }),
+        ]);
 
     return {
         emailVerificationDeleted: emailVerificationDeleted.count,
         passwordResetDeleted: passwordResetDeleted.count,
         mfaChallengesDeleted: mfaChallengesDeleted.count,
+        oauthChallengesDeleted: oauthChallengesDeleted.count,
     };
 };

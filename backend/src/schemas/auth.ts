@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizeEmailAddress } from "../lib/email";
 
 const passwordSchema = z
     .string()
@@ -9,7 +10,7 @@ const passwordSchema = z
     .regex(/[0-9]/, "Password must include a number");
 
 export const registerSchema = z.object({
-    email: z.string().trim().toLowerCase().email("Invalid email address"),
+    email: z.string().transform(normalizeEmailAddress).pipe(z.string().email("Invalid email address")),
     password: passwordSchema,
     name: z
         .string()
@@ -19,12 +20,12 @@ export const registerSchema = z.object({
 });
 
 export const loginSchema = z.object({
-    email: z.string().trim().toLowerCase().email("Invalid email address"),
+    email: z.string().transform(normalizeEmailAddress).pipe(z.string().email("Invalid email address")),
     password: z.string().min(1, "Password is required"),
 });
 
 export const forgotPasswordSchema = z.object({
-    email: z.string().trim().toLowerCase().email("Invalid email address"),
+    email: z.string().transform(normalizeEmailAddress).pipe(z.string().email("Invalid email address")),
 });
 
 export const resetPasswordSchema = z.object({
