@@ -67,7 +67,7 @@ export const authSessionListResponseSchema = z.object({
 export const notificationChannelSchema = z.object({
     id: z.string(),
     userId: z.string(),
-    channelType: z.enum(["email", "discord", "whatsapp", "signal", "sms"]),
+    channelType: z.enum(["email", "telegram", "discord", "whatsapp", "signal", "sms"]),
     destination: z.string(),
     isDefault: z.boolean(),
     isActive: z.boolean(),
@@ -80,6 +80,26 @@ export const notificationChannelsResponseSchema = z.object({
 
 export const notificationChannelResponseSchema = z.object({
     channel: notificationChannelSchema,
+});
+
+export const telegramLinkStartResponseSchema = z.object({
+    deepLinkUrl: z.string().url(),
+    expiresAt: z.string(),
+});
+
+export const telegramLinkStatusResponseSchema = z.object({
+    status: z.enum(["none", "awaiting_telegram", "awaiting_confirmation", "expired", "connected"]),
+    challengeId: z.string().optional(),
+    expiresAt: z.string().optional(),
+    telegramAccountPreview: z.string().optional(),
+});
+
+export const telegramLinkConfirmResponseSchema = z.object({
+    channel: notificationChannelSchema,
+    verificationMessage: z.object({
+        status: z.enum(["sent", "failed"]),
+        warning: z.string().optional(),
+    }),
 });
 
 export type AuthUserSchema = z.infer<typeof authUserSchema>;

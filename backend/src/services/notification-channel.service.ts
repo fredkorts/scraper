@@ -14,6 +14,8 @@ const mapChannelType = (channelType: NotificationChannelType): ChannelType => {
     switch (channelType) {
         case NotificationChannelType.EMAIL:
             return "email" as ChannelType;
+        case NotificationChannelType.TELEGRAM:
+            return "telegram" as ChannelType;
         case NotificationChannelType.DISCORD:
             return "discord" as ChannelType;
         case NotificationChannelType.WHATSAPP:
@@ -27,17 +29,15 @@ const mapChannelType = (channelType: NotificationChannelType): ChannelType => {
     }
 };
 
-const toNotificationChannel = (
-    channel: {
-        id: string;
-        userId: string;
-        channelType: NotificationChannelType;
-        destination: string;
-        isDefault: boolean;
-        isActive: boolean;
-        createdAt: Date;
-    },
-): NotificationChannel => {
+export const toNotificationChannel = (channel: {
+    id: string;
+    userId: string;
+    channelType: NotificationChannelType;
+    destination: string;
+    isDefault: boolean;
+    isActive: boolean;
+    createdAt: Date;
+}): NotificationChannel => {
     return {
         id: channel.id,
         userId: channel.userId,
@@ -59,15 +59,14 @@ const ensureSupportedChannelType = (channelType: string) => {
     }
 };
 
-const ensureDefaultEmailInvariant = async (
+export const ensureSingleDefaultInvariant = async (
     tx: Prisma.TransactionClient,
     userId: string,
     preferredChannelId?: string,
 ): Promise<void> => {
-    const activeEmailChannels = await tx.notificationChannel.findMany({
+    const activeChannels = await tx.notificationChannel.findMany({
         where: {
             userId,
-            channelType: EMAIL_CHANNEL,
             isActive: true,
         },
         select: {
@@ -80,11 +79,10 @@ const ensureDefaultEmailInvariant = async (
         },
     });
 
-    if (activeEmailChannels.length === 0) {
+    if (activeChannels.length === 0) {
         await tx.notificationChannel.updateMany({
             where: {
                 userId,
-                channelType: EMAIL_CHANNEL,
                 isDefault: true,
             },
             data: {
@@ -94,21 +92,18 @@ const ensureDefaultEmailInvariant = async (
         return;
     }
 
-    const existingDefault = activeEmailChannels.find((channel) => channel.isDefault);
-    if (existingDefault) {
-        return;
-    }
-
     const selectedDefault =
-        (preferredChannelId
-            ? activeEmailChannels.find((channel) => channel.id === preferredChannelId)
-            : undefined) ?? activeEmailChannels[0];
+        (preferredChannelId ? activeChannels.find((channel) => channel.id === preferredChannelId) : undefined) ??
+        activeChannels.find((channel) => channel.isDefault) ??
+        activeChannels[0];
 
     await tx.notificationChannel.updateMany({
         where: {
             userId,
-            channelType: EMAIL_CHANNEL,
             isDefault: true,
+            id: {
+                not: selectedDefault.id,
+            },
         },
         data: {
             isDefault: false,
@@ -190,7 +185,7 @@ export const createNotificationChannel = async (
                 });
             }
 
-            await ensureDefaultEmailInvariant(tx, userId, created.isActive ? created.id : undefined);
+            await ensureSingleDefaultInvariant(tx, userId, created.isActive ? created.id : undefined);
 
             const refreshed = await tx.notificationChannel.findUniqueOrThrow({
                 where: { id: created.id },
@@ -227,7 +222,9 @@ export const updateNotificationChannel = async (
 
             const destination =
                 input.destination !== undefined
-                    ? normalizeEmailDestination(input.destination)
+                    ? existing.channelType === EMAIL_CHANNEL
+                        ? normalizeEmailDestination(input.destination)
+                        : input.destination.trim()
                     : existing.destination;
 
             let isActive = input.isActive ?? existing.isActive;
@@ -252,7 +249,6 @@ export const updateNotificationChannel = async (
                 await tx.notificationChannel.updateMany({
                     where: {
                         userId,
-                        channelType: EMAIL_CHANNEL,
                         isDefault: true,
                         id: {
                             not: updated.id,
@@ -264,7 +260,7 @@ export const updateNotificationChannel = async (
                 });
             }
 
-            await ensureDefaultEmailInvariant(tx, userId, updated.isActive ? updated.id : undefined);
+            await ensureSingleDefaultInvariant(tx, userId, updated.isActive ? updated.id : undefined);
 
             const refreshed = await tx.notificationChannel.findUniqueOrThrow({
                 where: { id: updated.id },
@@ -285,10 +281,7 @@ export const updateNotificationChannel = async (
     }
 };
 
-export const deleteNotificationChannel = async (
-    userId: string,
-    channelId: string,
-): Promise<{ success: true }> => {
+export const deleteNotificationChannel = async (userId: string, channelId: string): Promise<{ success: true }> => {
     await prisma.$transaction(async (tx) => {
         const existing = await tx.notificationChannel.findFirst({
             where: {
@@ -311,7 +304,7 @@ export const deleteNotificationChannel = async (
             },
         });
 
-        await ensureDefaultEmailInvariant(tx, userId);
+        await ensureSingleDefaultInvariant(tx, userId);
     });
 
     return { success: true };

@@ -28,6 +28,7 @@ export const queryKeys = {
     },
     notifications: {
         channels: () => ["notifications", "channels"] as const,
+        telegramLinkStatus: () => ["notifications", "telegram-link-status"] as const,
     },
     settings: {
         subscriptions: () => ["settings", "subscriptions"] as const,

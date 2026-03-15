@@ -175,4 +175,37 @@ describe("settings page", () => {
         expect(screen.queryByRole("tab", { name: "Admin" })).not.toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "Account Basics" })).toBeInTheDocument();
     });
+
+    it("allows paid users to confirm Telegram channel linking", async () => {
+        const user = userEvent.setup();
+
+        await renderRouterApp({
+            initialEntry: "/app/settings?tab=notifications",
+            session: {
+                ...mockUser,
+                role: "paid",
+            },
+            apiResponses: {
+                subscriptions: {
+                    items: [],
+                    limit: 6,
+                    used: 0,
+                    remaining: 6,
+                },
+                telegramLinkStatus: {
+                    status: "awaiting_confirmation",
+                    challengeId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+                    expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+                    telegramAccountPreview: "Telegram ••••1234",
+                },
+            },
+        });
+
+        expect(await screen.findByText("Ready to confirm")).toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: "Confirm Telegram" }));
+
+        expect(await screen.findByText("Telegram connected")).toBeInTheDocument();
+        expect(await screen.findByText("1234561234")).toBeInTheDocument();
+    });
 });

@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 import { prisma } from "../lib/prisma";
 import { useTestDatabase } from "../test/db";
 import { sendImmediateNotifications } from "./send-immediate";
-import type { EmailMessage, EmailTransport } from "./types";
+import type { EmailMessage, EmailTransport, TelegramMessage, TelegramTransport } from "./types";
 
 useTestDatabase();
 
@@ -25,6 +25,18 @@ class FakeTransport implements EmailTransport {
     }
 }
 
+class FakeTelegramTransport implements TelegramTransport {
+    sentMessages: TelegramMessage[] = [];
+    shouldFail = false;
+
+    async sendTelegramMessage(message: TelegramMessage): Promise<void> {
+        if (this.shouldFail) {
+            throw new Error("telegram transport failed");
+        }
+        this.sentMessages.push(message);
+    }
+}
+
 const createCategory = async () =>
     prisma.category.create({
         data: {
@@ -34,7 +46,10 @@ const createCategory = async () =>
         },
     });
 
-const createUserWithChannel = async (role: UserRole) => {
+const createUserWithChannel = async (
+    role: UserRole,
+    channelType: NotificationChannelType = NotificationChannelType.EMAIL,
+) => {
     const user = await prisma.user.create({
         data: {
             email: `${role.toLowerCase()}@example.com`,
@@ -47,7 +62,7 @@ const createUserWithChannel = async (role: UserRole) => {
     const channel = await prisma.notificationChannel.create({
         data: {
             userId: user.id,
-            channelType: NotificationChannelType.EMAIL,
+            channelType,
             destination: user.email,
             isDefault: true,
             isActive: true,
@@ -57,7 +72,10 @@ const createUserWithChannel = async (role: UserRole) => {
     return { user, channel };
 };
 
-const createReportWithDelivery = async (role: UserRole) => {
+const createReportWithDelivery = async (
+    role: UserRole,
+    channelType: NotificationChannelType = NotificationChannelType.EMAIL,
+) => {
     const category = await createCategory();
     const scrapeRun = await prisma.scrapeRun.create({
         data: {
@@ -76,7 +94,7 @@ const createReportWithDelivery = async (role: UserRole) => {
             inStock: true,
         },
     });
-    const { user, channel } = await createUserWithChannel(role);
+    const { user, channel } = await createUserWithChannel(role, channelType);
     const report = await prisma.changeReport.create({
         data: {
             scrapeRunId: scrapeRun.id,
@@ -107,9 +125,13 @@ const createReportWithDelivery = async (role: UserRole) => {
 describe("sendImmediateNotifications", () => {
     it("marks paid deliveries as sent on successful transport", async () => {
         const transport = new FakeTransport();
+        const telegramTransport = new FakeTelegramTransport();
         const { delivery, report } = await createReportWithDelivery(UserRole.PAID);
 
-        const result = await sendImmediateNotifications(report.id, transport);
+        const result = await sendImmediateNotifications(report.id, {
+            emailTransport: transport,
+            telegramTransport,
+        });
         const updated = await prisma.notificationDelivery.findUniqueOrThrow({ where: { id: delivery.id } });
 
         expect(result.sentCount).toBe(1);
@@ -119,10 +141,14 @@ describe("sendImmediateNotifications", () => {
 
     it("marks paid deliveries as failed on transport error", async () => {
         const transport = new FakeTransport();
+        const telegramTransport = new FakeTelegramTransport();
         transport.shouldFail = true;
         const { delivery, report } = await createReportWithDelivery(UserRole.ADMIN);
 
-        const result = await sendImmediateNotifications(report.id, transport);
+        const result = await sendImmediateNotifications(report.id, {
+            emailTransport: transport,
+            telegramTransport,
+        });
         const updated = await prisma.notificationDelivery.findUniqueOrThrow({ where: { id: delivery.id } });
 
         expect(result.failedCount).toBe(1);
@@ -131,13 +157,34 @@ describe("sendImmediateNotifications", () => {
 
     it("leaves free-user deliveries pending", async () => {
         const transport = new FakeTransport();
+        const telegramTransport = new FakeTelegramTransport();
         const { delivery, report } = await createReportWithDelivery(UserRole.FREE);
 
-        const result = await sendImmediateNotifications(report.id, transport);
+        const result = await sendImmediateNotifications(report.id, {
+            emailTransport: transport,
+            telegramTransport,
+        });
         const updated = await prisma.notificationDelivery.findUniqueOrThrow({ where: { id: delivery.id } });
 
         expect(result.processedCount).toBe(0);
         expect(updated.status).toBe(NotificationDeliveryStatus.PENDING);
         expect(transport.sentMessages).toHaveLength(0);
+    });
+
+    it("sends telegram immediate delivery when default channel is telegram", async () => {
+        const transport = new FakeTransport();
+        const telegramTransport = new FakeTelegramTransport();
+        const { delivery, report } = await createReportWithDelivery(UserRole.PAID, NotificationChannelType.TELEGRAM);
+
+        const result = await sendImmediateNotifications(report.id, {
+            emailTransport: transport,
+            telegramTransport,
+        });
+        const updated = await prisma.notificationDelivery.findUniqueOrThrow({ where: { id: delivery.id } });
+
+        expect(result.sentCount).toBe(1);
+        expect(updated.status).toBe(NotificationDeliveryStatus.SENT);
+        expect(transport.sentMessages).toHaveLength(0);
+        expect(telegramTransport.sentMessages).toHaveLength(1);
     });
 });

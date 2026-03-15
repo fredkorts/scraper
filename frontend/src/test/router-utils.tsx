@@ -41,6 +41,7 @@ interface RenderRouterOptions {
         adminSchedulerState: unknown;
         subscriptions: unknown;
         notificationChannels: unknown;
+        telegramLinkStatus: unknown;
         trackedProducts: unknown;
     }>;
 }
@@ -159,6 +160,9 @@ const defaultApiResponses = {
                 createdAt: new Date().toISOString(),
             },
         ],
+    },
+    telegramLinkStatus: {
+        status: "none",
     },
     trackedProducts: {
         items: [],
@@ -489,6 +493,78 @@ export const renderRouterApp = async ({
             }
 
             return jsonResponse(payload);
+        }
+
+        if (url.includes("/api/notifications/channels/telegram/link-status")) {
+            return jsonResponse(mutableResponses.telegramLinkStatus);
+        }
+
+        if (url.includes("/api/notifications/channels/telegram/link") && method === "POST") {
+            const challengeId = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+            const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+            mutableResponses.telegramLinkStatus = {
+                status: "awaiting_telegram",
+                challengeId,
+                expiresAt,
+            };
+
+            return jsonResponse({
+                deepLinkUrl: "https://t.me/pricepulse_test_bot?start=test-link-token",
+                expiresAt,
+            });
+        }
+
+        if (url.includes("/api/notifications/channels/telegram/confirm") && method === "POST") {
+            const body = (await parseBody()) as { challengeId?: string };
+            const status = mutableResponses.telegramLinkStatus as {
+                challengeId?: string;
+                status: string;
+            };
+
+            if (!body.challengeId || status.challengeId !== body.challengeId) {
+                return new Response(
+                    JSON.stringify({
+                        error: "telegram_link_not_ready",
+                        message: "Telegram link challenge has not been consumed yet",
+                    }),
+                    {
+                        status: 400,
+                        headers: { "Content-Type": "application/json" },
+                    },
+                );
+            }
+
+            mutableResponses.telegramLinkStatus = {
+                status: "connected",
+                telegramAccountPreview: "Telegram ••••1234",
+            };
+
+            const payload = mutableResponses.notificationChannels as {
+                channels: Array<Record<string, unknown>>;
+            };
+            const telegramChannel = {
+                id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+                userId: session?.id ?? mockUser.id,
+                channelType: "telegram",
+                destination: "1234561234",
+                isDefault: false,
+                isActive: true,
+                createdAt: new Date().toISOString(),
+            };
+
+            const existingIndex = payload.channels.findIndex((item) => item.channelType === "telegram");
+            if (existingIndex >= 0) {
+                payload.channels[existingIndex] = telegramChannel;
+            } else {
+                payload.channels.unshift(telegramChannel);
+            }
+
+            return jsonResponse({
+                channel: telegramChannel,
+                verificationMessage: {
+                    status: "sent",
+                },
+            });
         }
 
         if (url.includes("/api/notifications/channels")) {

@@ -19,6 +19,15 @@ export interface EmailTransport {
     sendEmail(message: EmailMessage): Promise<void>;
 }
 
+export interface TelegramMessage {
+    chatId: string;
+    text: string;
+}
+
+export interface TelegramTransport {
+    sendTelegramMessage(message: TelegramMessage): Promise<void>;
+}
+
 export interface ReportChangeItem {
     id: string;
     changeType: ChangeItem["changeType"];

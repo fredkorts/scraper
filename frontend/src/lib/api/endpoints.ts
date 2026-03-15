@@ -47,6 +47,9 @@ export const apiEndpoints = {
     notifications: {
         channels: "/api/notifications/channels",
         detail: (id: string) => `/api/notifications/channels/${id}`,
+        telegramLink: "/api/notifications/channels/telegram/link",
+        telegramLinkStatus: "/api/notifications/channels/telegram/link-status",
+        telegramConfirm: "/api/notifications/channels/telegram/confirm",
     },
     subscriptions: {
         list: "/api/subscriptions",

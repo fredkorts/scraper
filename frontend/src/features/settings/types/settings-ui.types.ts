@@ -7,6 +7,7 @@ import type {
     ChannelData,
     SettingsTab,
     SubscriptionsData,
+    TelegramLinkStatusData,
     UpdateProfileRequestData,
     TriggerRunResponseData,
 } from "./settings-schema.types";
@@ -37,9 +38,19 @@ export interface SettingsNotificationsTabProps {
     channels: ChannelData[];
     newChannelEmail: string;
     role: UserRole;
+    isTelegramAvailable: boolean;
+    telegramLinkStatus?: TelegramLinkStatusData;
+    telegramDeepLinkUrl: string | null;
+    isTelegramLinkStatusLoading: boolean;
+    telegramLinkStatusError: string | null;
     isCreatePending: boolean;
+    isStartTelegramPending: boolean;
+    isConfirmTelegramPending: boolean;
     onSetNewChannelEmail: (value: string) => void;
     onCreateChannel: () => void;
+    onStartTelegramLink: () => void;
+    onRefreshTelegramLinkStatus: () => void;
+    onConfirmTelegramLink: () => void;
     onToggleChannelDefault: (channelId: string, isDefault: boolean) => void;
     onToggleChannelActive: (channelId: string, isActive: boolean) => void;
     onRemoveChannel: (channelId: string) => void;

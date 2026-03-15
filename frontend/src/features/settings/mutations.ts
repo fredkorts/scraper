@@ -1,5 +1,6 @@
 import type {
     NotificationChannelCreateRequest,
+    TelegramLinkConfirmRequest,
     NotificationChannelUpdateRequest,
     TriggerRunRequest,
     UpdateCategorySettingsRequest,
@@ -8,7 +9,11 @@ import type {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiDelete, apiPatch, apiPost } from "../../lib/api/client";
 import { apiEndpoints } from "../../lib/api/endpoints";
-import { notificationChannelResponseSchema } from "../../lib/api/schemas";
+import {
+    notificationChannelResponseSchema,
+    telegramLinkConfirmResponseSchema,
+    telegramLinkStartResponseSchema,
+} from "../../lib/api/schemas";
 import { queryKeys } from "../../lib/query/query-keys";
 import {
     subscriptionDeleteResponseSchema,
@@ -139,6 +144,32 @@ export const useDeleteNotificationChannelMutation = () => {
         mutationFn: (id: string) => apiDelete(apiEndpoints.notifications.detail(id), successResponseSchema),
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: queryKeys.notifications.channels() });
+        },
+    });
+};
+
+export const useStartTelegramLinkMutation = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: () => apiPost(apiEndpoints.notifications.telegramLink, undefined, telegramLinkStartResponseSchema),
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: queryKeys.notifications.telegramLinkStatus() });
+        },
+    });
+};
+
+export const useConfirmTelegramLinkMutation = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (payload: TelegramLinkConfirmRequest) =>
+            apiPost(apiEndpoints.notifications.telegramConfirm, payload, telegramLinkConfirmResponseSchema),
+        onSuccess: async () => {
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: queryKeys.notifications.channels() }),
+                queryClient.invalidateQueries({ queryKey: queryKeys.notifications.telegramLinkStatus() }),
+            ]);
         },
     });
 };

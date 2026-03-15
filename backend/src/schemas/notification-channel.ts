@@ -22,6 +22,13 @@ export const updateNotificationChannelSchema = z
         isDefault: z.boolean().optional(),
         isActive: z.boolean().optional(),
     })
-    .refine((value) => value.destination !== undefined || value.isDefault !== undefined || value.isActive !== undefined, {
-        message: "At least one field must be provided",
-    });
+    .refine(
+        (value) => value.destination !== undefined || value.isDefault !== undefined || value.isActive !== undefined,
+        {
+            message: "At least one field must be provided",
+        },
+    );
+
+export const confirmTelegramLinkSchema = z.object({
+    challengeId: z.string().uuid(),
+});

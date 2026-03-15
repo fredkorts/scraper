@@ -1,4 +1,4 @@
-import { NotificationChannelType, NotificationDeliveryStatus } from "@prisma/client";
+import { NotificationDeliveryStatus } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import type { DeliveryRecipient, DiffDetectionResult } from "./types";
 
@@ -26,7 +26,6 @@ const loadRecipients = async (categoryId: string): Promise<DeliveryRecipient[]> 
                         where: {
                             isActive: true,
                             isDefault: true,
-                            channelType: NotificationChannelType.EMAIL,
                         },
                         select: {
                             id: true,

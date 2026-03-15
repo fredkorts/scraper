@@ -38,6 +38,7 @@ export enum ScrapeStatus {
 
 export enum ChannelType {
     EMAIL = "email",
+    TELEGRAM = "telegram",
     DISCORD = "discord",
     WHATSAPP = "whatsapp",
     SIGNAL = "signal",
@@ -667,7 +668,7 @@ export interface TrackProductResponse {
     item: TrackedProductListItem;
 }
 
-export type NotificationChannelInputType = "email" | "discord" | "whatsapp" | "signal" | "sms";
+export type NotificationChannelInputType = "email" | "telegram" | "discord" | "whatsapp" | "signal" | "sms";
 
 export interface NotificationChannelCreateRequest {
     channelType: NotificationChannelInputType;
@@ -688,4 +689,30 @@ export interface NotificationChannelResponse {
 
 export interface NotificationChannelsResponse {
     channels: NotificationChannel[];
+}
+
+export type TelegramLinkStatus = "none" | "awaiting_telegram" | "awaiting_confirmation" | "expired" | "connected";
+
+export interface TelegramLinkStartResponse {
+    deepLinkUrl: string;
+    expiresAt: string;
+}
+
+export interface TelegramLinkStatusResponse {
+    status: TelegramLinkStatus;
+    challengeId?: string;
+    expiresAt?: string;
+    telegramAccountPreview?: string;
+}
+
+export interface TelegramLinkConfirmRequest {
+    challengeId: string;
+}
+
+export interface TelegramLinkConfirmResponse {
+    channel: NotificationChannel;
+    verificationMessage: {
+        status: "sent" | "failed";
+        warning?: string;
+    };
 }

@@ -18,8 +18,8 @@ export const SettingsPageView = () => {
     const account = useSettingsAccount();
     const canTrackProducts = account.session.data?.capabilities?.productWatchlist ?? false;
     const tracking = useSettingsTracking(canTrackProducts);
-    const notifications = useSettingsNotifications();
     const role = account.session.data?.role ?? "free";
+    const notifications = useSettingsNotifications(role);
     const isAdmin = role === "admin";
     const admin = useSettingsAdmin(isAdmin);
     const { activeTab, visibleTabs, setTab } = useSettingsTabs(isAdmin);
@@ -106,9 +106,23 @@ export const SettingsPageView = () => {
                     channels={notifications.channelsQuery.data.channels}
                     newChannelEmail={notifications.newChannelEmail}
                     role={role}
+                    isTelegramAvailable={notifications.isTelegramAvailable}
+                    telegramLinkStatus={notifications.telegramLinkStatusQuery.data}
+                    telegramDeepLinkUrl={notifications.telegramDeepLinkUrl}
+                    isTelegramLinkStatusLoading={notifications.telegramLinkStatusQuery.isFetching}
+                    telegramLinkStatusError={
+                        notifications.telegramLinkStatusQuery.isError
+                            ? notifications.telegramLinkStatusQuery.error.message
+                            : null
+                    }
                     isCreatePending={notifications.isCreatePending}
+                    isStartTelegramPending={notifications.isStartTelegramPending}
+                    isConfirmTelegramPending={notifications.isConfirmTelegramPending}
                     onSetNewChannelEmail={notifications.setNewChannelEmail}
                     onCreateChannel={notifications.onCreateChannel}
+                    onStartTelegramLink={notifications.onStartTelegramLink}
+                    onRefreshTelegramLinkStatus={notifications.onRefreshTelegramLinkStatus}
+                    onConfirmTelegramLink={notifications.onConfirmTelegramLink}
                     onToggleChannelDefault={notifications.onToggleChannelDefault}
                     onToggleChannelActive={notifications.onToggleChannelActive}
                     onRemoveChannel={notifications.onRemoveChannel}

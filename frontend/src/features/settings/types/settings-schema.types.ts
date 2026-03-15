@@ -1,5 +1,9 @@
 import type { z } from "zod";
-import { notificationChannelsResponseSchema, notificationChannelSchema } from "../../../lib/api/schemas";
+import {
+    notificationChannelsResponseSchema,
+    notificationChannelSchema,
+    telegramLinkStatusResponseSchema,
+} from "../../../lib/api/schemas";
 import {
     settingsTabSchema,
     subscriptionsResponseSchema,
@@ -16,6 +20,7 @@ import {
 export type SettingsTab = z.infer<typeof settingsTabSchema>;
 export type SubscriptionsData = z.infer<typeof subscriptionsResponseSchema>;
 export type NotificationChannelsData = z.infer<typeof notificationChannelsResponseSchema>;
+export type TelegramLinkStatusData = z.infer<typeof telegramLinkStatusResponseSchema>;
 export type UpdateProfileRequestData = z.infer<typeof updateProfileRequestSchema>;
 export type UpdateProfileResponseData = z.infer<typeof updateProfileResponseSchema>;
 export type TriggerRunResponseData = z.infer<typeof triggerRunResponseSchema>;

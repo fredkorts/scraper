@@ -15,6 +15,8 @@ export const useTestDatabase = () => {
                 notification_delivery_items,
                 notification_deliveries,
                 notification_channels,
+                telegram_link_challenges,
+                telegram_webhook_events,
                 auth_identities,
                 oauth_challenges,
                 mfa_login_challenges,

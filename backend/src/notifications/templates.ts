@@ -256,6 +256,43 @@ export const renderImmediateEmail = (payload: ImmediateDeliveryPayload) => {
     };
 };
 
+export const renderImmediateTelegram = (payload: ImmediateDeliveryPayload): { text: string } => {
+    const categoryName = payload.report.scrapeRun.category.nameEt;
+    const categoryRunsUrl = buildCategoryRunsUrl(payload.report.scrapeRun.category.id);
+    const runTimestamp = formatUtcTimestamp(getRunTimestamp(payload));
+    const topItems = payload.changeItems.slice(0, 5);
+    const overflow = payload.changeItems.length - topItems.length;
+
+    const lines = [
+        "PricePulse alert",
+        `${payload.report.totalChanges} changes in ${categoryName}`,
+        `Run time: ${runTimestamp}`,
+        "",
+        ...topItems.map((item) => {
+            const priceLine =
+                item.oldPrice !== null || item.newPrice !== null
+                    ? ` | ${formatPrice(item.oldPrice)} -> ${formatPrice(item.newPrice)}`
+                    : "";
+            const stockLine =
+                item.oldStockStatus !== null || item.newStockStatus !== null
+                    ? ` | ${formatStockStatus(item.oldStockStatus)} -> ${formatStockStatus(item.newStockStatus)}`
+                    : "";
+
+            return `• ${item.product.name}${priceLine}${stockLine}`;
+        }),
+    ];
+
+    if (overflow > 0) {
+        lines.push(`+${overflow} more changes`);
+    }
+
+    lines.push("", `View in PricePulse: ${categoryRunsUrl}`);
+
+    return {
+        text: lines.join("\n"),
+    };
+};
+
 export const renderDigestEmail = (payload: DigestRecipientPayload) => {
     const groupedByCategory = payload.deliveries.reduce<Record<string, DigestRecipientPayload["deliveries"]>>(
         (groups, delivery) => {
