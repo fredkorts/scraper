@@ -1,0 +1,58 @@
+@use "../../styles/abstracts/mixins";
+
+.trigger {
+    width: 1.375rem;
+    height: 1.375rem;
+    box-sizing: border-box;
+    border: 3px solid var(--color-border);
+    border-radius: 999px;
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+    position: relative;
+    display: inline-block;
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 0;
+    padding: 0;
+    appearance: none;
+    cursor: help;
+    transition:
+        border-color var(--transition-fast),
+        color var(--transition-fast),
+        background-color var(--transition-fast);
+}
+
+.trigger > span {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -45%);
+    line-height: 1;
+}
+
+.trigger:hover,
+.trigger:focus-visible {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.trigger:focus-visible {
+    @include mixins.focus-ring;
+}
+
+.overlay :global(.ant-popover-inner) {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-md);
+}
+
+.overlay :global(.ant-popover-inner-content) {
+    color: var(--color-text);
+    font-size: var(--font-size-sm);
+    max-width: 18rem;
+}
+
+.content {
+    display: grid;
+    gap: var(--space-xs);
+}

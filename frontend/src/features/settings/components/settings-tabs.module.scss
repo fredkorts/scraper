@@ -1,0 +1,47 @@
+@use "../../../styles/abstracts/mixins";
+
+.root {
+    width: 100%;
+    min-width: 0;
+}
+
+.desktopTabs:global(.ant-tabs) {
+    width: 100%;
+    min-width: 0;
+}
+
+.mobileSelectField {
+    display: none;
+    gap: var(--space-2xs);
+}
+
+.mobileSelectLabel {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+}
+
+.mobileSelect {
+    width: 100%;
+    min-height: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-text);
+    padding: 0 var(--space-md);
+    font: inherit;
+}
+
+.mobileSelect:focus {
+    @include mixins.focus-ring;
+}
+
+@include mixins.mq-sm {
+    .desktopTabs {
+        display: none;
+    }
+
+    .mobileSelectField {
+        display: grid;
+    }
+}

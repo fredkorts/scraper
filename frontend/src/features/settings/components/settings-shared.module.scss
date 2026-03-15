@@ -90,6 +90,13 @@
     gap: var(--space-md);
 }
 
+.cardHeadingRow {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--space-sm);
+}
+
 .field {
     display: grid;
     gap: var(--space-2xs);

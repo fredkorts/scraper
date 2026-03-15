@@ -1,6 +1,7 @@
 import { PlusOutlined } from "@ant-design/icons";
 import { AppButton } from "../../../components/app-button/AppButton";
 import { AppInput } from "../../../components/app-input/AppInput";
+import { InfoTooltip } from "../../../components/info-tooltip/InfoTooltip";
 import { getSettingsPanelId, getSettingsTabId } from "../constants/settings-tab-a11y.constants";
 import type { SettingsNotificationsTabProps } from "../types/settings-ui.types";
 import styles from "./settings-shared.module.scss";
@@ -95,7 +96,13 @@ export const SettingsNotificationsTab = ({
                 </p>
             </article>
             <article className={styles.card}>
-                <h3 className={styles.cardTitle}>Telegram</h3>
+                <div className={styles.cardHeadingRow}>
+                    <h3 className={styles.cardTitle}>Telegram</h3>
+                    <InfoTooltip
+                        ariaLabel="Telegram connection help"
+                        content="Connect flow: click Connect Telegram, open Telegram from the link, send /start, then refresh and confirm."
+                    />
+                </div>
                 {!isTelegramAvailable ? (
                     <p className={styles.subtle}>Telegram alerts are available on paid and admin plans.</p>
                 ) : (
