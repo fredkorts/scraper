@@ -177,6 +177,34 @@ describe("dashboard and runs routes", () => {
         const scopedProduct = await createProduct("scoped");
         const hiddenProduct = await createProduct("hidden");
 
+        await prisma.productCategory.createMany({
+            data: [
+                {
+                    productId: scopedProduct.id,
+                    categoryId: categoryA.id,
+                },
+                {
+                    productId: hiddenProduct.id,
+                    categoryId: categoryB.id,
+                },
+            ],
+        });
+
+        await prisma.userTrackedProduct.createMany({
+            data: [
+                {
+                    userId: user.id,
+                    productId: scopedProduct.id,
+                    isActive: true,
+                },
+                {
+                    userId: user.id,
+                    productId: hiddenProduct.id,
+                    isActive: true,
+                },
+            ],
+        });
+
         await prisma.changeItem.createMany({
             data: [
                 {
@@ -204,6 +232,7 @@ describe("dashboard and runs routes", () => {
         const response = await request(app).get("/api/dashboard/home").set("Cookie", authCookie(user.id, user.email));
 
         expect(response.status).toBe(200);
+        expect(response.headers["cache-control"]).toBe("private, no-store");
         expect(response.body.latestRuns).toHaveLength(2);
         expect(response.body.latestRuns.every((run: { categoryId: string }) => run.categoryId === categoryA.id)).toBe(
             true,
@@ -228,6 +257,23 @@ describe("dashboard and runs routes", () => {
         const hiddenRunPresent = response.body.latestRuns.some((run: { id: string }) => run.id === hiddenRun.id);
         expect(hiddenRunPresent).toBe(false);
         expect(response.body.recentFailures[0].id).toBe(scopedFailedRun.id);
+        expect(response.body.trackingOverview.rows).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    type: "category",
+                    categoryId: categoryA.id,
+                }),
+                expect.objectContaining({
+                    type: "product",
+                    productId: scopedProduct.id,
+                }),
+            ]),
+        );
+        expect(
+            response.body.trackingOverview.rows.some(
+                (row: { productId?: string }) => row.productId === hiddenProduct.id,
+            ),
+        ).toBe(false);
     });
 
     it("applies the dashboard category filter within the user's allowed scope", async () => {

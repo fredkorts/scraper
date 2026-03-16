@@ -71,6 +71,10 @@
     font-size: var(--font-size-lg);
 }
 
+.trackingOverviewTitle {
+    margin-bottom: 1rem;
+}
+
 .splitColumns {
     display: grid;
     gap: var(--space-lg);
@@ -86,6 +90,12 @@
     gap: 0;
 }
 
+.fullWidthPanel {
+    @include cards.card-surface;
+    grid-template-rows: auto 1fr;
+    gap: 0;
+}
+
 .dashboardColumn > .sectionHeader {
     padding-bottom: var(--space-sm);
     border-bottom: 1px solid var(--color-border);
@@ -96,6 +106,13 @@
     display: grid;
     align-content: start;
     gap: var(--space-sm);
+}
+
+.healthStrip {
+    @include cards.card-surface;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2xs);
 }
 
 .panelList {
@@ -144,8 +161,61 @@
     @include empty-states.state-panel;
 }
 
+.trackingControls {
+    display: grid;
+    gap: var(--space-sm);
+}
+
+.trackingCreateRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.trackingSelect {
+    min-width: 14rem;
+    flex: 1 1 16rem;
+}
+
+.trackingFilters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+}
+
+.trackingSearch {
+    width: min(22rem, 100%);
+}
+
+.paginationRow {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-sm);
+}
+
+.errorText {
+    color: var(--color-status-danger);
+    margin: 0;
+}
+
 @include mixins.mq-md {
     .splitColumns {
         grid-template-columns: 1fr;
+    }
+
+    .trackingCreateRow {
+        align-items: stretch;
+    }
+
+    .trackingSearch {
+        width: 100%;
+    }
+
+    .paginationRow {
+        justify-content: space-between;
     }
 }

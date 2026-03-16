@@ -392,10 +392,26 @@ export interface DashboardChangeSummary {
     backInStock: number;
 }
 
+export interface DashboardTrackingOverviewRow {
+    rowId: string;
+    type: "category" | "product";
+    name: string;
+    lastChangeAt?: string;
+    actionTargetId: string;
+    categoryId?: string;
+    productId?: string;
+}
+
+export interface DashboardTrackingOverview {
+    rows: DashboardTrackingOverviewRow[];
+    lastCheckedAt?: string;
+}
+
 export interface DashboardHomeResponse {
     latestRuns: DashboardHomeRunSummary[];
     recentFailures: DashboardHomeFailure[];
     recentChangeSummary: DashboardChangeSummary;
+    trackingOverview: DashboardTrackingOverview;
 }
 
 export interface CategoriesResponse {

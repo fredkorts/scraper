@@ -43,6 +43,25 @@ export const dashboardHomeResponseSchema = z.object({
         soldOut: z.number(),
         backInStock: z.number(),
     }),
+    trackingOverview: z
+        .object({
+            rows: z.array(
+                z.object({
+                    rowId: z.string(),
+                    type: z.enum(["category", "product"]),
+                    name: z.string(),
+                    lastChangeAt: z.string().optional(),
+                    actionTargetId: z.string().uuid(),
+                    categoryId: z.string().uuid().optional(),
+                    productId: z.string().uuid().optional(),
+                }),
+            ),
+            lastCheckedAt: z.string().optional(),
+        })
+        .optional()
+        .default({
+            rows: [],
+        }),
 });
 
 export const runsListResponseSchema = z.object({

@@ -21,6 +21,7 @@ export const getDashboardHomeHandler = async (req: Request, res: Response, next:
     try {
         const query = dashboardHomeQuerySchema.parse(req.query);
         const payload = await getDashboardHome(req.auth!.userId, req.auth!.role, query);
+        res.set("Cache-Control", "private, no-store");
         res.status(200).json(payload);
     } catch (error) {
         next(error);

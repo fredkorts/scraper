@@ -32,6 +32,12 @@
     gap: var(--space-xs);
 }
 
+.editableHint {
+    font-size: var(--font-size-xs);
+    color: var(--color-status-info);
+    font-weight: 600;
+}
+
 .tableMetaGroup {
     display: flex;
     align-items: center;
@@ -114,6 +120,16 @@
 .input {
     @include forms.control-base;
     min-height: 2.5rem;
+}
+
+.readOnlyInput {
+    background: var(--color-page) !important;
+    color: var(--color-text-muted) !important;
+    cursor: text;
+}
+
+.readOnlyInput:focus {
+    box-shadow: none;
 }
 
 .select {

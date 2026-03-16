@@ -97,6 +97,24 @@ const buildEmptyChangeSummary = (): DashboardChangeSummary => ({
     backInStock: 0,
 });
 
+const buildTrackedProductScopeWhere = (categoryIds: string[] | null): Prisma.UserTrackedProductWhereInput =>
+    categoryIds === null
+        ? {}
+        : {
+              product: {
+                  productCategories: {
+                      some: {
+                          categoryId: {
+                              in: categoryIds,
+                          },
+                          category: {
+                              isActive: true,
+                          },
+                      },
+                  },
+              },
+          };
+
 const tokenizeSearchQuery = (query?: string): string[] => {
     if (!query) {
         return [];
@@ -451,6 +469,9 @@ export const getDashboardHome = async (
             latestRuns: [],
             recentFailures: [],
             recentChangeSummary: buildEmptyChangeSummary(),
+            trackingOverview: {
+                rows: [],
+            },
         };
     }
 
@@ -461,6 +482,9 @@ export const getDashboardHome = async (
             latestRuns: [],
             recentFailures: [],
             recentChangeSummary: buildEmptyChangeSummary(),
+            trackingOverview: {
+                rows: [],
+            },
         };
     }
 
@@ -469,7 +493,9 @@ export const getDashboardHome = async (
         : { ...buildCategoryScopeWhere(categoryIds), isSystemNoise: false };
     const changeWindowStart = new Date(Date.now() - DASHBOARD_CHANGE_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
-    const [latestRuns, recentFailures, recentChanges] = await Promise.all([
+    const trackingCategoryScope = selectedCategoryIds ?? categoryIds;
+
+    const [latestRuns, recentFailures, recentChanges, subscriptions, trackedProducts] = await Promise.all([
         prisma.scrapeRun.findMany({
             where: categoryScope,
             include: {
@@ -521,6 +547,38 @@ export const getDashboardHome = async (
                 changeType: true,
             },
         }),
+        prisma.userSubscription.findMany({
+            where: {
+                userId,
+                isActive: true,
+                ...(trackingCategoryScope === null ? {} : { categoryId: { in: trackingCategoryScope } }),
+            },
+            include: {
+                category: {
+                    select: {
+                        id: true,
+                        nameEt: true,
+                    },
+                },
+            },
+            orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        }),
+        prisma.userTrackedProduct.findMany({
+            where: {
+                userId,
+                isActive: true,
+                ...buildTrackedProductScopeWhere(trackingCategoryScope),
+            },
+            include: {
+                product: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+            },
+            orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        }),
     ]);
 
     const recentChangeSummary = recentChanges.reduce<DashboardChangeSummary>((summary, item) => {
@@ -545,6 +603,110 @@ export const getDashboardHome = async (
         return summary;
     }, buildEmptyChangeSummary());
 
+    const categoryIdsForTrackingRows = subscriptions.map((item) => item.categoryId);
+    const productIdsForTrackingRows = trackedProducts.map((item) => item.product.id);
+
+    const [categoryChangeRows, productChangeRows] = await Promise.all([
+        categoryIdsForTrackingRows.length > 0
+            ? prisma.changeReport.findMany({
+                  where: {
+                      totalChanges: {
+                          gt: 0,
+                      },
+                      scrapeRun: {
+                          categoryId: {
+                              in: categoryIdsForTrackingRows,
+                          },
+                          isSystemNoise: false,
+                      },
+                  },
+                  select: {
+                      createdAt: true,
+                      scrapeRun: {
+                          select: {
+                              categoryId: true,
+                          },
+                      },
+                  },
+                  orderBy: {
+                      createdAt: "desc",
+                  },
+              })
+            : Promise.resolve([]),
+        productIdsForTrackingRows.length > 0
+            ? prisma.changeItem.findMany({
+                  where: {
+                      productId: {
+                          in: productIdsForTrackingRows,
+                      },
+                      changeReport: {
+                          scrapeRun: categoryScope,
+                      },
+                  },
+                  select: {
+                      productId: true,
+                      changeReport: {
+                          select: {
+                              createdAt: true,
+                          },
+                      },
+                  },
+                  orderBy: {
+                      changeReport: {
+                          createdAt: "desc",
+                      },
+                  },
+              })
+            : Promise.resolve([]),
+    ]);
+
+    const categoryLastChangeByCategoryId = new Map<string, Date>();
+    for (const row of categoryChangeRows) {
+        if (!categoryLastChangeByCategoryId.has(row.scrapeRun.categoryId)) {
+            categoryLastChangeByCategoryId.set(row.scrapeRun.categoryId, row.createdAt);
+        }
+    }
+
+    const productLastChangeByProductId = new Map<string, Date>();
+    for (const row of productChangeRows) {
+        if (!productLastChangeByProductId.has(row.productId)) {
+            productLastChangeByProductId.set(row.productId, row.changeReport.createdAt);
+        }
+    }
+
+    const trackingRows = [
+        ...subscriptions.map((subscription) => ({
+            rowId: `category:${subscription.id}`,
+            type: "category" as const,
+            name: subscription.category.nameEt,
+            lastChangeAt: categoryLastChangeByCategoryId.get(subscription.categoryId)?.toISOString(),
+            actionTargetId: subscription.id,
+            categoryId: subscription.categoryId,
+        })),
+        ...trackedProducts.map((trackedProduct) => ({
+            rowId: `product:${trackedProduct.id}`,
+            type: "product" as const,
+            name: trackedProduct.product.name,
+            lastChangeAt: productLastChangeByProductId.get(trackedProduct.product.id)?.toISOString(),
+            actionTargetId: trackedProduct.product.id,
+            productId: trackedProduct.product.id,
+        })),
+    ].sort((left, right) => {
+        const leftTimestamp = left.lastChangeAt ? new Date(left.lastChangeAt).getTime() : 0;
+        const rightTimestamp = right.lastChangeAt ? new Date(right.lastChangeAt).getTime() : 0;
+
+        if (leftTimestamp !== rightTimestamp) {
+            return rightTimestamp - leftTimestamp;
+        }
+
+        const typeComparison = left.type.localeCompare(right.type);
+        if (typeComparison !== 0) {
+            return typeComparison;
+        }
+
+        return left.name.localeCompare(right.name);
+    });
+
     return {
         latestRuns: latestRuns.map((run) => ({
             id: run.id,
@@ -564,6 +726,10 @@ export const getDashboardHome = async (
             failure: buildRunFailure(run),
         })),
         recentChangeSummary,
+        trackingOverview: {
+            rows: trackingRows,
+            lastCheckedAt: latestRuns[0]?.startedAt.toISOString(),
+        },
     };
 };
 

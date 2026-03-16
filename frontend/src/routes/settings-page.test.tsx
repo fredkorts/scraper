@@ -47,56 +47,62 @@ describe("settings page", () => {
         });
 
         expect(await screen.findByRole("heading", { name: "Settings" })).toBeInTheDocument();
-        const input = screen.getByLabelText("Name");
-        await user.clear(input);
-        await user.type(input, "Updated User");
+        expect(screen.getByText("Only Name can be edited right now. Other fields are read-only.")).toBeInTheDocument();
+
+        const nameInput = screen.getByLabelText(/Name/);
+        const emailInput = screen.getByLabelText("Email");
+        const roleInput = screen.getByLabelText("Role");
+        const accountStatusInput = screen.getByLabelText("Account status");
+        const emailVerifiedInput = screen.getByLabelText("Email verified");
+
+        expect(nameInput).toBeEnabled();
+        expect(nameInput).not.toHaveAttribute("readonly");
+
+        expect(emailInput).toHaveAttribute("readonly");
+        expect(roleInput).toHaveAttribute("readonly");
+        expect(accountStatusInput).toHaveAttribute("readonly");
+        expect(emailVerifiedInput).toHaveAttribute("readonly");
+
+        expect(emailInput).not.toBeDisabled();
+        expect(roleInput).not.toBeDisabled();
+        expect(accountStatusInput).not.toBeDisabled();
+        expect(emailVerifiedInput).not.toBeDisabled();
+
+        expect(emailInput).toHaveValue("user@example.com");
+        expect(roleInput).toHaveValue("Free");
+        expect(accountStatusInput).toHaveValue("Active");
+        expect(emailVerifiedInput).toHaveValue("No");
+
+        await user.clear(nameInput);
+        await user.type(nameInput, "Updated User");
         await user.click(screen.getByRole("button", { name: "Save changes" }));
 
         expect(await screen.findByDisplayValue("Updated User")).toBeInTheDocument();
         expect(await screen.findByText("Profile updated")).toBeInTheDocument();
     }, 20_000);
 
-    it("adds and removes tracked categories in the tracking tab", async () => {
-        const user = userEvent.setup();
-
-        await renderRouterApp({
+    it("coerces legacy tracking tab URLs to account and hides tracking tab", async () => {
+        const { router } = await renderRouterApp({
             initialEntry: "/app/settings?tab=tracking",
             session: mockUser,
             apiResponses: {
                 subscriptions: {
-                    items: [
-                        {
-                            id: "33333333-3333-4333-8333-444444444444",
-                            category: {
-                                id: "33333333-3333-4333-8333-333333333333",
-                                slug: "lauamangud/strateegia",
-                                nameEt: "Strateegia",
-                                nameEn: "Strategy",
-                            },
-                            createdAt: new Date().toISOString(),
-                            isActive: true,
-                        },
-                    ],
+                    items: [],
                     limit: 3,
-                    used: 1,
-                    remaining: 2,
+                    used: 0,
+                    remaining: 3,
                 },
             },
         });
 
         expect(await screen.findByRole("heading", { name: "Settings" })).toBeInTheDocument();
-        expect(screen.getByText("Lauamangud / Strateegia")).toBeInTheDocument();
-        await selectAntOption(user, "Available categories", "Lauamangud");
-        await user.click(screen.getByRole("button", { name: "Track category" }));
-        await waitFor(() => {
-            expect(screen.getAllByText("Lauamangud").length).toBeGreaterThan(0);
+        expect(screen.getByRole("tab", { name: "Account" })).toHaveAttribute("aria-selected", "true");
+        expect(screen.queryByRole("tab", { name: "Tracking" })).not.toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Account Basics" })).toBeInTheDocument();
+        expect(router.state.location.search).toMatchObject({
+            tab: "account",
         });
-
-        await user.click(screen.getAllByRole("button", { name: "Stop tracking" })[0]);
-        await waitFor(() => {
-            expect(screen.getByText("lauamangud")).toBeInTheDocument();
-        });
-    }, 25_000);
+    });
 
     it("manages notification channels and admin tools for admin users", async () => {
         const user = userEvent.setup();

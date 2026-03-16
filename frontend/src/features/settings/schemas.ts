@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { authUserSchema, notificationChannelsResponseSchema } from "../../lib/api/schemas";
 
-export const settingsTabSchema = z.enum(["account", "tracking", "notifications", "plan", "admin"]);
+export const settingsTabSchema = z.enum(["account", "notifications", "plan", "admin"]);
 
 export const subscriptionsResponseSchema = z.object({
     items: z.array(

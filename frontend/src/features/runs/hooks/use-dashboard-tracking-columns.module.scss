@@ -1,0 +1,19 @@
+.cancelTrackingButton:global(.ant-btn.ant-btn-icon-only) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+}
+
+.cancelTrackingButton:global(.ant-btn .ant-btn-icon) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.cancelTrackingButton:global(.ant-btn .ant-btn-icon > *) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}

@@ -58,6 +58,9 @@ export const SettingsAccountTab = ({
         setMfaCode("");
     };
 
+    const accountStatusValue = isActive ? "Active" : "Inactive";
+    const emailVerifiedValue = session.data?.emailVerifiedAt ? "Yes" : "No";
+
     return (
         <section
             id={getSettingsPanelId("account")}
@@ -68,9 +71,13 @@ export const SettingsAccountTab = ({
             <div className={styles.sectionHeader}>
                 <h2 className={styles.sectionTitle}>Account Basics</h2>
             </div>
+            <p className={styles.subtle}>Only Name can be edited right now. Other fields are read-only.</p>
             <form className={styles.card} onSubmit={onSubmitProfile}>
                 <label className={styles.field}>
-                    <span className={styles.label}>Name</span>
+                    <span className={styles.inlineLabel}>
+                        <span className={styles.label}>Name</span>
+                        <span className={styles.editableHint}>Editable</span>
+                    </span>
                     <AppInput className={styles.input} {...form.register("name")} />
                     {form.formState.errors.name ? (
                         <span className={styles.errorText}>{form.formState.errors.name.message}</span>
@@ -78,22 +85,41 @@ export const SettingsAccountTab = ({
                 </label>
                 <label className={styles.field}>
                     <span className={styles.label}>Email</span>
-                    <AppInput className={styles.input} value={email} readOnly />
-                    <span className={styles.subtle}>Email changes are not available in Phase 5.</span>
+                    <AppInput
+                        className={`${styles.input} ${styles.readOnlyInput}`}
+                        value={email}
+                        readOnly
+                        aria-readonly
+                    />
                 </label>
                 <div className={styles.metaGrid}>
-                    <div>
-                        <span className={styles.eyebrow}>Role</span>
-                        <div>{ROLE_LABELS[role]}</div>
-                    </div>
-                    <div>
-                        <span className={styles.eyebrow}>Account status</span>
-                        <div>{isActive ? "Active" : "Inactive"}</div>
-                    </div>
-                    <div>
-                        <span className={styles.eyebrow}>Email verified</span>
-                        <div>{session.data?.emailVerifiedAt ? "Yes" : "No"}</div>
-                    </div>
+                    <label className={styles.field}>
+                        <span className={styles.label}>Role</span>
+                        <AppInput
+                            className={`${styles.input} ${styles.readOnlyInput}`}
+                            value={ROLE_LABELS[role]}
+                            readOnly
+                            aria-readonly
+                        />
+                    </label>
+                    <label className={styles.field}>
+                        <span className={styles.label}>Account status</span>
+                        <AppInput
+                            className={`${styles.input} ${styles.readOnlyInput}`}
+                            value={accountStatusValue}
+                            readOnly
+                            aria-readonly
+                        />
+                    </label>
+                    <label className={styles.field}>
+                        <span className={styles.label}>Email verified</span>
+                        <AppInput
+                            className={`${styles.input} ${styles.readOnlyInput}`}
+                            value={emailVerifiedValue}
+                            readOnly
+                            aria-readonly
+                        />
+                    </label>
                 </div>
                 <div className={styles.inlineForm}>
                     <AppButton htmlType="submit" disabled={isSaving}>

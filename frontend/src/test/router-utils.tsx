@@ -63,6 +63,9 @@ const defaultApiResponses = {
             soldOut: 0,
             backInStock: 0,
         },
+        trackingOverview: {
+            rows: [],
+        },
     },
     adminSchedulerState: {
         items: [

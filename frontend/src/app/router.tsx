@@ -245,7 +245,6 @@ const appSettingsRoute = createRoute({
         await Promise.all([
             context.queryClient.ensureQueryData(subscriptionsQueryOptions()),
             context.queryClient.ensureQueryData(notificationChannelsQueryOptions()),
-            context.queryClient.ensureQueryData(categoriesQueryOptions("all")),
             context.queryClient.ensureQueryData(sessionsQueryOptions()),
         ]);
     },

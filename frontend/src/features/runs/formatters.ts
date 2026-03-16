@@ -6,6 +6,7 @@ export {
     formatRetryableLabel,
     formatStatusLabel,
 } from "../../shared/formatters/display";
+import { formatDateTime } from "../../shared/formatters/display";
 import { STOCK_STATUS_LABELS } from "../../shared/constants/stock.constants";
 import {
     PREORDER_BADGE_LABEL,
@@ -78,4 +79,38 @@ export const formatPreorderState = (value: PreorderStateInput): string => {
     return value.preorderEta
         ? `${PREORDER_BADGE_LABEL} (${PREORDER_ETA_LABEL} ${value.preorderEta})`
         : PREORDER_BADGE_LABEL;
+};
+
+const getRelativeTimeLabel = (value: string, now = new Date()): string => {
+    const parsedDate = new Date(value);
+    if (Number.isNaN(parsedDate.getTime())) {
+        return "time unavailable";
+    }
+
+    const elapsedMs = Math.max(0, now.getTime() - parsedDate.getTime());
+    const elapsedMinutes = Math.floor(elapsedMs / 60_000);
+
+    if (elapsedMinutes < 1) {
+        return "just now";
+    }
+
+    if (elapsedMinutes < 60) {
+        return `${elapsedMinutes}m ago`;
+    }
+
+    const elapsedHours = Math.floor(elapsedMinutes / 60);
+    if (elapsedHours < 24) {
+        return `${elapsedHours}h ago`;
+    }
+
+    const elapsedDays = Math.floor(elapsedHours / 24);
+    return `${elapsedDays}d ago`;
+};
+
+export const formatLastChangeLabel = (value?: string, now = new Date()): string => {
+    if (!value) {
+        return "No changes yet";
+    }
+
+    return `${formatDateTime(value)} (${getRelativeTimeLabel(value, now)})`;
 };

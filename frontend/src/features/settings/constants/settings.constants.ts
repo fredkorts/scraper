@@ -3,13 +3,12 @@ import type { SettingsTab } from "../types/settings-schema.types";
 
 export const SETTINGS_TAB_LABELS: Record<SettingsTab, string> = {
     account: "Account",
-    tracking: "Tracking",
     notifications: "Notifications",
     plan: "Plan",
     admin: "Admin",
 };
 
-export const SETTINGS_TAB_ORDER: SettingsTab[] = ["account", "tracking", "notifications", "plan", "admin"];
+export const SETTINGS_TAB_ORDER: SettingsTab[] = ["account", "notifications", "plan", "admin"];
 
 export const ROLE_LABELS: Record<UserRole, string> = {
     free: "Free",

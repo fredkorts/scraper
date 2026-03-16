@@ -67,6 +67,26 @@ describe("scrape views", () => {
                         soldOut: 1,
                         backInStock: 1,
                     },
+                    trackingOverview: {
+                        rows: [
+                            {
+                                rowId: "category:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                                type: "category",
+                                name: "Lauamangud",
+                                actionTargetId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                                categoryId: "22222222-2222-4222-8222-222222222222",
+                                lastChangeAt: new Date().toISOString(),
+                            },
+                            {
+                                rowId: "product:bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+                                type: "product",
+                                name: "Tracked Product",
+                                actionTargetId: "44444444-4444-4444-8444-444444444444",
+                                productId: "44444444-4444-4444-8444-444444444444",
+                            },
+                        ],
+                        lastCheckedAt: new Date().toISOString(),
+                    },
                 },
             },
         });
@@ -75,7 +95,10 @@ describe("scrape views", () => {
         expect(screen.getByText("Filtered to Lauamangud")).toBeInTheDocument();
         expect(screen.getAllByText("Board Games").length).toBeGreaterThan(0);
         expect(screen.getByRole("link", { name: "Open run detail" })).toBeInTheDocument();
-        expect(screen.getByText("The scrape timed out while loading page 31.")).toBeInTheDocument();
+        expect(screen.getByText("Recent scraper failures detected.")).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Tracking Overview" })).toBeInTheDocument();
+        expect(screen.getByText("Tracked Product")).toBeInTheDocument();
+        expect(screen.queryByRole("link", { name: "Track a product" })).not.toBeInTheDocument();
         expect(screen.getByRole("link", { name: "View new products changes (2)" })).toBeInTheDocument();
     }, 10_000);
 
@@ -117,7 +140,7 @@ describe("scrape views", () => {
         });
     }, 10_000);
 
-    it("caps dashboard latest runs and recent failures panels to five items", async () => {
+    it("caps dashboard latest runs panel to five items", async () => {
         await renderRouterApp({
             initialEntry: "/app",
             session: mockUser,
@@ -167,11 +190,9 @@ describe("scrape views", () => {
 
         expect(await screen.findByRole("heading", { name: "Dashboard Home" })).toBeInTheDocument();
         expect(screen.getAllByRole("link", { name: "Open run detail" })).toHaveLength(5);
-        expect(screen.getAllByRole("link", { name: "Inspect failed run" })).toHaveLength(5);
+        expect(screen.getByText("Recent scraper failures detected.")).toBeInTheDocument();
         expect(screen.getByText("Run Category 5")).toBeInTheDocument();
-        expect(screen.getByText("Failure Category 5")).toBeInTheDocument();
         expect(screen.queryByText("Run Category 6")).not.toBeInTheDocument();
-        expect(screen.queryByText("Failure Category 6")).not.toBeInTheDocument();
     }, 10_000);
 
     it("renders runs list from URL-backed query state", async () => {

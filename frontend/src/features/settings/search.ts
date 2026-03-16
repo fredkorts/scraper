@@ -3,7 +3,7 @@ import { settingsTabSchema } from "./schemas";
 import type { SettingsTab } from "./types/settings-schema.types";
 
 const settingsSearchSchema = z.object({
-    tab: settingsTabSchema.optional(),
+    tab: z.string().optional(),
 });
 
 export interface SettingsSearch {
@@ -15,9 +15,16 @@ export const defaultSettingsSearch: SettingsSearch = {
 };
 
 export const parseSettingsSearch = (search: unknown): SettingsSearch => {
-    const parsed = settingsSearchSchema.parse(search);
+    const parsed = settingsSearchSchema.safeParse(search);
+    if (!parsed.success) {
+        return defaultSettingsSearch;
+    }
+
+    const requestedTab = parsed.data.tab;
+    const normalizedTab = requestedTab === "tracking" ? defaultSettingsSearch.tab : requestedTab;
+    const resolvedTab = settingsTabSchema.safeParse(normalizedTab);
 
     return {
-        tab: parsed.tab ?? defaultSettingsSearch.tab,
+        tab: resolvedTab.success ? resolvedTab.data : defaultSettingsSearch.tab,
     };
 };
