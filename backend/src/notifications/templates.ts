@@ -1,3 +1,4 @@
+import { ChangeType } from "@prisma/client";
 import { NotificationChangeCategory } from "@mabrik/shared";
 import { config } from "../config";
 import { buildSectionSummaries, groupChangeItems } from "./change-grouping";
@@ -256,7 +257,204 @@ export const renderImmediateEmail = (payload: ImmediateDeliveryPayload) => {
     };
 };
 
-export const renderImmediateTelegram = (payload: ImmediateDeliveryPayload): { text: string } => {
+const TELEGRAM_HIGHLIGHT_LIMIT = 3;
+const TELEGRAM_ITEM_LINE_MAX_CHARS = 90;
+
+const getTelegramSeverityRank = (changeType: ImmediateDeliveryPayload["changeItems"][number]["changeType"]): number => {
+    switch (changeType) {
+        case ChangeType.SOLD_OUT:
+            return 0;
+        case ChangeType.BACK_IN_STOCK:
+            return 1;
+        case ChangeType.PRICE_DECREASE:
+            return 2;
+        case ChangeType.PRICE_INCREASE:
+            return 3;
+        case ChangeType.NEW_PRODUCT:
+            return 4;
+        default:
+            return 5;
+    }
+};
+
+const getTelegramChangeMarker = (changeType: ImmediateDeliveryPayload["changeItems"][number]["changeType"]): string => {
+    switch (changeType) {
+        case ChangeType.SOLD_OUT:
+            return "🔴";
+        case ChangeType.BACK_IN_STOCK:
+            return "🟢";
+        case ChangeType.PRICE_DECREASE:
+            return "⬇";
+        case ChangeType.PRICE_INCREASE:
+            return "⬆";
+        case ChangeType.NEW_PRODUCT:
+            return "🆕";
+        default:
+            return "•";
+    }
+};
+
+const toGraphemes = (value: string): string[] => {
+    if (typeof Intl.Segmenter === "function") {
+        const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+        return Array.from(segmenter.segment(value), (entry) => entry.segment);
+    }
+
+    return Array.from(value);
+};
+
+const truncateToGraphemes = (value: string, maxGraphemes: number): string => {
+    if (maxGraphemes <= 0) {
+        return "";
+    }
+
+    const graphemes = toGraphemes(value);
+    if (graphemes.length <= maxGraphemes) {
+        return value;
+    }
+
+    if (maxGraphemes === 1) {
+        return "…";
+    }
+
+    return `${graphemes.slice(0, maxGraphemes - 1).join("")}…`;
+};
+
+const truncateForEscapedBudget = (value: string, maxEscapedChars: number): string => {
+    if (escapeHtml(value).length <= maxEscapedChars) {
+        return value;
+    }
+
+    let graphemes = toGraphemes(value);
+    while (graphemes.length > 1) {
+        graphemes = graphemes.slice(0, -1);
+        const candidate = `${graphemes.join("")}…`;
+        if (escapeHtml(candidate).length <= maxEscapedChars) {
+            return candidate;
+        }
+    }
+
+    return "…";
+};
+
+const formatTelegramPrice = (value: unknown): string => {
+    if (value === null || value === undefined) {
+        return "-";
+    }
+
+    const number = typeof value === "number" ? value : Number(value);
+    return `€${number.toFixed(2)}`;
+};
+
+const formatTelegramPriceChangeDetail = (item: ImmediateDeliveryPayload["changeItems"][number]): string => {
+    if (item.newPrice === null || item.newPrice === undefined) {
+        return "";
+    }
+
+    if (item.oldPrice === null || item.oldPrice === undefined) {
+        return `${formatTelegramPrice(item.newPrice)}`;
+    }
+
+    const oldPrice = typeof item.oldPrice === "number" ? item.oldPrice : Number(item.oldPrice);
+    const newPrice = typeof item.newPrice === "number" ? item.newPrice : Number(item.newPrice);
+    const delta = newPrice - oldPrice;
+    const sign = delta >= 0 ? "+" : "-";
+    const deltaLabel = `${sign}€${Math.abs(delta).toFixed(2)}`;
+
+    return `${formatTelegramPrice(newPrice)} (${deltaLabel})`;
+};
+
+const formatTelegramStockDetail = (
+    changeType: ImmediateDeliveryPayload["changeItems"][number]["changeType"],
+): string => {
+    if (changeType === ChangeType.SOLD_OUT) {
+        return "Sold out";
+    }
+
+    if (changeType === ChangeType.BACK_IN_STOCK) {
+        return "Back in stock";
+    }
+
+    return "";
+};
+
+const getTelegramItemDetail = (item: ImmediateDeliveryPayload["changeItems"][number]): string => {
+    if (item.changeType === ChangeType.PRICE_DECREASE || item.changeType === ChangeType.PRICE_INCREASE) {
+        return formatTelegramPriceChangeDetail(item);
+    }
+
+    if (item.changeType === ChangeType.NEW_PRODUCT) {
+        return item.newPrice !== null && item.newPrice !== undefined
+            ? formatTelegramPrice(item.newPrice)
+            : "New product";
+    }
+
+    return formatTelegramStockDetail(item.changeType);
+};
+
+const formatTelegramHighlightLine = (item: ImmediateDeliveryPayload["changeItems"][number]): string => {
+    const watchedPrefix = item.isWatchedAtSend ? "⭐ " : "";
+    const marker = getTelegramChangeMarker(item.changeType);
+    const detail = getTelegramItemDetail(item);
+    const prefix = `${watchedPrefix}${marker} `;
+    const detailSuffix = detail ? ` - ${detail}` : "";
+    const reservedGraphemes = toGraphemes(prefix).length + toGraphemes(detailSuffix).length;
+    const maxNameGraphemes = Math.max(8, TELEGRAM_ITEM_LINE_MAX_CHARS - reservedGraphemes);
+    const truncatedName = truncateToGraphemes(item.product.name, maxNameGraphemes);
+    const rawLine = `${prefix}${truncatedName}${detailSuffix}`;
+    const budgetedLine = truncateForEscapedBudget(rawLine, TELEGRAM_ITEM_LINE_MAX_CHARS);
+
+    return escapeHtml(budgetedLine);
+};
+
+const getPrioritizedTelegramItems = (items: ImmediateDeliveryPayload["changeItems"]) =>
+    items
+        .map((item, index) => ({ item, index }))
+        .sort((left, right) => {
+            const watchedRankLeft = left.item.isWatchedAtSend ? 0 : 1;
+            const watchedRankRight = right.item.isWatchedAtSend ? 0 : 1;
+            if (watchedRankLeft !== watchedRankRight) {
+                return watchedRankLeft - watchedRankRight;
+            }
+
+            const severityLeft = getTelegramSeverityRank(left.item.changeType);
+            const severityRight = getTelegramSeverityRank(right.item.changeType);
+            if (severityLeft !== severityRight) {
+                return severityLeft - severityRight;
+            }
+
+            return left.index - right.index;
+        })
+        .map((entry) => entry.item);
+
+const isValidTimeZone = (value: string): boolean => {
+    try {
+        new Intl.DateTimeFormat("en-GB", { timeZone: value }).format(new Date());
+        return true;
+    } catch {
+        return false;
+    }
+};
+
+const formatTelegramRunTimestamp = (value: Date, timezoneCandidate?: string): string => {
+    if (timezoneCandidate && isValidTimeZone(timezoneCandidate)) {
+        const formatter = new Intl.DateTimeFormat("en-US", {
+            month: "short",
+            day: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+            timeZone: timezoneCandidate,
+        });
+
+        return `${formatter.format(value)} ${timezoneCandidate}`;
+    }
+
+    return formatUtcTimestamp(value);
+};
+
+const renderImmediateTelegramLegacy = (payload: ImmediateDeliveryPayload): { text: string } => {
     const categoryName = payload.report.scrapeRun.category.nameEt;
     const categoryRunsUrl = buildCategoryRunsUrl(payload.report.scrapeRun.category.id);
     const runTimestamp = formatUtcTimestamp(getRunTimestamp(payload));
@@ -290,6 +488,41 @@ export const renderImmediateTelegram = (payload: ImmediateDeliveryPayload): { te
 
     return {
         text: lines.join("\n"),
+    };
+};
+
+export const renderImmediateTelegram = (payload: ImmediateDeliveryPayload): { text: string; parseMode?: "HTML" } => {
+    if (!config.NOTIFICATIONS_TELEGRAM_TEMPLATE_V2) {
+        return renderImmediateTelegramLegacy(payload);
+    }
+
+    const categoryName = escapeHtml(payload.report.scrapeRun.category.nameEt);
+    const categoryRunsUrl = buildCategoryRunsUrl(payload.report.scrapeRun.category.id);
+    const userTimezone =
+        typeof (payload.user as Record<string, unknown>).timezone === "string"
+            ? ((payload.user as Record<string, unknown>).timezone as string)
+            : undefined;
+    const runTimestamp = escapeHtml(formatTelegramRunTimestamp(getRunTimestamp(payload), userTimezone));
+    const prioritizedItems = getPrioritizedTelegramItems(payload.changeItems);
+    const topItems = prioritizedItems.slice(0, TELEGRAM_HIGHLIGHT_LIMIT);
+    const overflow = prioritizedItems.length - topItems.length;
+
+    const lines = [
+        `<b>PricePulse:</b> ${payload.report.totalChanges} changes in ${categoryName}`,
+        `<b>Run:</b> ${runTimestamp}`,
+        "",
+        ...topItems.map(formatTelegramHighlightLine),
+    ];
+
+    if (overflow > 0) {
+        lines.push(`+${overflow} more changes`);
+    }
+
+    lines.push("", `<a href="${escapeHtml(categoryRunsUrl)}">View all changes in PricePulse</a>`);
+
+    return {
+        text: lines.join("\n"),
+        parseMode: "HTML",
     };
 };
 

@@ -22,6 +22,7 @@ export interface EmailTransport {
 export interface TelegramMessage {
     chatId: string;
     text: string;
+    parseMode?: "HTML" | "MarkdownV2" | "Markdown";
 }
 
 export interface TelegramTransport {

@@ -31,6 +31,7 @@ const envSchema = z
         EMAIL_PROVIDER: z.enum(["smtp", "resend"]).default("smtp"),
         EMAIL_FROM: z.string().email().default("no-reply@example.com"),
         NOTIFICATIONS_TELEGRAM_ENABLED: booleanStringSchema.default(false),
+        NOTIFICATIONS_TELEGRAM_TEMPLATE_V2: booleanStringSchema.default(true),
         TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),
         TELEGRAM_BOT_USERNAME: z.string().min(1).optional(),
         TELEGRAM_WEBHOOK_SECRET: z.string().min(1).optional(),

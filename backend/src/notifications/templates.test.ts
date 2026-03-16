@@ -1,6 +1,6 @@
 import { ChangeType, UserRole } from "@prisma/client";
-import { describe, expect, it } from "vitest";
-import { renderDigestEmail, renderImmediateEmail } from "./templates";
+import { describe, expect, it, vi } from "vitest";
+import { renderDigestEmail, renderImmediateEmail, renderImmediateTelegram } from "./templates";
 import type { DigestRecipientPayload, ImmediateDeliveryPayload } from "./types";
 
 const immediatePayload: ImmediateDeliveryPayload = {
@@ -48,6 +48,161 @@ const immediatePayload: ImmediateDeliveryPayload = {
 };
 
 describe("notification templates", () => {
+    it("renders immediate telegram with watched-priority highlights, overflow, and CTA", () => {
+        const payload: ImmediateDeliveryPayload = {
+            ...immediatePayload,
+            report: {
+                ...immediatePayload.report,
+                totalChanges: 5,
+            },
+            changeItems: [
+                {
+                    ...immediatePayload.changeItems[0],
+                    id: "watched-sold-out",
+                    isWatchedAtSend: true,
+                    changeType: ChangeType.SOLD_OUT,
+                    oldStockStatus: true,
+                    newStockStatus: false,
+                    oldPrice: null,
+                    newPrice: null,
+                    product: {
+                        ...immediatePayload.changeItems[0].product,
+                        name: "Watched Sold Out Product",
+                    },
+                },
+                {
+                    ...immediatePayload.changeItems[0],
+                    id: "watched-drop",
+                    isWatchedAtSend: true,
+                    changeType: ChangeType.PRICE_DECREASE,
+                    oldPrice: 99.99 as never,
+                    newPrice: 79.99 as never,
+                    product: {
+                        ...immediatePayload.changeItems[0].product,
+                        name: "Watched Drop Product",
+                    },
+                },
+                {
+                    ...immediatePayload.changeItems[0],
+                    id: "regular-back-in-stock",
+                    isWatchedAtSend: false,
+                    changeType: ChangeType.BACK_IN_STOCK,
+                    oldStockStatus: false,
+                    newStockStatus: true,
+                    oldPrice: null,
+                    newPrice: null,
+                    product: {
+                        ...immediatePayload.changeItems[0].product,
+                        name: "Regular Back In Stock Product",
+                    },
+                },
+                {
+                    ...immediatePayload.changeItems[0],
+                    id: "regular-new",
+                    isWatchedAtSend: false,
+                    changeType: ChangeType.NEW_PRODUCT,
+                    oldPrice: null,
+                    newPrice: 14.99 as never,
+                    oldStockStatus: null,
+                    newStockStatus: true,
+                    product: {
+                        ...immediatePayload.changeItems[0].product,
+                        name: "Regular New Product",
+                    },
+                },
+                {
+                    ...immediatePayload.changeItems[0],
+                    id: "regular-increase",
+                    isWatchedAtSend: false,
+                    changeType: ChangeType.PRICE_INCREASE,
+                    oldPrice: 10 as never,
+                    newPrice: 19.5 as never,
+                    product: {
+                        ...immediatePayload.changeItems[0].product,
+                        name: "Regular Increase Product",
+                    },
+                },
+            ],
+        };
+
+        const telegram = renderImmediateTelegram(payload);
+        const lines = telegram.text.split("\n");
+        const highlightLines = lines.filter(
+            (line) => line.startsWith("⭐") || line.startsWith("🟢") || line.startsWith("⬇"),
+        );
+
+        expect(telegram.parseMode).toBe("HTML");
+        expect(lines[0]).toContain("PricePulse");
+        expect(highlightLines).toHaveLength(3);
+        expect(highlightLines[0]).toContain("⭐ 🔴 Watched Sold Out Product");
+        expect(highlightLines[1]).toContain("⭐ ⬇ Watched Drop Product");
+        expect(highlightLines[2]).toContain("🟢 Regular Back In Stock Product");
+        expect(telegram.text).toContain("+2 more changes");
+        expect(telegram.text).toContain("View all changes in PricePulse");
+        expect(telegram.text.length).toBeLessThanOrEqual(700);
+    });
+
+    it("escapes unsafe product names and keeps telegram highlight lines compact", () => {
+        const payload: ImmediateDeliveryPayload = {
+            ...immediatePayload,
+            report: {
+                ...immediatePayload.report,
+                totalChanges: 1,
+            },
+            changeItems: [
+                {
+                    ...immediatePayload.changeItems[0],
+                    id: "unsafe-name",
+                    isWatchedAtSend: true,
+                    changeType: ChangeType.PRICE_DECREASE,
+                    oldPrice: 50 as never,
+                    newPrice: 10 as never,
+                    product: {
+                        ...immediatePayload.changeItems[0].product,
+                        name: 'Family 👨‍👩‍👧‍👦 Bundle <script>alert("x")</script> & Deluxe Super Extended Edition Name',
+                    },
+                },
+            ],
+        };
+
+        const telegram = renderImmediateTelegram(payload);
+        const highlightLine = telegram.text
+            .split("\n")
+            .find(
+                (line) =>
+                    line.startsWith("⭐") || line.startsWith("⬇") || line.startsWith("🔴") || line.startsWith("🟢"),
+            );
+
+        expect(telegram.text).toContain("&lt;script&gt;");
+        expect(telegram.text).not.toContain("<script>");
+        expect(highlightLine).toBeDefined();
+        expect(highlightLine!.length).toBeLessThanOrEqual(90);
+    });
+
+    it("falls back to legacy telegram template when v2 flag is disabled", async () => {
+        vi.resetModules();
+        vi.doMock("../config", async () => {
+            const actual = await vi.importActual<typeof import("../config")>("../config");
+
+            return {
+                config: {
+                    ...actual.config,
+                    NOTIFICATIONS_TELEGRAM_TEMPLATE_V2: false,
+                },
+            };
+        });
+
+        const { renderImmediateTelegram: renderLegacyTelegram } = await import("./templates");
+        const telegram = renderLegacyTelegram(immediatePayload);
+
+        expect(telegram.parseMode).toBeUndefined();
+        expect(telegram.text).toContain("PricePulse alert");
+        expect(telegram.text).toContain("View in PricePulse");
+
+        vi.doUnmock("../config");
+        vi.resetModules();
+    });
+
     it("renders grouped immediate email with context, caps, and CTA links", () => {
         const groupedPayload: ImmediateDeliveryPayload = {
             ...immediatePayload,

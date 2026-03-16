@@ -61,6 +61,7 @@ export const sendImmediateNotifications = async (changeReportId: string, transpo
                 await telegramTransport.sendTelegramMessage({
                     chatId: payload.channel.destination,
                     text: telegram.text,
+                    parseMode: telegram.parseMode,
                 });
 
                 await markDeliverySent(payload.delivery.id);

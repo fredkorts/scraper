@@ -74,6 +74,7 @@ class HttpTelegramTransport implements TelegramTransport {
                 chat_id: message.chatId,
                 text: message.text,
                 disable_web_page_preview: true,
+                parse_mode: message.parseMode,
             }),
         });
 

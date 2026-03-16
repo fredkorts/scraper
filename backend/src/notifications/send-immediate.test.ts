@@ -186,5 +186,8 @@ describe("sendImmediateNotifications", () => {
         expect(updated.status).toBe(NotificationDeliveryStatus.SENT);
         expect(transport.sentMessages).toHaveLength(0);
         expect(telegramTransport.sentMessages).toHaveLength(1);
+        expect(telegramTransport.sentMessages[0]).toMatchObject({
+            parseMode: "HTML",
+        });
     });
 });
