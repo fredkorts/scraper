@@ -14,6 +14,7 @@ import { defaultRunsListSearch, normalizeTableSearchQuery } from "../../search";
 import { useDebouncedValue } from "../../../../shared/hooks/use-debounced-value";
 import { useClampedPage } from "../../../../shared/hooks/use-clamped-page";
 import { useRouteSearchUpdater } from "../../../../shared/hooks/use-route-search-updater";
+import { ScrapeStatusLabel } from "../../../../shared/components/scrape-status-label/ScrapeStatusLabel";
 import styles from "../scrape-page-view.module.scss";
 
 export const RunDetailPageView = () => {
@@ -149,7 +150,7 @@ export const RunDetailPageView = () => {
                     </Link>
                 </div>
                 <span className={sectionStyles.statusBadge} data-status={run.status}>
-                    {formatStatusLabel(run.status)}
+                    <ScrapeStatusLabel status={run.status} />
                 </span>
             </div>
 

@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { AppButton } from "../../../components/app-button/AppButton";
 import { SortHeader } from "../../../components/sort-header/SortHeader";
 import { formatDateTime, formatStatusLabel } from "../../../shared/formatters/display";
+import { ScrapeStatusLabel } from "../../../shared/components/scrape-status-label/ScrapeStatusLabel";
 import { SCHEDULER_LAST_RUN_STATUS_TONES } from "../constants/admin-scheduler-state.constants";
 import { formatEligibilityStatusLabel, formatQueueStatusLabel } from "../formatters/admin-scheduler-state.formatters";
 import type { AdminSchedulerStateItemData } from "../types/settings-schema.types";
@@ -115,7 +116,10 @@ export const useAdminSchedulerColumns = ({
                                     className={statusBadgeClassName}
                                     data-status={SCHEDULER_LAST_RUN_STATUS_TONES[item.lastRunStatus]}
                                 >
-                                    {formatStatusLabel(item.lastRunStatus)}
+                                    <ScrapeStatusLabel
+                                        label={formatStatusLabel(item.lastRunStatus)}
+                                        status={item.lastRunStatus}
+                                    />
                                 </span>
                             </span>
                         );

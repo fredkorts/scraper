@@ -2,8 +2,9 @@ import { Link } from "@tanstack/react-router";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
 import { SortHeader } from "../../../components/sort-header/SortHeader";
+import { ScrapeStatusLabel } from "../../../shared/components/scrape-status-label/ScrapeStatusLabel";
 import { defaultRunDetailSectionSearch } from "../search";
-import { formatDateTime, formatDuration, formatStatusLabel } from "../formatters";
+import { formatDateTime, formatDuration } from "../formatters";
 import type { RunsListData } from "../schemas";
 import type { UseRunsTableColumnsOptions } from "../types/use-runs-table-columns.types";
 
@@ -44,7 +45,7 @@ export const useRunsTableColumns = ({
                     ),
                     cell: (info) => (
                         <span className={statusBadgeClassName} data-status={info.getValue()}>
-                            {formatStatusLabel(info.getValue())}
+                            <ScrapeStatusLabel status={info.getValue()} />
                         </span>
                     ),
                 }),

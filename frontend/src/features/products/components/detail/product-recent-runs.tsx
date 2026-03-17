@@ -1,5 +1,6 @@
 import { Card, Empty, Space, Tag, Typography } from "antd";
 import { Link } from "@tanstack/react-router";
+import { ScrapeStatusLabel } from "../../../../shared/components/scrape-status-label/ScrapeStatusLabel";
 import { formatDateTime, formatDuration, formatStatusLabel } from "../../../../shared/formatters/display";
 import { defaultRunDetailSectionSearch, defaultRunsListSearch } from "../../../../shared/navigation/default-searches";
 import styles from "../product-detail-view.module.scss";
@@ -47,7 +48,9 @@ export const ProductRecentRuns = ({ recentRuns }: ProductRecentRunsProps) => (
                                     <Typography.Text strong>{run.categoryName}</Typography.Text>
                                 </td>
                                 <td>
-                                    <Tag>{formatStatusLabel(run.status)}</Tag>
+                                    <Tag>
+                                        <ScrapeStatusLabel label={formatStatusLabel(run.status)} status={run.status} />
+                                    </Tag>
                                 </td>
                                 <td>{formatDateTime(run.startedAt)}</td>
                                 <td>{formatDateTime(run.completedAt)}</td>

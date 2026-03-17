@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { defaultRunDetailSectionSearch } from "../../../../shared/navigation/default-searches";
+import { ScrapeStatusLabel } from "../../../../shared/components/scrape-status-label/ScrapeStatusLabel";
 import styles from "./dashboard-sections.module.scss";
 import type { DashboardRunListPanelProps } from "../../types/dashboard-sections.types";
 
@@ -27,7 +28,7 @@ export const DashboardRunListPanel = ({
                             <div className={styles.sectionHeader}>
                                 <strong>{item.categoryName}</strong>
                                 <span className={styles.statusBadge} data-status={item.statusTone}>
-                                    {item.statusLabel}
+                                    <ScrapeStatusLabel label={item.statusLabel} status={item.statusTone} />
                                 </span>
                             </div>
                             {item.secondaryMeta?.length ? (
@@ -37,9 +38,7 @@ export const DashboardRunListPanel = ({
                                     ))}
                                 </div>
                             ) : null}
-                            {item.description ? (
-                                <p className={styles.subtle}>{item.description}</p>
-                            ) : null}
+                            {item.description ? <p className={styles.subtle}>{item.description}</p> : null}
                             <Link
                                 params={{ runId: item.runId }}
                                 search={defaultRunDetailSectionSearch}
