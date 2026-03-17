@@ -6,19 +6,19 @@ import type { DashboardSummaryGridProps } from "../../types/dashboard-sections.t
 export const DashboardSummaryGrid = ({ summary, categoryId }: DashboardSummaryGridProps) => {
     const cards = [
         {
-            label: "Price increase",
-            value: summary.priceIncrease,
-            changeType: "price_increase" as const,
-        },
-        {
             label: "New products",
             value: summary.newProduct,
             changeType: "new_product" as const,
         },
         {
-            label: "Sold Out",
-            value: summary.soldOut,
-            changeType: "sold_out" as const,
+            label: "Price decrease",
+            value: summary.priceDecrease,
+            changeType: "price_decrease" as const,
+        },
+        {
+            label: "Price increase",
+            value: summary.priceIncrease,
+            changeType: "price_increase" as const,
         },
         {
             label: "Back in stock",

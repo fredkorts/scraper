@@ -28,13 +28,7 @@ export const ProductDetailPageView = () => {
     const navigate = useNavigate({ from: "/app/products/$productId" });
     const { productId } = useParams({ from: "/app/products/$productId" });
     const search = useSearch({ from: "/app/products/$productId" });
-    const effectiveControls = {
-        ...search,
-        categoryId: undefined,
-        stockFilter: defaultProductHistoryControls.stockFilter,
-        showOriginalPrice: defaultProductHistoryControls.showOriginalPrice,
-        showStockOverlay: defaultProductHistoryControls.showStockOverlay,
-    };
+    const effectiveControls = search;
     const detailQuery = useProductDetailQuery(productId);
     const historyQuery = useProductHistoryQuery(productId);
     const trackProductMutation = useTrackProductMutation();
@@ -194,10 +188,18 @@ export const ProductDetailPageView = () => {
                 onResetFilters={() =>
                     setSearch({
                         range: defaultProductHistoryControls.range,
+                        categoryId: defaultProductHistoryControls.categoryId,
+                        stockFilter: defaultProductHistoryControls.stockFilter,
+                        showOriginalPrice: defaultProductHistoryControls.showOriginalPrice,
+                        showStockOverlay: defaultProductHistoryControls.showStockOverlay,
                     })
                 }
                 onRetryHistory={() => void historyQuery.refetch()}
                 onSetRange={(value) => setSearch({ range: value })}
+                onSetCategoryId={(value) => setSearch({ categoryId: value })}
+                onSetStockFilter={(value) => setSearch({ stockFilter: value })}
+                onSetShowOriginalPrice={(value) => setSearch({ showOriginalPrice: value })}
+                onSetShowStockOverlay={(value) => setSearch({ showStockOverlay: value })}
             />
         </section>
     );

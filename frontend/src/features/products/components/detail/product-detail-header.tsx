@@ -1,4 +1,4 @@
-import { EyeInvisibleOutlined, EyeOutlined } from "@ant-design/icons";
+import { ExportOutlined, EyeInvisibleOutlined, EyeOutlined } from "@ant-design/icons";
 import { Alert, Breadcrumb, Space, Tag, Typography } from "antd";
 import { Link } from "@tanstack/react-router";
 import { AppButton } from "../../../../components/app-button/AppButton";
@@ -61,14 +61,22 @@ export const ProductDetailHeader = ({
                         {product.isWatched ? "Watching" : "Watch product"}
                     </AppButton>
                 ) : null}
-                <AppButton href={product.externalUrl} intent="secondary" rel="noreferrer" target="_blank">
+                <AppButton
+                    href={product.externalUrl}
+                    intent="secondary"
+                    icon={<ExportOutlined aria-hidden />}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                >
                     Open on Mabrik
                 </AppButton>
             </div>
         </div>
-        <Typography.Text type="secondary">
-            Added {formatDateTime(product.firstSeenAt)} · {freshness.relativeLabel}
-        </Typography.Text>
+        <Space className={styles.metaText} size="small" wrap>
+            <Typography.Text type="secondary">First seen {formatDateTime(product.firstSeenAt)}</Typography.Text>
+            <Typography.Text type="secondary">Last seen {formatDateTime(product.lastSeenAt)}</Typography.Text>
+            <Typography.Text type="secondary">{freshness.relativeLabel}</Typography.Text>
+        </Space>
         {freshness.isStale ? (
             <Alert
                 title="Product data may be stale"

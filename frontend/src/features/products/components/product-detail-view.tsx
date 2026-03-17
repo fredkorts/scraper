@@ -22,6 +22,10 @@ export const ProductDetailView = ({
     onResetFilters,
     onRetryHistory,
     onSetRange,
+    onSetCategoryId,
+    onSetStockFilter,
+    onSetShowOriginalPrice,
+    onSetShowStockOverlay,
 }: ProductDetailViewProps) => (
     <div className={styles.page}>
         <ProductDetailHeader
@@ -49,7 +53,16 @@ export const ProductDetailView = ({
         >
             <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
                 {viewModel.historyVisualMode === "chart" ? (
-                    <ProductHistoryControlsSection controls={controls} onSetRange={onSetRange} />
+                    <ProductHistoryControlsSection
+                        controls={controls}
+                        categoryOptions={viewModel.history.availableCategoryOptions}
+                        onSetRange={onSetRange}
+                        onSetCategoryId={onSetCategoryId}
+                        onSetStockFilter={onSetStockFilter}
+                        onSetShowOriginalPrice={onSetShowOriginalPrice}
+                        onSetShowStockOverlay={onSetShowStockOverlay}
+                        onResetFilters={onResetFilters}
+                    />
                 ) : null}
 
                 <ProductHistorySummaryCards historySummary={viewModel.history.historySummary} />

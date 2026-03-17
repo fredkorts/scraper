@@ -100,6 +100,16 @@ describe("scrape views", () => {
         expect(screen.getByText("Tracked Product")).toBeInTheDocument();
         expect(screen.queryByRole("link", { name: "Track a product" })).not.toBeInTheDocument();
         expect(screen.getByRole("link", { name: "View new products changes (2)" })).toBeInTheDocument();
+        const summaryLinkLabels = screen
+            .getAllByRole("link")
+            .map((element) => element.getAttribute("aria-label"))
+            .filter((label): label is string => typeof label === "string" && label.includes("changes"));
+        expect(summaryLinkLabels).toEqual([
+            "View new products changes (2)",
+            "View price decrease changes (5)",
+            "View price increase changes (1)",
+            "View back in stock changes (1)",
+        ]);
     }, 10_000);
 
     it("routes dashboard summary cards to the changes explorer with prefilled filters", async () => {
@@ -703,7 +713,7 @@ describe("scrape views", () => {
         expect(screen.queryByRole("button", { name: "Show table fallback" })).not.toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "Chart view" })).not.toBeInTheDocument();
         expect(screen.queryByText("2 filtered state-change snapshots")).not.toBeInTheDocument();
-        expect(screen.queryByRole("columnheader", { name: "Run" })).not.toBeInTheDocument();
+        expect(screen.getByRole("columnheader", { name: "Run" })).toBeInTheDocument();
         expect(document.querySelector("a button")).toBeNull();
         expect(document.querySelector("button a")).toBeNull();
     }, 15_000);
@@ -786,10 +796,10 @@ describe("scrape views", () => {
             range: "all",
         });
         expect(screen.getByRole("radiogroup", { name: "Time range" })).toBeInTheDocument();
-        expect(screen.queryByLabelText("Category")).not.toBeInTheDocument();
-        expect(screen.queryByLabelText("Stock filter")).not.toBeInTheDocument();
-        expect(screen.queryByLabelText("Show original price")).not.toBeInTheDocument();
-        expect(screen.queryByLabelText("Show stock overlay")).not.toBeInTheDocument();
+        expect(screen.getByLabelText("Category")).toBeInTheDocument();
+        expect(screen.getByLabelText("Stock filter")).toBeInTheDocument();
+        expect(screen.getByLabelText("Show original price")).toBeInTheDocument();
+        expect(screen.getByLabelText("Show stock overlay")).toBeInTheDocument();
         expect(screen.queryByText("3 filtered state-change snapshots")).not.toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Table view" })).toBeInTheDocument();
 
@@ -797,7 +807,7 @@ describe("scrape views", () => {
         expect(screen.getByRole("heading", { name: "History Table" })).toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Chart view" })).toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "Show table fallback" })).not.toBeInTheDocument();
-        expect(screen.queryByRole("columnheader", { name: "Run" })).not.toBeInTheDocument();
+        expect(screen.getByRole("columnheader", { name: "Run" })).toBeInTheDocument();
 
         await user.click(screen.getByText("30d"));
         expect(await screen.findByText("Not enough history to show trend yet.")).toBeInTheDocument();

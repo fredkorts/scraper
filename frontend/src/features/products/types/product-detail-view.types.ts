@@ -1,6 +1,6 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import type { RefObject } from "react";
-import type { ProductHistoryControls, ProductHistoryRange } from "../history-controls";
+import type { ProductHistoryControls, ProductHistoryRange, ProductHistoryStockFilter } from "../history-controls";
 import type { ProductDetailData, ProductHistoryData } from "../schemas";
 import type { useProductDetailPageViewModel } from "../hooks/use-product-detail-page-view-model";
 
@@ -18,4 +18,8 @@ export interface ProductDetailViewProps {
     onRetryHistory: () => void;
     onResetFilters: () => void;
     onSetRange: (value: ProductHistoryRange) => void;
+    onSetCategoryId: (value?: string) => void;
+    onSetStockFilter: (value: ProductHistoryStockFilter) => void;
+    onSetShowOriginalPrice: (value: boolean) => void;
+    onSetShowStockOverlay: (value: boolean) => void;
 }

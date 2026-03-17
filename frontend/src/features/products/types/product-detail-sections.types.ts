@@ -2,7 +2,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import type { RefObject } from "react";
 import type { ProductDetailData, ProductHistoryData } from "../schemas";
 import type { useProductDetailPageViewModel } from "../hooks/use-product-detail-page-view-model";
-import type { ProductHistoryControls, ProductHistoryRange } from "../history-controls";
+import type { ProductHistoryControls, ProductHistoryRange, ProductHistoryStockFilter } from "../history-controls";
 
 export type ProductDetailRecord = ProductDetailData["product"];
 export type ProductHistoryRecord = ProductHistoryData["items"][number];
@@ -36,7 +36,13 @@ export interface ProductSupportingDetailsProps {
 
 export interface ProductHistoryControlsSectionProps {
     controls: ProductHistoryControls;
+    categoryOptions: Array<{ id: string; name: string }>;
     onSetRange: (value: ProductHistoryRange) => void;
+    onSetCategoryId: (value?: string) => void;
+    onSetStockFilter: (value: ProductHistoryStockFilter) => void;
+    onSetShowOriginalPrice: (value: boolean) => void;
+    onSetShowStockOverlay: (value: boolean) => void;
+    onResetFilters: () => void;
 }
 
 export interface ProductHistorySummaryCardsProps {
