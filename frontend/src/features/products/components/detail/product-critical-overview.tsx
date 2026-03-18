@@ -7,6 +7,8 @@ import type { ProductCriticalOverviewProps } from "../../types/product-detail-se
 
 export const ProductCriticalOverview = ({ discount, discountBadgeLabel, product }: ProductCriticalOverviewProps) => {
     const stockStatusText = product.inStock ? STOCK_STATUS_LABELS.inStock : STOCK_STATUS_LABELS.outOfStock;
+    const originalPriceDisplay =
+        typeof product.originalPrice === "number" ? product.originalPrice : product.currentPrice;
 
     return (
         <Row className={styles.gridRow} gutter={[16, 16]}>
@@ -46,9 +48,9 @@ export const ProductCriticalOverview = ({ discount, discountBadgeLabel, product 
                             <Statistic
                                 className={styles.metricSecondary}
                                 title="Original price"
-                                value={discount.hasOriginalPrice ? product.originalPrice : "—"}
-                                precision={typeof product.originalPrice === "number" ? 2 : undefined}
-                                prefix={discount.hasOriginalPrice ? "€" : undefined}
+                                value={originalPriceDisplay}
+                                precision={2}
+                                prefix="€"
                             />
                             {discount.hasDiscount ? (
                                 <Typography.Text type="success">
