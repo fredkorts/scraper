@@ -6,27 +6,6 @@ import { getSettingsPanelId, getSettingsTabId } from "../constants/settings-tab-
 import type { SettingsNotificationsTabProps } from "../types/settings-ui.types";
 import styles from "./settings-shared.module.scss";
 
-const getTelegramStatusLabel = (status: SettingsNotificationsTabProps["telegramLinkStatus"]) => {
-    if (!status) {
-        return "Status unavailable";
-    }
-
-    switch (status.status) {
-        case "none":
-            return "Not connected";
-        case "awaiting_telegram":
-            return "Waiting for /start in Telegram";
-        case "awaiting_confirmation":
-            return "Ready to confirm";
-        case "expired":
-            return "Link expired";
-        case "connected":
-            return "Connected";
-        default:
-            return "Status unavailable";
-    }
-};
-
 export const SettingsNotificationsTab = ({
     channels,
     newChannelEmail,
@@ -50,7 +29,6 @@ export const SettingsNotificationsTab = ({
 }: SettingsNotificationsTabProps) => {
     const canConfirmTelegram =
         telegramLinkStatus?.status === "awaiting_confirmation" && Boolean(telegramLinkStatus.challengeId);
-    const telegramStatusLabel = getTelegramStatusLabel(telegramLinkStatus);
     const hasTelegramConnectedChannel = channels.some(
         (channel) => channel.channelType === "telegram" && channel.isActive,
     );
@@ -107,12 +85,6 @@ export const SettingsNotificationsTab = ({
                     <p className={styles.subtle}>Telegram alerts are available on paid and admin plans.</p>
                 ) : (
                     <>
-                        <p className={styles.subtle}>
-                            Status: <strong>{telegramStatusLabel}</strong>
-                            {telegramLinkStatus?.telegramAccountPreview
-                                ? ` (${telegramLinkStatus.telegramAccountPreview})`
-                                : null}
-                        </p>
                         {telegramLinkStatus?.expiresAt ? (
                             <p className={styles.subtle}>
                                 Challenge expires at {new Date(telegramLinkStatus.expiresAt).toLocaleString()}.
@@ -130,15 +102,16 @@ export const SettingsNotificationsTab = ({
                             >
                                 {telegramLinkStatus?.status === "connected" ? "Relink Telegram" : "Connect Telegram"}
                             </AppButton>
-                            <AppButton
-                                intent="secondary"
-                                href={telegramDeepLinkUrl ?? undefined}
-                                target="_blank"
-                                rel="noreferrer"
-                                disabled={!telegramDeepLinkUrl}
-                            >
-                                Open Telegram
-                            </AppButton>
+                            {telegramDeepLinkUrl ? (
+                                <AppButton
+                                    intent="secondary"
+                                    href={telegramDeepLinkUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                >
+                                    Open Telegram
+                                </AppButton>
+                            ) : null}
                             <AppButton
                                 intent="secondary"
                                 isLoading={isTelegramLinkStatusLoading}
@@ -146,14 +119,15 @@ export const SettingsNotificationsTab = ({
                             >
                                 Refresh status
                             </AppButton>
-                            <AppButton
-                                intent="success"
-                                isLoading={isConfirmTelegramPending}
-                                onClick={() => void onConfirmTelegramLink()}
-                                disabled={!canConfirmTelegram}
-                            >
-                                Confirm Telegram
-                            </AppButton>
+                            {canConfirmTelegram ? (
+                                <AppButton
+                                    intent="success"
+                                    isLoading={isConfirmTelegramPending}
+                                    onClick={() => void onConfirmTelegramLink()}
+                                >
+                                    Confirm Telegram
+                                </AppButton>
+                            ) : null}
                         </div>
                     </>
                 )}

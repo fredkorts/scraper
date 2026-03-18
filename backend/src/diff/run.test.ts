@@ -147,6 +147,129 @@ describe("runDiffEngine", () => {
         });
     });
 
+    it("creates pending deliveries for all active channels for paid users", async () => {
+        const category = await createCategory("multi-channel");
+        const { user } = await createUser({ email: "multi-channel@example.com", role: "PAID" });
+        const emailChannel = await subscribeUserWithDefaultEmail(user.id, category.id);
+        const telegramChannel = await prisma.notificationChannel.create({
+            data: {
+                userId: user.id,
+                channelType: NotificationChannelType.TELEGRAM,
+                destination: "99887766",
+                isDefault: false,
+                isActive: true,
+            },
+        });
+
+        const scrapeRun = await createCompletedRun(
+            category.id,
+            new Date("2026-03-05T10:00:00.000Z"),
+            new Date("2026-03-05T10:05:00.000Z"),
+        );
+        const product = await createProduct({
+            externalUrl: "https://mabrik.ee/toode/multi-channel-game",
+            name: "multi-channel-game",
+            currentPrice: "19.99",
+            inStock: true,
+            firstSeenAt: new Date("2026-03-05T10:02:00.000Z"),
+        });
+
+        await createSnapshot({
+            scrapeRunId: scrapeRun.id,
+            productId: product.id,
+            name: product.name,
+            price: "19.99",
+            inStock: true,
+            scrapedAt: new Date("2026-03-05T10:02:00.000Z"),
+        });
+
+        const result = await runDiffEngine(scrapeRun.id);
+        const deliveries = await prisma.notificationDelivery.findMany({
+            where: {
+                changeReport: {
+                    scrapeRunId: scrapeRun.id,
+                },
+            },
+            select: {
+                notificationChannelId: true,
+                status: true,
+            },
+        });
+
+        expect(result.totalChanges).toBe(1);
+        expect(result.deliveryCount).toBe(2);
+        expect(deliveries).toHaveLength(2);
+        expect(deliveries).toEqual(
+            expect.arrayContaining([
+                {
+                    notificationChannelId: emailChannel.id,
+                    status: NotificationDeliveryStatus.PENDING,
+                },
+                {
+                    notificationChannelId: telegramChannel.id,
+                    status: NotificationDeliveryStatus.PENDING,
+                },
+            ]),
+        );
+    });
+
+    it("keeps free-user deliveries on default active channel only", async () => {
+        const category = await createCategory("free-default-only");
+        const { user } = await createUser({ email: "free-default@example.com", role: "FREE" });
+        const defaultChannel = await subscribeUserWithDefaultEmail(user.id, category.id);
+        await prisma.notificationChannel.create({
+            data: {
+                userId: user.id,
+                channelType: NotificationChannelType.EMAIL,
+                destination: "secondary-free@example.com",
+                isDefault: false,
+                isActive: true,
+            },
+        });
+
+        const scrapeRun = await createCompletedRun(
+            category.id,
+            new Date("2026-03-06T10:00:00.000Z"),
+            new Date("2026-03-06T10:05:00.000Z"),
+        );
+        const product = await createProduct({
+            externalUrl: "https://mabrik.ee/toode/free-default-game",
+            name: "free-default-game",
+            currentPrice: "14.99",
+            inStock: true,
+            firstSeenAt: new Date("2026-03-06T10:02:00.000Z"),
+        });
+
+        await createSnapshot({
+            scrapeRunId: scrapeRun.id,
+            productId: product.id,
+            name: product.name,
+            price: "14.99",
+            inStock: true,
+            scrapedAt: new Date("2026-03-06T10:02:00.000Z"),
+        });
+
+        const result = await runDiffEngine(scrapeRun.id);
+        const deliveries = await prisma.notificationDelivery.findMany({
+            where: {
+                changeReport: {
+                    scrapeRunId: scrapeRun.id,
+                },
+            },
+            select: {
+                notificationChannelId: true,
+            },
+        });
+
+        expect(result.totalChanges).toBe(1);
+        expect(result.deliveryCount).toBe(1);
+        expect(deliveries).toEqual([
+            {
+                notificationChannelId: defaultChannel.id,
+            },
+        ]);
+    });
+
     it("creates sold out change items and suppresses same-run price deltas", async () => {
         const category = await createCategory("strategy");
         const { user } = await createUser({ email: "paid@example.com" });

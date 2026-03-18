@@ -5,6 +5,7 @@
     box-shadow: var(--notification-shadow);
     color: var(--notification-foreground);
 
+    :global(.ant-notification-notice-title),
     :global(.ant-notification-notice-message),
     :global(.ant-notification-notice-description) {
         color: var(--notification-foreground) !important;

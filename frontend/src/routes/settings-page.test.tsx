@@ -207,7 +207,7 @@ describe("settings page", () => {
             },
         });
 
-        expect(await screen.findByText("Ready to confirm")).toBeInTheDocument();
+        expect(await screen.findByText(/Challenge expires at/i)).toBeInTheDocument();
 
         await user.click(screen.getByRole("button", { name: "Confirm Telegram" }));
 

@@ -1,4 +1,4 @@
-import { NotificationDeliveryStatus } from "@prisma/client";
+import { NotificationDeliveryStatus, UserRole } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import type { DeliveryRecipient, DiffDetectionResult } from "./types";
 
@@ -25,10 +25,10 @@ const loadRecipients = async (categoryId: string): Promise<DeliveryRecipient[]> 
                     notificationChannels: {
                         where: {
                             isActive: true,
-                            isDefault: true,
                         },
                         select: {
                             id: true,
+                            isDefault: true,
                         },
                     },
                 },
@@ -36,13 +36,19 @@ const loadRecipients = async (categoryId: string): Promise<DeliveryRecipient[]> 
         },
     });
 
-    return subscriptions.flatMap((subscription) =>
-        subscription.user.notificationChannels.map((channel) => ({
+    return subscriptions.flatMap((subscription) => {
+        const activeChannels = subscription.user.notificationChannels;
+        const selectedChannels =
+            subscription.user.role === UserRole.FREE
+                ? activeChannels.filter((channel) => channel.isDefault)
+                : activeChannels;
+
+        return selectedChannels.map((channel) => ({
             userId: subscription.userId,
             role: subscription.user.role,
             notificationChannelId: channel.id,
-        })),
-    );
+        }));
+    });
 };
 
 export const persistDiffResults = async (input: PersistDiffResultInput) => {
