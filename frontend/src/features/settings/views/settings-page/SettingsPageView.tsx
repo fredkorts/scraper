@@ -10,6 +10,7 @@ import { useSettingsAdmin } from "../../hooks/use-settings-admin";
 import { useSettingsNotifications } from "../../hooks/use-settings-notifications";
 import { useSettingsTabs } from "../../hooks/use-settings-tabs";
 import { useSubscriptionsQuery } from "../../queries";
+import { normalizeUserError } from "../../../../shared/utils/normalize-user-error";
 import styles from "./settings-page-view.module.scss";
 
 export const SettingsPageView = () => {
@@ -102,7 +103,11 @@ export const SettingsPageView = () => {
                     schedulerStateCategoryTreeData={admin.schedulerStateCategoryTreeData}
                     triggerCategoryTreeData={admin.triggerCategoryTreeData}
                     schedulerStateGeneratedAt={admin.schedulerStateGeneratedAt}
-                    schedulerStateError={admin.schedulerStateQuery.error ? "Unable to load scheduler state." : null}
+                    schedulerStateError={
+                        admin.schedulerStateQuery.error
+                            ? normalizeUserError(admin.schedulerStateQuery.error, "Unable to load scheduler state.")
+                            : null
+                    }
                     isSchedulerStateLoading={admin.schedulerStateQuery.isLoading}
                     selectedIntervalCategoryId={admin.selectedIntervalCategoryId}
                     selectedTriggerCategoryId={admin.selectedTriggerCategoryId}

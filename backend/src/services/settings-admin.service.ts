@@ -9,6 +9,7 @@ import {
 import { ScrapeRunStatus as PrismaScrapeRunStatus } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { AppError } from "../lib/errors";
+import { logger } from "../lib/logger";
 import { createScrapeQueue } from "../queue/queues";
 import { buildCategoryScrapeJobId, enqueueScrapeCategoryJob } from "../queue/enqueue";
 import { buildCategoryHierarchy } from "./category-hierarchy.service";
@@ -30,6 +31,91 @@ const mapJobStateToQueueStatus = (jobState: string): SchedulerQueueStatus => {
     }
 
     return "idle";
+};
+
+const ADMIN_SCHEDULER_QUEUE_LOOKUP_TIMEOUT_MS = 1_500;
+
+const toErrorMessage = (error: unknown): string => (error instanceof Error ? error.message : String(error));
+
+const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number, timeoutLabel: string): Promise<T> => {
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+
+    const timeoutPromise = new Promise<never>((_resolve, reject) => {
+        timeoutHandle = setTimeout(() => {
+            reject(new Error(timeoutLabel));
+        }, timeoutMs);
+    });
+
+    try {
+        return await Promise.race([promise, timeoutPromise]);
+    } finally {
+        if (timeoutHandle) {
+            clearTimeout(timeoutHandle);
+        }
+    }
+};
+
+const buildIdleQueueStatusMap = (categoryIds: readonly string[]): Map<string, SchedulerQueueStatus> =>
+    new Map(categoryIds.map((categoryId) => [categoryId, "idle"] as const));
+
+const resolveQueueStatusByCategory = async (
+    categoryIds: readonly string[],
+    queueLookupTimeoutMs: number,
+): Promise<Map<string, SchedulerQueueStatus>> => {
+    if (categoryIds.length === 0) {
+        return new Map();
+    }
+
+    let queue: ReturnType<typeof createScrapeQueue>;
+
+    try {
+        queue = createScrapeQueue();
+    } catch (error) {
+        logger.warn("admin_scheduler_state_queue_unavailable", {
+            errorMessage: toErrorMessage(error),
+        });
+        return buildIdleQueueStatusMap(categoryIds);
+    }
+
+    try {
+        const queueStatuses = await Promise.all(
+            categoryIds.map(async (categoryId) => {
+                try {
+                    const job = await withTimeout(
+                        queue.getJob(buildCategoryScrapeJobId(categoryId)),
+                        queueLookupTimeoutMs,
+                        "Timed out resolving category queue job",
+                    );
+                    if (!job) {
+                        return [categoryId, "idle"] as const;
+                    }
+
+                    const jobState = await withTimeout(
+                        job.getState(),
+                        queueLookupTimeoutMs,
+                        "Timed out resolving category queue state",
+                    );
+                    return [categoryId, mapJobStateToQueueStatus(jobState)] as const;
+                } catch (error) {
+                    logger.warn("admin_scheduler_state_queue_status_unavailable", {
+                        categoryId,
+                        errorMessage: toErrorMessage(error),
+                    });
+                    return [categoryId, "idle"] as const;
+                }
+            }),
+        );
+
+        return new Map(queueStatuses);
+    } finally {
+        try {
+            await queue.close();
+        } catch (error) {
+            logger.warn("admin_scheduler_state_queue_close_failed", {
+                errorMessage: toErrorMessage(error),
+            });
+        }
+    }
 };
 
 const resolveEligibilityStatus = (input: {
@@ -134,7 +220,14 @@ export const triggerCategoryRun = async (
     }
 };
 
-export const getAdminSchedulerState = async (now: Date = new Date()): Promise<AdminSchedulerStateResponse> => {
+export const getAdminSchedulerState = async (
+    now: Date = new Date(),
+    options: {
+        queueLookupTimeoutMs?: number;
+    } = {},
+): Promise<AdminSchedulerStateResponse> => {
+    const queueLookupTimeoutMs = options.queueLookupTimeoutMs ?? ADMIN_SCHEDULER_QUEUE_LOOKUP_TIMEOUT_MS;
+
     const categories = await prisma.category.findMany({
         select: {
             id: true,
@@ -194,52 +287,33 @@ export const getAdminSchedulerState = async (now: Date = new Date()): Promise<Ad
         subscriptionCounts.map((count) => [count.categoryId, count._count._all] as const),
     );
     const latestRunByCategoryId = new Map(latestRuns.map((run) => [run.categoryId, run] as const));
+    const queueStatusByCategoryId = await resolveQueueStatusByCategory(categoryIds, queueLookupTimeoutMs);
 
-    const queue = createScrapeQueue();
+    return {
+        items: orderedCategories.map((category) => {
+            const activeSubscriberCount = subscriberCountByCategoryId.get(category.id) ?? 0;
+            const latestRun = latestRunByCategoryId.get(category.id);
 
-    try {
-        const queueStatuses = await Promise.all(
-            categoryIds.map(async (categoryId) => {
-                const job = await queue.getJob(buildCategoryScrapeJobId(categoryId));
-                if (!job) {
-                    return [categoryId, "idle"] as const;
-                }
-
-                const jobState = await job.getState();
-                return [categoryId, mapJobStateToQueueStatus(jobState)] as const;
-            }),
-        );
-
-        const queueStatusByCategoryId = new Map(queueStatuses);
-
-        return {
-            items: orderedCategories.map((category) => {
-                const activeSubscriberCount = subscriberCountByCategoryId.get(category.id) ?? 0;
-                const latestRun = latestRunByCategoryId.get(category.id);
-
-                return {
-                    categoryId: category.id,
-                    categorySlug: category.slug,
-                    categoryNameEt: category.nameEt,
-                    categoryPathNameEt: category.pathNameEt,
+            return {
+                categoryId: category.id,
+                categorySlug: category.slug,
+                categoryNameEt: category.nameEt,
+                categoryPathNameEt: category.pathNameEt,
+                isActive: category.isActive,
+                scrapeIntervalHours: category.scrapeIntervalHours as ScrapeInterval,
+                nextRunAt: category.nextRunAt?.toISOString(),
+                activeSubscriberCount,
+                eligibilityStatus: resolveEligibilityStatus({
                     isActive: category.isActive,
-                    scrapeIntervalHours: category.scrapeIntervalHours as ScrapeInterval,
-                    nextRunAt: category.nextRunAt?.toISOString(),
                     activeSubscriberCount,
-                    eligibilityStatus: resolveEligibilityStatus({
-                        isActive: category.isActive,
-                        activeSubscriberCount,
-                        nextRunAt: category.nextRunAt,
-                        now,
-                    }),
-                    queueStatus: queueStatusByCategoryId.get(category.id) ?? "idle",
-                    lastRunAt: latestRun?.startedAt.toISOString(),
-                    lastRunStatus: latestRun ? scrapeStatusMap[latestRun.status] : undefined,
-                };
-            }),
-            generatedAt: now.toISOString(),
-        };
-    } finally {
-        await queue.close();
-    }
+                    nextRunAt: category.nextRunAt,
+                    now,
+                }),
+                queueStatus: queueStatusByCategoryId.get(category.id) ?? "idle",
+                lastRunAt: latestRun?.startedAt.toISOString(),
+                lastRunStatus: latestRun ? scrapeStatusMap[latestRun.status] : undefined,
+            };
+        }),
+        generatedAt: now.toISOString(),
+    };
 };

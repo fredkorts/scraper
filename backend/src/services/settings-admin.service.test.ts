@@ -8,12 +8,10 @@ const enqueueScrapeCategoryJob = vi.fn();
 const closeQueue = vi.fn();
 const getJob = vi.fn();
 const getJobState = vi.fn();
+const createScrapeQueue = vi.fn();
 
 vi.mock("../queue/queues", () => ({
-    createScrapeQueue: () => ({
-        getJob,
-        close: closeQueue,
-    }),
+    createScrapeQueue: (...args: unknown[]) => createScrapeQueue(...args),
 }));
 
 vi.mock("../queue/enqueue", () => ({
@@ -26,9 +24,14 @@ useTestDatabase();
 describe("settings admin service", () => {
     beforeEach(() => {
         enqueueScrapeCategoryJob.mockReset();
+        createScrapeQueue.mockReset();
         closeQueue.mockReset();
         getJob.mockReset();
         getJobState.mockReset();
+        createScrapeQueue.mockImplementation(() => ({
+            getJob,
+            close: closeQueue,
+        }));
         closeQueue.mockResolvedValue(undefined);
         getJob.mockResolvedValue(null);
     });
@@ -137,5 +140,53 @@ describe("settings admin service", () => {
             eligibilityStatus: "inactive_category",
             queueStatus: "idle",
         });
+    });
+
+    it("falls back to idle queue statuses when queue initialization fails", async () => {
+        const category = await prisma.category.create({
+            data: {
+                slug: "scheduler-queue-init-fail",
+                nameEt: "Queue Init Fail",
+                nameEn: "Queue Init Fail",
+                isActive: true,
+                scrapeIntervalHours: 6,
+            },
+        });
+
+        createScrapeQueue.mockImplementation(() => {
+            throw new Error("redis unavailable");
+        });
+
+        const response = await getAdminSchedulerState(new Date());
+        const item = response.items.find((candidate) => candidate.categoryId === category.id);
+
+        expect(item).toMatchObject({
+            categoryId: category.id,
+            queueStatus: "idle",
+        });
+        expect(closeQueue).not.toHaveBeenCalled();
+    });
+
+    it("falls back to idle queue statuses when queue lookups fail", async () => {
+        const category = await prisma.category.create({
+            data: {
+                slug: "scheduler-queue-lookup-fail",
+                nameEt: "Queue Lookup Fail",
+                nameEn: "Queue Lookup Fail",
+                isActive: true,
+                scrapeIntervalHours: 6,
+            },
+        });
+
+        getJob.mockRejectedValue(new Error("redis lookup failed"));
+
+        const response = await getAdminSchedulerState(new Date());
+        const item = response.items.find((candidate) => candidate.categoryId === category.id);
+
+        expect(item).toMatchObject({
+            categoryId: category.id,
+            queueStatus: "idle",
+        });
+        expect(closeQueue).toHaveBeenCalledTimes(1);
     });
 });
