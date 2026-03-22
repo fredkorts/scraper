@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import type { NextFunction, Request, Response } from "express";
-import { authCookieNames, setCsrfCookie } from "../lib/cookies";
+import { authCookieNames } from "../lib/cookies";
 import { AppError } from "../lib/errors";
 import { isTrustedOrigin } from "../lib/trusted-origins";
 
@@ -33,10 +33,6 @@ const safeEqual = (left: string, right: string): boolean => {
     }
 
     return timingSafeEqual(leftBuffer, rightBuffer);
-};
-
-export const issueCsrfCookie = (_request: Request, response: Response): void => {
-    setCsrfCookie(response);
 };
 
 export const requireTrustedOrigin = (request: Request, _response: Response, next: NextFunction): void => {

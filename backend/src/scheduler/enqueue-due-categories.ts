@@ -14,7 +14,7 @@ interface EnqueueFailure {
     message: string;
 }
 
-export interface EnqueueDueCategoriesResult {
+interface EnqueueDueCategoriesResult {
     checkedCount: number;
     enqueuedCount: number;
     skippedExistingCount: number;

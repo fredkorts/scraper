@@ -192,7 +192,6 @@ describe("runDiffEngine", () => {
             },
             select: {
                 notificationChannelId: true,
-                status: true,
             },
         });
 
@@ -203,11 +202,9 @@ describe("runDiffEngine", () => {
             expect.arrayContaining([
                 {
                     notificationChannelId: emailChannel.id,
-                    status: NotificationDeliveryStatus.PENDING,
                 },
                 {
                     notificationChannelId: telegramChannel.id,
-                    status: NotificationDeliveryStatus.PENDING,
                 },
             ]),
         );

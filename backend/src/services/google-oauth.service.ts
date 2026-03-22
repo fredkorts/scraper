@@ -26,7 +26,7 @@ type VerifiedGoogleIdTokenPayload = jwt.JwtPayload & {
     iss?: string;
 };
 
-export interface GoogleIdentityClaims {
+interface GoogleIdentityClaims {
     subject: string;
     email: string;
     emailVerified: boolean;

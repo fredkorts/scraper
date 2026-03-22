@@ -8,7 +8,7 @@ import { prisma } from "../lib/prisma";
 const CATEGORY_PATH_PREFIX = "/tootekategooria/";
 const DEFAULT_MAX_DEACTIVATE_RATIO = 0.5;
 
-export interface DiscoveredCategory {
+interface DiscoveredCategory {
     slug: string;
     nameEt: string;
     parentSlug: string | null;
@@ -16,7 +16,7 @@ export interface DiscoveredCategory {
     sourceOrder: number;
 }
 
-export interface CategoryCatalogRefreshSummary {
+interface CategoryCatalogRefreshSummary {
     applied: boolean;
     discoveredCount: number;
     createdCount: number;
@@ -34,7 +34,7 @@ interface RefreshCategoryCatalogOptions {
 
 const normalizeWhitespace = (value: string): string => value.replace(/\s+/g, " ").trim();
 
-export const normalizeCategorySlug = (href: string): string | null => {
+const normalizeCategorySlug = (href: string): string | null => {
     let url: URL;
 
     try {
@@ -158,7 +158,7 @@ export const parseCategoryCatalog = (html: string): DiscoveredCategory[] => {
     }));
 };
 
-export const fetchCategoryCatalogHtml = async (): Promise<string> => {
+const fetchCategoryCatalogHtml = async (): Promise<string> => {
     const response = await http.get<string>(config.SCRAPER_BASE_URL);
     return response.data;
 };

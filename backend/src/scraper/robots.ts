@@ -174,9 +174,7 @@ const isPathAllowed = (path: string, groups: RobotsGroup[]): boolean => {
         return true;
     }
 
-    const matchingRules = groups.flatMap((group) =>
-        compileRules(group).filter((rule) => rule.regex.test(path)),
-    );
+    const matchingRules = groups.flatMap((group) => compileRules(group).filter((rule) => rule.regex.test(path)));
 
     if (matchingRules.length === 0) {
         return true;
@@ -226,7 +224,7 @@ const getCachedPolicy = (): RobotsPolicy | null => {
     return cachedPolicy.policy;
 };
 
-export const getRobotsPolicy = async (): Promise<RobotsPolicy> => {
+const getRobotsPolicy = async (): Promise<RobotsPolicy> => {
     const validCache = getCachedPolicy();
     if (validCache) {
         return validCache;

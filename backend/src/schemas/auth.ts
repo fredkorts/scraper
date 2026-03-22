@@ -77,6 +77,3 @@ export const mfaVerifyLoginSchema = z
 
 export const sessionRevokeSchema = stepUpSchema;
 export const sessionRevokeOthersSchema = stepUpSchema;
-
-export type RegisterInput = z.infer<typeof registerSchema>;
-export type LoginInput = z.infer<typeof loginSchema>;

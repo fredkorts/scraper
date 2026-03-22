@@ -12,7 +12,7 @@ export const NOTIFICATION_CHANGE_SECTION_ORDER: NotificationChangeCategory[] = [
     NotificationChangeCategory.OTHER,
 ];
 
-export const NOTIFICATION_CHANGE_SECTION_LABELS: Record<NotificationChangeCategory, string> = {
+const NOTIFICATION_CHANGE_SECTION_LABELS: Record<NotificationChangeCategory, string> = {
     [NotificationChangeCategory.NEW_PRODUCT]: "New products",
     [NotificationChangeCategory.BACK_IN_STOCK]: "Back in stock",
     [NotificationChangeCategory.PRICE_DROP]: "Price drops",
@@ -110,7 +110,7 @@ const buildGroupedMap = (): Record<NotificationChangeCategory, ReportChangeItem[
     [NotificationChangeCategory.OTHER]: [],
 });
 
-export const sortItemsForCategory = (
+const sortItemsForCategory = (
     category: NotificationChangeCategory,
     items: ReportChangeItem[],
     itemOrderById: Map<string, number>,
@@ -148,7 +148,7 @@ export const groupChangeItems = (items: ReportChangeItem[]): Record<Notification
     return grouped;
 };
 
-export interface ChangeSectionSummary {
+interface ChangeSectionSummary {
     category: NotificationChangeCategory;
     label: string;
     count: number;

@@ -1,8 +1,7 @@
-import { UserRole as PrismaUserRole } from "@prisma/client";
 import type { UserRole } from "@mabrik/shared";
 import { prisma } from "../lib/prisma";
 import { AppError } from "../lib/errors";
-import { getTrackingLimit, getTrackingLimitByPrismaRole, getTrackingUsage } from "./tracking-capacity.service";
+import { getTrackingLimit, getTrackingUsage } from "./tracking-capacity.service";
 
 export const listSubscriptions = async (
     userId: string,
@@ -222,8 +221,4 @@ export const deleteSubscription = async (
             autoDisabledWatchCount: disableResult.count,
         };
     });
-};
-
-export const getRoleLimit = (role: PrismaUserRole): number | null => {
-    return getTrackingLimitByPrismaRole(role);
 };

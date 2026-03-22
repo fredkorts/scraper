@@ -70,7 +70,7 @@ export const hasPreorderMarker = (value: string): boolean => {
 const categorySuggestsPreorder = (categorySlug: string): boolean =>
     PREORDER_CATEGORY_PATTERNS.some((pattern) => pattern.test(categorySlug));
 
-export interface PreorderClassification {
+interface PreorderClassification {
     isPreorder: boolean;
     preorderEta: Date | null;
     preorderDetectedFrom: PreorderDetectionSource | null;

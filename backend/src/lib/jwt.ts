@@ -2,7 +2,7 @@ import jwt, { type SignOptions } from "jsonwebtoken";
 import type { UserRole } from "@mabrik/shared";
 import { config } from "../config";
 
-export interface AccessTokenPayload {
+interface AccessTokenPayload {
     sub: string;
     email: string;
     role: UserRole;

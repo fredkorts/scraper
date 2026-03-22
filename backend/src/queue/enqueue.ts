@@ -13,9 +13,9 @@ const DEFAULT_SCRAPE_JOB_OPTIONS: JobsOptions = {
     removeOnFail: true,
 };
 
-export type EnqueueResultStatus = "enqueued" | "skipped-existing";
+type EnqueueResultStatus = "enqueued" | "skipped-existing";
 
-export interface EnqueueScrapeCategoryResult {
+interface EnqueueScrapeCategoryResult {
     categoryId: string;
     jobId: string;
     status: EnqueueResultStatus;

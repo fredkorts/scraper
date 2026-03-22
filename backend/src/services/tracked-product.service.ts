@@ -329,17 +329,3 @@ export const getActiveTrackedProductRecord = async (
 
     return tracked;
 };
-
-export const getActiveTrackedProductIds = async (userId: string): Promise<string[]> => {
-    const trackedProducts = await prisma.userTrackedProduct.findMany({
-        where: {
-            userId,
-            isActive: true,
-        },
-        select: {
-            productId: true,
-        },
-    });
-
-    return trackedProducts.map((item) => item.productId);
-};

@@ -18,11 +18,10 @@ const hasConfiguredOrigins = configuredOrigins.length > 0;
 const hasLegacyMismatch = hasConfiguredOrigins && !originSet.has(legacyOrigin);
 
 export const trustedOrigins = origins;
-export const trustedOriginSet = originSet;
 export const trustedOriginsMetadata = {
     legacyOrigin,
     hasConfiguredOrigins,
     hasLegacyMismatch,
 };
 
-export const isTrustedOrigin = (origin: string): boolean => trustedOriginSet.has(origin);
+export const isTrustedOrigin = (origin: string): boolean => originSet.has(origin);

@@ -1,4 +1,3 @@
-import { UserRole as PrismaUserRole } from "@prisma/client";
 import type { UserRole } from "@mabrik/shared";
 
 const roleLimitMap: Record<Exclude<UserRole, "admin">, number> = {
@@ -16,14 +15,6 @@ interface TrackingUsageClient {
 }
 
 export const getTrackingLimit = (role: UserRole): number | null => (role === "admin" ? null : roleLimitMap[role]);
-
-export const getTrackingLimitByPrismaRole = (role: PrismaUserRole): number | null => {
-    if (role === PrismaUserRole.ADMIN) {
-        return null;
-    }
-
-    return role === PrismaUserRole.PAID ? roleLimitMap.paid : roleLimitMap.free;
-};
 
 export const getTrackingUsage = async (
     client: TrackingUsageClient,
