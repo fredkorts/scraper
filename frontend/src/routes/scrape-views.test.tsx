@@ -720,6 +720,8 @@ describe("scrape views", () => {
 
     it("updates product history view when controls change", async () => {
         const user = userEvent.setup();
+        const now = new Date();
+        const daysAgo = (days: number) => new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString();
 
         const { router } = await renderRouterApp({
             initialEntry: "/app/products/55555555-5555-4555-8555-555555555555?range=all",
@@ -734,8 +736,8 @@ describe("scrape views", () => {
                         currentPrice: 18.99,
                         originalPrice: 24.99,
                         inStock: true,
-                        firstSeenAt: new Date("2025-12-20T10:00:00.000Z").toISOString(),
-                        lastSeenAt: new Date("2026-03-01T10:00:00.000Z").toISOString(),
+                        firstSeenAt: daysAgo(100),
+                        lastSeenAt: daysAgo(5),
                         historyPointCount: 3,
                         categories: [
                             {
@@ -764,7 +766,7 @@ describe("scrape views", () => {
                             price: 29.99,
                             originalPrice: 34.99,
                             inStock: true,
-                            scrapedAt: new Date("2026-01-10T10:00:00.000Z").toISOString(),
+                            scrapedAt: daysAgo(70),
                         },
                         {
                             id: "88888888-8888-4888-8888-888888888888",
@@ -774,7 +776,7 @@ describe("scrape views", () => {
                             price: 21.99,
                             originalPrice: 26.99,
                             inStock: false,
-                            scrapedAt: new Date("2026-02-20T10:00:00.000Z").toISOString(),
+                            scrapedAt: daysAgo(20),
                         },
                         {
                             id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -784,7 +786,7 @@ describe("scrape views", () => {
                             price: 18.99,
                             originalPrice: 24.99,
                             inStock: true,
-                            scrapedAt: new Date("2026-03-01T10:00:00.000Z").toISOString(),
+                            scrapedAt: daysAgo(5),
                         },
                     ],
                 },
