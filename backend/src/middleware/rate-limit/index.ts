@@ -13,6 +13,7 @@ interface LimiterOptions {
     limit: number;
     failureMode: LimiterFailureMode;
     keyMode?: "ip-only" | "auth-aware";
+    keyGenerator?: (request: Request, response: Response) => string;
     skip?: (request: Request, response: Response) => boolean;
 }
 
@@ -59,6 +60,26 @@ export const getLimiterKey = (request: Pick<Request, "ip" | "auth">): string => 
 export const shouldSkipAuthenticatedIpCeiling = (request: Pick<Request, "auth">): boolean =>
     !config.RATE_LIMIT_USER_KEYING_ENABLED || !request.auth?.userId;
 
+const normalizeEmailKey = (value: unknown): string | null => {
+    if (typeof value !== "string") {
+        return null;
+    }
+
+    const normalized = value.trim().toLowerCase();
+    return normalized.length > 0 ? normalized : null;
+};
+
+export const getLoginAttemptLimiterKey = (request: Pick<Request, "ip" | "body">): string => {
+    const email = normalizeEmailKey((request.body as { email?: unknown } | undefined)?.email);
+    const ipKey = getIpLimiterKey(request);
+
+    if (!email) {
+        return `login:${ipKey}`;
+    }
+
+    return `login:${email}:${ipKey}`;
+};
+
 const toRetryAfterSeconds = (request: Request): number | undefined => {
     const requestWithRateLimit = request as Request & {
         rateLimit?: {
@@ -98,6 +119,7 @@ const createLimiter = ({
     limit,
     failureMode,
     keyMode = "auth-aware",
+    keyGenerator,
     skip,
 }: LimiterOptions): RateLimitRequestHandler => {
     const redis = getRedisClient();
@@ -107,7 +129,7 @@ const createLimiter = ({
         limit: config.NODE_ENV === "test" ? 10_000 : limit,
         standardHeaders: true,
         legacyHeaders: false,
-        keyGenerator: keyMode === "ip-only" ? getIpLimiterKey : getLimiterKey,
+        keyGenerator: keyGenerator ?? (keyMode === "ip-only" ? getIpLimiterKey : getLimiterKey),
         handler: createExceededHandler(id),
         skip,
         store:
@@ -139,6 +161,14 @@ export const authMutationLimiter = createLimiter({
     limit: 20,
     failureMode: "fail-closed",
     keyMode: "ip-only",
+});
+
+export const authLoginAccountLimiter = createLimiter({
+    id: "auth-login-account",
+    windowMs: 15 * 60 * 1000,
+    limit: 12,
+    failureMode: "fail-closed",
+    keyGenerator: (request) => getLoginAttemptLimiterKey(request),
 });
 
 export const paymentsMutationLimiter = createLimiter({

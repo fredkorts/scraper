@@ -3,11 +3,22 @@ import { config } from "../config";
 
 const DEFAULT_REDIS_PORT = 6379;
 
-export const getRedisConnectionOptions = (): ConnectionOptions => {
-    const redisUrl = new URL(config.REDIS_URL);
+export const parseRedisConnectionOptions = (
+    redisUrlValue: string,
+    nodeEnv: string = config.NODE_ENV,
+): ConnectionOptions => {
+    const redisUrl = new URL(redisUrlValue);
 
     if (!(redisUrl.protocol === "redis:" || redisUrl.protocol === "rediss:")) {
         throw new Error(`Unsupported REDIS_URL protocol: ${redisUrl.protocol}`);
+    }
+
+    if (nodeEnv === "production" && redisUrl.protocol !== "rediss:") {
+        throw new Error("Production Redis connections must use rediss://");
+    }
+
+    if (nodeEnv === "production" && redisUrl.username.trim().length === 0 && redisUrl.password.trim().length === 0) {
+        throw new Error("Production Redis connections require username or password");
     }
 
     const connection: ConnectionOptions = {
@@ -36,3 +47,6 @@ export const getRedisConnectionOptions = (): ConnectionOptions => {
 
     return connection;
 };
+
+export const getRedisConnectionOptions = (): ConnectionOptions =>
+    parseRedisConnectionOptions(config.REDIS_URL, config.NODE_ENV);

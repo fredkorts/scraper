@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import type { NextFunction, Request, Response } from "express";
+import { config } from "../config";
 import { authCookieNames } from "../lib/cookies";
 import { AppError } from "../lib/errors";
 import { isTrustedOrigin } from "../lib/trusted-origins";
@@ -56,4 +57,27 @@ export const requireCsrf = (request: Request, _response: Response, next: NextFun
     }
 
     next();
+};
+
+export const cookieAuthMutationExemptions = [
+    {
+        path: "/api/notifications/telegram/webhook",
+        reason: "Webhook uses x-telegram-bot-api-secret-token shared-secret authentication instead of browser cookies.",
+    },
+] as const;
+
+export const requireMutationProtection = (request: Request, response: Response, next: NextFunction): void => {
+    if (!config.AUTH_MUTATION_CSRF_STRICT_MODE) {
+        next();
+        return;
+    }
+
+    requireTrustedOrigin(request, response, (originError) => {
+        if (originError) {
+            next(originError);
+            return;
+        }
+
+        requireCsrf(request, response, next);
+    });
 };

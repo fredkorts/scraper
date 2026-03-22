@@ -14,6 +14,77 @@ const booleanStringSchema = z.preprocess((value) => {
     return value;
 }, z.boolean());
 const authCookieSameSiteSchema = z.enum(["strict", "lax", "none"]);
+const JWT_KEYSET_SECRET_MIN_LENGTH = 32;
+const placeholderSecretFragments = [
+    "change-me",
+    "replace-with",
+    "replace_me",
+    "your-secret",
+    "your_secret",
+    "example",
+    "dummy",
+];
+
+const isLikelyPlaceholderSecret = (value: string): boolean => {
+    const normalized = value.trim().toLowerCase();
+
+    if (normalized.length === 0) {
+        return true;
+    }
+
+    return placeholderSecretFragments.some((fragment) => normalized.includes(fragment));
+};
+
+const parseJwtKeyset = (raw: string): Record<string, string> | null => {
+    try {
+        const parsed = JSON.parse(raw) as unknown;
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+            return null;
+        }
+
+        const entries = Object.entries(parsed);
+        if (entries.length === 0) {
+            return null;
+        }
+
+        const normalized: Record<string, string> = {};
+
+        for (const [kid, secret] of entries) {
+            if (typeof kid !== "string" || kid.trim().length === 0) {
+                return null;
+            }
+
+            if (typeof secret !== "string" || secret.length < JWT_KEYSET_SECRET_MIN_LENGTH) {
+                return null;
+            }
+
+            normalized[kid] = secret;
+        }
+
+        return normalized;
+    } catch {
+        return null;
+    }
+};
+
+const addPlaceholderSecretIssue = (
+    value: string | undefined,
+    path: string,
+    ctx: z.RefinementCtx,
+    message: string = `${path} must be a non-placeholder secret`,
+): void => {
+    if (!value) {
+        return;
+    }
+
+    if (isLikelyPlaceholderSecret(value)) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message,
+            path: [path],
+        });
+    }
+};
 
 const envSchema = z
     .object({
@@ -58,6 +129,12 @@ const envSchema = z
         AUTH_OAUTH_COOKIE_SIGNING_KEY: z.string().min(32).optional(),
         AUTH_OAUTH_COOKIE_SIGNING_KEY_PREVIOUS: z.string().min(32).optional(),
         AUTH_OAUTH_CODE_VERIFIER_ENCRYPTION_KEY: z.string().min(32).optional(),
+        AUTH_JWT_ACTIVE_KID: z.string().min(1).optional(),
+        AUTH_JWT_KEYS_JSON: z.string().min(2).optional(),
+        AUTHZ_FRESHNESS_ENABLED: booleanStringSchema.default(false),
+        AUTH_TOKEN_VERSION_ENFORCED: booleanStringSchema.default(false),
+        AUTH_MUTATION_CSRF_STRICT_MODE: booleanStringSchema.default(false),
+        QUEUE_JOB_SCHEMA_STRICT_MODE: booleanStringSchema.default(false),
         AUTH_CSRF_TOKEN_TTL_HOURS: z.coerce.number().int().positive().default(24),
         AUTH_EMAIL_VERIFICATION_TTL_HOURS: z.coerce.number().int().positive().default(24),
         AUTH_PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().positive().default(30),
@@ -148,6 +225,64 @@ const envSchema = z
             });
         }
 
+        if (value.NODE_ENV === "production") {
+            const redisUrl = new URL(value.REDIS_URL);
+
+            if (redisUrl.protocol !== "rediss:") {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "REDIS_URL must use rediss:// in production",
+                    path: ["REDIS_URL"],
+                });
+            }
+
+            const hasRedisAuth = redisUrl.password.trim().length > 0 || redisUrl.username.trim().length > 0;
+            if (!hasRedisAuth) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "REDIS_URL must include username or password in production",
+                    path: ["REDIS_URL"],
+                });
+            }
+        }
+
+        const jwtKeyset = value.AUTH_JWT_KEYS_JSON ? parseJwtKeyset(value.AUTH_JWT_KEYS_JSON) : null;
+        if (value.AUTH_JWT_KEYS_JSON && !jwtKeyset) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "AUTH_JWT_KEYS_JSON must be a JSON object with kid -> secret entries",
+                path: ["AUTH_JWT_KEYS_JSON"],
+            });
+        }
+
+        if (value.AUTH_JWT_ACTIVE_KID && !value.AUTH_JWT_KEYS_JSON) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "AUTH_JWT_ACTIVE_KID requires AUTH_JWT_KEYS_JSON to be set",
+                path: ["AUTH_JWT_ACTIVE_KID"],
+            });
+        }
+
+        if (value.AUTH_JWT_KEYS_JSON && !value.AUTH_JWT_ACTIVE_KID) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "AUTH_JWT_ACTIVE_KID is required when AUTH_JWT_KEYS_JSON is set",
+                path: ["AUTH_JWT_ACTIVE_KID"],
+            });
+        }
+
+        if (
+            jwtKeyset &&
+            value.AUTH_JWT_ACTIVE_KID &&
+            !Object.prototype.hasOwnProperty.call(jwtKeyset, value.AUTH_JWT_ACTIVE_KID)
+        ) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "AUTH_JWT_ACTIVE_KID must exist in AUTH_JWT_KEYS_JSON",
+                path: ["AUTH_JWT_ACTIVE_KID"],
+            });
+        }
+
         if (value.AUTH_ENABLE_MFA && !value.AUTH_MFA_ENCRYPTION_KEY) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
@@ -198,6 +333,14 @@ const envSchema = z
             }
         }
 
+        if (value.NOTIFICATIONS_TELEGRAM_ENABLED && !value.TELEGRAM_WEBHOOK_SECRET) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "TELEGRAM_WEBHOOK_SECRET is required when NOTIFICATIONS_TELEGRAM_ENABLED=true",
+                path: ["TELEGRAM_WEBHOOK_SECRET"],
+            });
+        }
+
         if (value.AUTH_COOKIE_SAMESITE === "none" && value.NODE_ENV !== "production") {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
@@ -205,13 +348,64 @@ const envSchema = z
                 path: ["AUTH_COOKIE_SAMESITE"],
             });
         }
+
+        if (value.NODE_ENV !== "test") {
+            addPlaceholderSecretIssue(value.JWT_SECRET, "JWT_SECRET", ctx);
+            addPlaceholderSecretIssue(value.JWT_REFRESH_SECRET, "JWT_REFRESH_SECRET", ctx);
+            addPlaceholderSecretIssue(
+                value.AUTH_MFA_ENCRYPTION_KEY,
+                "AUTH_MFA_ENCRYPTION_KEY",
+                ctx,
+                "AUTH_MFA_ENCRYPTION_KEY must be non-placeholder when provided",
+            );
+            addPlaceholderSecretIssue(
+                value.AUTH_OAUTH_COOKIE_SIGNING_KEY,
+                "AUTH_OAUTH_COOKIE_SIGNING_KEY",
+                ctx,
+                "AUTH_OAUTH_COOKIE_SIGNING_KEY must be non-placeholder when provided",
+            );
+            addPlaceholderSecretIssue(
+                value.AUTH_OAUTH_COOKIE_SIGNING_KEY_PREVIOUS,
+                "AUTH_OAUTH_COOKIE_SIGNING_KEY_PREVIOUS",
+                ctx,
+                "AUTH_OAUTH_COOKIE_SIGNING_KEY_PREVIOUS must be non-placeholder when provided",
+            );
+            addPlaceholderSecretIssue(
+                value.AUTH_OAUTH_CODE_VERIFIER_ENCRYPTION_KEY,
+                "AUTH_OAUTH_CODE_VERIFIER_ENCRYPTION_KEY",
+                ctx,
+                "AUTH_OAUTH_CODE_VERIFIER_ENCRYPTION_KEY must be non-placeholder when provided",
+            );
+            addPlaceholderSecretIssue(
+                value.TELEGRAM_WEBHOOK_SECRET,
+                "TELEGRAM_WEBHOOK_SECRET",
+                ctx,
+                "TELEGRAM_WEBHOOK_SECRET must be non-placeholder when provided",
+            );
+
+            if (jwtKeyset) {
+                for (const [kid, secret] of Object.entries(jwtKeyset)) {
+                    if (isLikelyPlaceholderSecret(secret)) {
+                        ctx.addIssue({
+                            code: z.ZodIssueCode.custom,
+                            message: `AUTH_JWT_KEYS_JSON key "${kid}" must use a non-placeholder secret`,
+                            path: ["AUTH_JWT_KEYS_JSON"],
+                        });
+                    }
+                }
+            }
+        }
     });
 
-const parsedConfig = envSchema.parse(process.env);
-const derivedAuthCookieSameSite: z.infer<typeof authCookieSameSiteSchema> =
-    parsedConfig.AUTH_COOKIE_SAMESITE ?? (parsedConfig.NODE_ENV === "production" ? "none" : "strict");
+export const parseConfigFromEnv = (rawEnv: NodeJS.ProcessEnv = process.env) => {
+    const parsedConfig = envSchema.parse(rawEnv);
+    const derivedAuthCookieSameSite: z.infer<typeof authCookieSameSiteSchema> =
+        parsedConfig.AUTH_COOKIE_SAMESITE ?? (parsedConfig.NODE_ENV === "production" ? "none" : "strict");
 
-export const config = {
-    ...parsedConfig,
-    AUTH_COOKIE_SAMESITE: derivedAuthCookieSameSite,
+    return {
+        ...parsedConfig,
+        AUTH_COOKIE_SAMESITE: derivedAuthCookieSameSite,
+    };
 };
+
+export const config = parseConfigFromEnv();

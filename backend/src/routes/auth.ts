@@ -22,10 +22,16 @@ import {
     verifyEmailHandler,
     verifyMfaLoginHandler,
 } from "../controllers/auth.controller";
-import { requireAdmin, requireAuth } from "../middleware/auth";
+import { requireAdmin, requireAuth, requireAuthzFresh } from "../middleware/auth";
 import { updateProfileHandler } from "../controllers/auth.controller";
-import { requireCsrf, requireTrustedOrigin } from "../middleware/csrf";
-import { authMutationLimiter, authenticatedMutationLimiter, highCostReadLimiter } from "../middleware/rate-limit";
+import { requireCsrf, requireMutationProtection, requireTrustedOrigin } from "../middleware/csrf";
+import {
+    adminMutationLimiter,
+    authLoginAccountLimiter,
+    authMutationLimiter,
+    authenticatedMutationLimiter,
+    highCostReadLimiter,
+} from "../middleware/rate-limit";
 
 const authRouter = Router();
 
@@ -33,7 +39,7 @@ authRouter.get("/csrf", csrfHandler);
 authRouter.get("/oauth/google/start", authMutationLimiter, startGoogleOAuthHandler);
 authRouter.get("/oauth/google/callback", authMutationLimiter, googleOAuthCallbackHandler);
 authRouter.post("/register", authMutationLimiter, requireTrustedOrigin, registerHandler);
-authRouter.post("/login", authMutationLimiter, requireTrustedOrigin, loginHandler);
+authRouter.post("/login", authMutationLimiter, authLoginAccountLimiter, requireTrustedOrigin, loginHandler);
 authRouter.post("/mfa/verify-login", authMutationLimiter, requireTrustedOrigin, verifyMfaLoginHandler);
 authRouter.post("/refresh", authMutationLimiter, requireTrustedOrigin, requireCsrf, refreshHandler);
 authRouter.post("/logout", authMutationLimiter, requireTrustedOrigin, requireCsrf, logoutHandler);
@@ -110,8 +116,10 @@ authRouter.post(
 authRouter.post(
     "/maintenance/cleanup-auth-tokens",
     requireAuth,
+    requireAuthzFresh,
     requireAdmin,
-    highCostReadLimiter,
+    adminMutationLimiter,
+    requireMutationProtection,
     cleanupAuthTokensHandler,
 );
 

@@ -7,13 +7,21 @@ import {
 } from "../controllers/runs.controller";
 import { adminMutationLimiter, highCostReadLimiter } from "../middleware/rate-limit";
 import { triggerRunHandler } from "../controllers/settings-admin.controller";
-import { requireAdmin, requireAuth } from "../middleware/auth";
+import { requireAdmin, requireAuth, requireAuthzFresh } from "../middleware/auth";
+import { requireMutationProtection } from "../middleware/csrf";
 
 const runsRouter = Router();
 
 runsRouter.use(requireAuth);
 runsRouter.get("/", highCostReadLimiter, listRunsHandler);
-runsRouter.post("/trigger", requireAdmin, adminMutationLimiter, triggerRunHandler);
+runsRouter.post(
+    "/trigger",
+    requireAuthzFresh,
+    requireAdmin,
+    adminMutationLimiter,
+    requireMutationProtection,
+    triggerRunHandler,
+);
 runsRouter.get("/:id", highCostReadLimiter, getRunDetailHandler);
 runsRouter.get("/:id/products", highCostReadLimiter, listRunProductsHandler);
 runsRouter.get("/:id/changes", highCostReadLimiter, listRunChangesHandler);

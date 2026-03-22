@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth";
+import { requireMutationProtection } from "../middleware/csrf";
 import {
     createSubscriptionHandler,
     deleteSubscriptionHandler,
@@ -11,7 +12,7 @@ const subscriptionsRouter = Router();
 
 subscriptionsRouter.use(requireAuth);
 subscriptionsRouter.get("/", highCostReadLimiter, listSubscriptionsHandler);
-subscriptionsRouter.post("/", authenticatedMutationLimiter, createSubscriptionHandler);
-subscriptionsRouter.delete("/:id", authenticatedMutationLimiter, deleteSubscriptionHandler);
+subscriptionsRouter.post("/", authenticatedMutationLimiter, requireMutationProtection, createSubscriptionHandler);
+subscriptionsRouter.delete("/:id", authenticatedMutationLimiter, requireMutationProtection, deleteSubscriptionHandler);
 
 export { subscriptionsRouter };

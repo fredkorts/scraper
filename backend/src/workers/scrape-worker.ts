@@ -9,6 +9,7 @@ import { getRedisConnectionOptions } from "../queue/connection";
 import {
     SCRAPE_CATEGORY_JOB_NAME,
     SCRAPE_QUEUE_NAME,
+    scrapeCategoryJobDataSchema,
     type ScrapeCategoryJobData,
     type ScrapeCategoryJobResult,
 } from "../queue/job-types";
@@ -83,10 +84,7 @@ const markRetryBudgetExhausted = async (scrapeRunId: string): Promise<void> => {
     });
 };
 
-export const updateCategoryNextRunAt = async (
-    categoryId: string,
-    now: Date = new Date(),
-): Promise<Date | null> => {
+export const updateCategoryNextRunAt = async (categoryId: string, now: Date = new Date()): Promise<Date | null> => {
     const category = await prisma.category.findUnique({
         where: { id: categoryId },
         select: {
@@ -109,67 +107,85 @@ export const updateCategoryNextRunAt = async (
     return nextRunAt;
 };
 
-const processScrapeCategoryJob =
-    (handler: ScrapeCategoryHandler) => async (job: Job<ScrapeCategoryJobData>) => {
-        if (job.name !== SCRAPE_CATEGORY_JOB_NAME) {
-            throw new Error(`Unsupported job name: ${job.name}`);
+const processScrapeCategoryJob = (handler: ScrapeCategoryHandler) => async (job: Job<ScrapeCategoryJobData>) => {
+    if (job.name !== SCRAPE_CATEGORY_JOB_NAME) {
+        throw new Error(`Unsupported job name: ${job.name}`);
+    }
+
+    const parsedJobData = scrapeCategoryJobDataSchema.safeParse(job.data);
+
+    if (!parsedJobData.success) {
+        if (config.QUEUE_JOB_SCHEMA_STRICT_MODE) {
+            throw new Error("Invalid scrape queue payload");
         }
 
-        const category = await loadCategorySchedule(job.data.categoryId);
-        if (!category) {
-            throw new Error(`Category not found for scrape job: ${job.data.categoryId}`);
+        logger.warn("worker_invalid_job_payload", {
+            jobId: job.id,
+            payload: job.data,
+        });
+
+        return {
+            status: "skipped",
+            reason: "invalid_job_payload",
+            nextRunAt: new Date().toISOString(),
+        } satisfies ScrapeCategoryJobResult;
+    }
+
+    const jobData = parsedJobData.data;
+    const category = await loadCategorySchedule(jobData.categoryId);
+    if (!category) {
+        throw new Error(`Category not found for scrape job: ${jobData.categoryId}`);
+    }
+
+    if (!category.isActive || (jobData.trigger !== "manual" && category.subscriptions.length === 0)) {
+        const nextRunAt = await updateCategoryNextRunAt(category.id);
+        return {
+            status: "skipped",
+            reason: "category_inactive_or_has_no_active_subscribers",
+            nextRunAt: nextRunAt?.toISOString() ?? new Date().toISOString(),
+        } satisfies ScrapeCategoryJobResult;
+    }
+
+    try {
+        const result = await handler(category.id);
+        const nextRunAt = await updateCategoryNextRunAt(category.id);
+
+        return {
+            status: "completed",
+            scrapeRunId: result.scrapeRunId,
+            nextRunAt: nextRunAt?.toISOString() ?? new Date().toISOString(),
+        } satisfies ScrapeCategoryJobResult;
+    } catch (error) {
+        const attempts = getConfiguredAttempts(job);
+        const isFinalAttempt = job.attemptsMade + 1 >= attempts;
+        const retryBudgetExceeded = hasRetryBudgetExceeded(job);
+        const isNonRetryableScrapeFailure = isScrapeExecutionError(error) && error.failure.isRetryable === false;
+        const shouldDiscard = retryBudgetExceeded || isNonRetryableScrapeFailure;
+
+        if (retryBudgetExceeded && isScrapeExecutionError(error)) {
+            await markRetryBudgetExhausted(error.scrapeRunId);
         }
 
-        if (!category.isActive || (job.data.trigger !== "manual" && category.subscriptions.length === 0)) {
+        if (shouldDiscard) {
+            await job.discard();
+        }
+
+        if (isFinalAttempt || shouldDiscard) {
             const nextRunAt = await updateCategoryNextRunAt(category.id);
-            return {
-                status: "skipped",
-                reason: "category_inactive_or_has_no_active_subscribers",
-                nextRunAt: nextRunAt?.toISOString() ?? new Date().toISOString(),
-            } satisfies ScrapeCategoryJobResult;
+            if (nextRunAt) {
+                logger.info("worker_advanced_next_run_after_failure", {
+                    jobId: job.id,
+                    categoryId: jobData.categoryId,
+                    nextRunAt: nextRunAt.toISOString(),
+                    retryBudgetExceeded,
+                    isNonRetryableScrapeFailure,
+                });
+            }
         }
 
-        try {
-            const result = await handler(category.id);
-            const nextRunAt = await updateCategoryNextRunAt(category.id);
-
-            return {
-                status: "completed",
-                scrapeRunId: result.scrapeRunId,
-                nextRunAt: nextRunAt?.toISOString() ?? new Date().toISOString(),
-            } satisfies ScrapeCategoryJobResult;
-        } catch (error) {
-            const attempts = getConfiguredAttempts(job);
-            const isFinalAttempt = job.attemptsMade + 1 >= attempts;
-            const retryBudgetExceeded = hasRetryBudgetExceeded(job);
-            const isNonRetryableScrapeFailure =
-                isScrapeExecutionError(error) && error.failure.isRetryable === false;
-            const shouldDiscard = retryBudgetExceeded || isNonRetryableScrapeFailure;
-
-            if (retryBudgetExceeded && isScrapeExecutionError(error)) {
-                await markRetryBudgetExhausted(error.scrapeRunId);
-            }
-
-            if (shouldDiscard) {
-                await job.discard();
-            }
-
-            if (isFinalAttempt || shouldDiscard) {
-                const nextRunAt = await updateCategoryNextRunAt(category.id);
-                if (nextRunAt) {
-                    logger.info("worker_advanced_next_run_after_failure", {
-                        jobId: job.id,
-                        categoryId: job.data.categoryId,
-                        nextRunAt: nextRunAt.toISOString(),
-                        retryBudgetExceeded,
-                        isNonRetryableScrapeFailure,
-                    });
-                }
-            }
-
-            throw error;
-        }
-    };
+        throw error;
+    }
+};
 
 export const createScrapeWorker = (options: CreateScrapeWorkerOptions = {}) => {
     const worker = new Worker<ScrapeCategoryJobData, ScrapeCategoryJobResult>(
@@ -182,11 +198,14 @@ export const createScrapeWorker = (options: CreateScrapeWorkerOptions = {}) => {
     );
 
     worker.on("completed", (job, result) => {
+        const parsedJobData = scrapeCategoryJobDataSchema.safeParse(job.data);
+        const safeJobData = parsedJobData.success ? parsedJobData.data : job.data;
+
         logger.info("worker_job_completed", {
             jobId: job.id,
-            categoryId: job.data.categoryId,
-            trigger: job.data.trigger,
-            requestId: job.data.requestId,
+            categoryId: safeJobData.categoryId,
+            trigger: safeJobData.trigger,
+            requestId: safeJobData.requestId,
             status: result.status,
             nextRunAt: result.nextRunAt,
             scrapeRunId: result.scrapeRunId,
@@ -202,12 +221,14 @@ export const createScrapeWorker = (options: CreateScrapeWorkerOptions = {}) => {
         }
 
         const attempts = getConfiguredAttempts(job);
+        const parsedJobData = scrapeCategoryJobDataSchema.safeParse(job.data);
+        const safeJobData = parsedJobData.success ? parsedJobData.data : job.data;
 
         logger.error("worker_job_failed", {
             jobId: job.id,
-            categoryId: job.data.categoryId,
-            trigger: job.data.trigger,
-            requestId: job.data.requestId,
+            categoryId: safeJobData.categoryId,
+            trigger: safeJobData.trigger,
+            requestId: safeJobData.requestId,
             attemptsMade: job.attemptsMade + 1,
             configuredAttempts: attempts,
             retryBudgetElapsedMs: getRetryBudgetElapsedMs(job),

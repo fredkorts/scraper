@@ -82,6 +82,27 @@ describe("auth routes", () => {
         expect(response.body.message).toBe("Invalid email or password");
     });
 
+    it("returns generic invalid-credential errors for inactive accounts", async () => {
+        const app = createApp();
+        const { user, password } = await createUser({
+            email: "inactive-login@example.com",
+        });
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                isActive: false,
+            },
+        });
+
+        const response = await request(app).post("/api/auth/login").set("Origin", trustedOrigin).send({
+            email: user.email,
+            password,
+        });
+
+        expect(response.status).toBe(401);
+        expect(response.body.message).toBe("Invalid email or password");
+    });
+
     it("rejects auth mutations from untrusted origins", async () => {
         const app = createApp();
 

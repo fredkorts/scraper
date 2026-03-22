@@ -94,6 +94,8 @@ const roleMap: Record<PrismaUserRole, UserRole> = {
     ADMIN: "admin",
 };
 
+const DUMMY_PASSWORD_HASH = "$2b$12$znQI785Du.lERSAW1kdNEuV0Xo6mj6u5E167luppph8rZWS/ektR6";
+
 const sanitizeUser = (user: User): AuthUser => ({
     id: user.id,
     email: user.email,
@@ -186,6 +188,7 @@ const issueSession = async (
         sub: user.id,
         email: user.email,
         role: roleMap[user.role],
+        tokenVersion: user.tokenVersion,
     });
 
     return {
@@ -619,21 +622,10 @@ export const login = async (input: LoginRequest, context: SessionContext): Promi
         where: { email: normalizedEmail },
     });
 
-    if (!user) {
-        throw new AppError(401, "unauthorized", "Invalid email or password");
-    }
+    const passwordHashForVerification = user?.passwordHash ?? DUMMY_PASSWORD_HASH;
+    const passwordMatches = await bcrypt.compare(input.password, passwordHashForVerification);
 
-    if (!user.isActive) {
-        throw new AppError(403, "forbidden", "This account is inactive");
-    }
-
-    if (!user.passwordHash) {
-        throw new AppError(401, "unauthorized", "Invalid email or password");
-    }
-
-    const passwordMatches = await bcrypt.compare(input.password, user.passwordHash);
-
-    if (!passwordMatches) {
+    if (!user || !user.isActive || !user.passwordHash || !passwordMatches) {
         throw new AppError(401, "unauthorized", "Invalid email or password");
     }
 
@@ -946,6 +938,9 @@ export const resetPassword = async (token: string, newPassword: string): Promise
             where: { id: passwordResetToken.userId },
             data: {
                 passwordHash: await bcrypt.hash(newPassword, config.BCRYPT_ROUNDS),
+                tokenVersion: {
+                    increment: 1,
+                },
             },
         });
 

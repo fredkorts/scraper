@@ -11,6 +11,7 @@ declare global {
                 email: string;
                 role: UserRole;
                 tokenType: "access";
+                tokenVersion?: number;
             };
             requestId?: string;
             log?: RequestLogger;

@@ -2,7 +2,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "../lib/prisma";
 import { useTestDatabase } from "../test/db";
 import { createRefreshTokenRecord, createUser } from "../test/factories";
-import { getCurrentUser, listSessions, login, logout, refreshSession, register } from "./auth.service";
+import {
+    getCurrentUser,
+    listSessions,
+    login,
+    logout,
+    refreshSession,
+    register,
+    requestPasswordReset,
+    resetPassword,
+} from "./auth.service";
 
 const sendSecurityEventEmail = vi.fn();
 const sendVerificationEmail = vi.fn();
@@ -300,5 +309,32 @@ describe("auth.service", () => {
             "New login",
             "A new login was detected from IP 198.51.100.22.",
         );
+    });
+
+    it("increments token version and revokes active sessions after password reset", async () => {
+        const { user } = await createUser({
+            email: "reset-token-version@example.com",
+        });
+        const activeSession = await createRefreshTokenRecord({ userId: user.id });
+
+        await requestPasswordReset(user.email);
+        const resetToken = sendPasswordResetEmail.mock.calls[0]?.[1];
+
+        expect(typeof resetToken).toBe("string");
+        await resetPassword(String(resetToken), "NewPassword123");
+
+        const refreshedUser = await prisma.user.findUniqueOrThrow({
+            where: { id: user.id },
+            select: {
+                tokenVersion: true,
+            },
+        });
+        const refreshedSession = await prisma.refreshToken.findUniqueOrThrow({
+            where: { id: activeSession.record.id },
+        });
+
+        expect(refreshedUser.tokenVersion).toBe(1);
+        expect(refreshedSession.revokedAt).not.toBeNull();
+        expect(refreshedSession.revocationReason).toBe("password_reset");
     });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { config } from "../../config";
-import { getIpLimiterKey, getLimiterKey, shouldSkipAuthenticatedIpCeiling } from "./index";
+import { getIpLimiterKey, getLimiterKey, getLoginAttemptLimiterKey, shouldSkipAuthenticatedIpCeiling } from "./index";
 
 describe("rate-limit key strategy", () => {
     it("uses ip keying when user-keying feature flag is disabled", () => {
@@ -100,5 +100,28 @@ describe("authenticated ip ceiling skip logic", () => {
         ).toBe(false);
 
         config.RATE_LIMIT_USER_KEYING_ENABLED = originalFlag;
+    });
+});
+
+describe("login attempt keying", () => {
+    it("keys login attempts by normalized email and ip when email is present", () => {
+        const key = getLoginAttemptLimiterKey({
+            ip: "203.0.113.11",
+            body: {
+                email: "  USER@Example.com ",
+            },
+        });
+
+        expect(key).toContain("login:user@example.com:");
+        expect(key).toContain("ip:");
+    });
+
+    it("falls back to ip keying when login email is missing", () => {
+        const key = getLoginAttemptLimiterKey({
+            ip: "198.51.100.15",
+            body: {},
+        });
+
+        expect(key).toContain("login:ip:");
     });
 });
