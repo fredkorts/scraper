@@ -1,4 +1,4 @@
-import jwt, { JsonWebTokenError, type SignOptions } from "jsonwebtoken";
+import jwt, { type SignOptions } from "jsonwebtoken";
 import type { UserRole } from "@mabrik/shared";
 import { z } from "zod";
 import { config } from "../config";
@@ -92,11 +92,11 @@ const resolveVerificationSecret = (token: string): string => {
     const decoded = jwt.decode(token, { complete: true });
 
     if (!decoded || typeof decoded !== "object" || typeof decoded.header !== "object") {
-        throw new JsonWebTokenError("jwt malformed");
+        throw new jwt.JsonWebTokenError("jwt malformed");
     }
 
     if (decoded.header.alg !== "HS256") {
-        throw new JsonWebTokenError("invalid algorithm");
+        throw new jwt.JsonWebTokenError("invalid algorithm");
     }
 
     const { verificationSecrets } = getJwtKeyMaterial();
@@ -105,7 +105,7 @@ const resolveVerificationSecret = (token: string): string => {
     if (typeof headerKid === "string" && headerKid.trim().length > 0) {
         const secret = verificationSecrets[headerKid];
         if (!secret) {
-            throw new JsonWebTokenError("unknown token kid");
+            throw new jwt.JsonWebTokenError("unknown token kid");
         }
 
         return secret;
@@ -150,13 +150,13 @@ export const verifyAccessToken = (token: string): AccessTokenPayload => {
     });
 
     if (typeof verified !== "object" || verified === null) {
-        throw new JsonWebTokenError("invalid token payload");
+        throw new jwt.JsonWebTokenError("invalid token payload");
     }
 
     const parsedClaims = accessTokenClaimsSchema.safeParse(verified);
 
     if (!parsedClaims.success) {
-        throw new JsonWebTokenError("invalid token claims");
+        throw new jwt.JsonWebTokenError("invalid token claims");
     }
 
     const claims = parsedClaims.data;
