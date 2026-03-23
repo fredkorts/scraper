@@ -6,17 +6,17 @@ export {
     formatRetryableLabel,
     formatStatusLabel,
 } from "../../shared/formatters/display";
-import { formatDateTime } from "../../shared/formatters/display";
+import { formatDateTime, formatPrice, formatStatusLabel } from "../../shared/formatters/display";
 import { STOCK_STATUS_LABELS } from "../../shared/constants/stock.constants";
 import {
     PREORDER_BADGE_LABEL,
     PREORDER_ETA_LABEL,
     PREORDER_STATE_NO_LABEL,
 } from "../../shared/constants/preorder.constants";
-import { formatPrice } from "../../shared/formatters/display";
 import type { PriceTagProps } from "../../components/price-tag/PriceTag";
+import type { ChangeIconVariant } from "../../shared/components/change-icon/ChangeIcon";
 
-type RunChangeTypeValue = "price_increase" | "price_decrease" | "new_product" | "sold_out" | "back_in_stock";
+export type RunChangeTypeValue = ChangeIconVariant;
 
 interface ChangeDetailsInput {
     changeType?: RunChangeTypeValue;
@@ -30,6 +30,26 @@ interface PreorderStateInput {
     isPreorder?: boolean;
     preorderEta?: string;
 }
+
+const CHANGE_TYPE_LABELS: Record<RunChangeTypeValue, string> = {
+    price_decrease: "Price Decrease",
+    price_increase: "Price Increase",
+    new_product: "New Product",
+    sold_out: "Sold Out",
+    back_in_stock: "Back In Stock",
+};
+
+export const formatChangeTypeLabel = (changeType?: string): string => {
+    if (!changeType) {
+        return "-";
+    }
+
+    if (Object.prototype.hasOwnProperty.call(CHANGE_TYPE_LABELS, changeType)) {
+        return CHANGE_TYPE_LABELS[changeType as RunChangeTypeValue];
+    }
+
+    return formatStatusLabel(changeType);
+};
 
 export const getChangePriceTagConfig = (value: ChangeDetailsInput): PriceTagProps | null => {
     switch (value.changeType) {

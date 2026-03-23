@@ -1,10 +1,12 @@
 import { CloseCircleOutlined } from "@ant-design/icons";
+import type { ReactNode } from "react";
 import styles from "./changes-active-filter-chips.module.scss";
 
 export interface ActiveFilterChip {
     id: string;
     label: string;
     value: string;
+    valueContent?: ReactNode;
     onRemove: () => void;
 }
 
@@ -29,7 +31,7 @@ export const ChangesActiveFilterChips = ({ chips, sortingLabel }: ChangesActiveF
                             onClick={chip.onRemove}
                         >
                             <span>
-                                {chip.label}: <strong>{chip.value}</strong>
+                                {chip.label}: <strong>{chip.valueContent ?? chip.value}</strong>
                             </span>
                             <CloseCircleOutlined aria-hidden />
                         </button>

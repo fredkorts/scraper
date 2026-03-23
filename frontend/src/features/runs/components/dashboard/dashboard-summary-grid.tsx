@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { ChangeDescription } from "../../../../shared/components/change-description/ChangeDescription";
 import { defaultChangesListSearch } from "../../search";
 import styles from "./dashboard-sections.module.scss";
 import type { DashboardSummaryGridProps } from "../../types/dashboard-sections.types";
@@ -44,7 +45,9 @@ export const DashboardSummaryGrid = ({ summary, categoryId }: DashboardSummaryGr
                     to="/app/changes"
                 >
                     <article className={styles.card}>
-                        <span className={styles.eyebrow}>{card.label}</span>
+                        <span className={styles.eyebrow}>
+                            <ChangeDescription label={card.label} variant={card.changeType} />
+                        </span>
                         <span className={styles.metric}>{card.value}</span>
                         <span className={styles.subtle}>Last 7 days</span>
                     </article>

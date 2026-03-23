@@ -3,13 +3,14 @@ import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
 import { PriceTag } from "../../../components/price-tag/PriceTag";
 import { TrackedProductBadge } from "../../../components/tracked-product-badge/TrackedProductBadge";
+import { ChangeDescription } from "../../../shared/components/change-description/ChangeDescription";
 import { defaultProductHistoryControls } from "../../products";
 import { STOCK_STATUS_LABELS } from "../../../shared/constants/stock.constants";
 import {
     formatChangeDetails,
+    formatChangeTypeLabel,
     formatPreorderState,
     formatPrice,
-    formatStatusLabel,
     getChangePriceTagConfig,
 } from "../formatters";
 import type { RunChangesData, RunProductsData } from "../schemas";
@@ -62,7 +63,9 @@ export const useRunDetailColumns = () => {
             [
                 changeColumnHelper.accessor("changeType", {
                     header: "Change",
-                    cell: (info) => formatStatusLabel(info.getValue()),
+                    cell: (info) => (
+                        <ChangeDescription label={formatChangeTypeLabel(info.getValue())} variant={info.getValue()} />
+                    ),
                 }),
                 changeColumnHelper.display({
                     id: "productName",

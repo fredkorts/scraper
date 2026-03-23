@@ -1,0 +1,23 @@
+.icon {
+    font-size: 0.95em;
+}
+
+.priceDecrease {
+    color: var(--color-success);
+}
+
+.priceIncrease {
+    color: var(--color-danger);
+}
+
+.newProduct {
+    color: var(--color-info);
+}
+
+.soldOut {
+    color: var(--color-warning);
+}
+
+.backInStock {
+    color: var(--color-success);
+}

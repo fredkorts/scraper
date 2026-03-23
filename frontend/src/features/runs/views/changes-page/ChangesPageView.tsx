@@ -1,15 +1,13 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ChangeDescription } from "../../../../shared/components/change-description/ChangeDescription";
 import { buildCategoryTreeData, getCategoryLabelById } from "../../../categories";
 import { useCategoriesQuery } from "../../../categories";
 import { defaultProductHistoryControls } from "../../../products";
 import { ChangesTableSection } from "../../components/shared/changes-table-section";
-import {
-    RUN_CHANGE_TYPE_FILTER_OPTIONS,
-    RUN_PREORDER_FILTER_OPTIONS,
-    RUN_CHANGE_WINDOW_OPTIONS,
-} from "../../constants/run-filters.constants";
+import { RUN_PREORDER_FILTER_OPTIONS, RUN_CHANGE_WINDOW_OPTIONS } from "../../constants/run-filters.constants";
 import { useChangesListColumns } from "../../hooks/use-changes-list-columns";
+import { formatChangeTypeLabel } from "../../formatters";
 import { useChangesListQuery } from "../../queries";
 import { defaultChangesListSearch, normalizeTableSearchQuery } from "../../search";
 import { useDebouncedValue } from "../../../../shared/hooks/use-debounced-value";
@@ -88,10 +86,10 @@ export const ChangesPageView = () => {
     const selectedCategoryLabel = categoriesQuery.data
         ? getCategoryLabelById(categoriesQuery.data.categories, search.categoryId)
         : undefined;
-    const changeTypeLabel = useMemo(() => {
-        const entry = RUN_CHANGE_TYPE_FILTER_OPTIONS.find((option) => option.value === search.changeType);
-        return entry?.label ?? "All change types";
-    }, [search.changeType]);
+    const changeTypeLabel = useMemo(
+        () => (search.changeType ? formatChangeTypeLabel(search.changeType) : "All change types"),
+        [search.changeType],
+    );
     const windowLabel = useMemo(() => {
         const entry = RUN_CHANGE_WINDOW_OPTIONS.find((option) => Number(option.value) === search.windowDays);
         return entry?.label ?? "Last 7 days";
@@ -123,6 +121,7 @@ export const ChangesPageView = () => {
                 id: "changeType",
                 label: "Change type",
                 value: changeTypeLabel,
+                valueContent: <ChangeDescription label={changeTypeLabel} variant={search.changeType} />,
                 onRemove: () => setSearch({ changeType: undefined, page: 1 }),
             });
         }
