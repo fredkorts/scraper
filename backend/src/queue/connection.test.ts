@@ -33,6 +33,9 @@ describe("queue redis connection parsing", () => {
         expect(() => parseRedisConnectionOptions("redis://redis.example.com:6379", "production")).toThrow(
             /must use rediss/,
         );
+        expect(() =>
+            parseRedisConnectionOptions("redis://default:secret@redis.railway.internal:6379/0", "production"),
+        ).not.toThrow();
         expect(() => parseRedisConnectionOptions("rediss://redis.example.com:6379", "production")).toThrow(
             /require username or password/,
         );

@@ -2,6 +2,12 @@ import type { ConnectionOptions } from "bullmq";
 import { config } from "../config";
 
 const DEFAULT_REDIS_PORT = 6379;
+const RAILWAY_INTERNAL_HOST_SUFFIX = ".railway.internal";
+
+const isRailwayInternalHost = (hostname: string): boolean => {
+    const normalizedHost = hostname.trim().toLowerCase();
+    return normalizedHost === "railway.internal" || normalizedHost.endsWith(RAILWAY_INTERNAL_HOST_SUFFIX);
+};
 
 export const parseRedisConnectionOptions = (
     redisUrlValue: string,
@@ -13,8 +19,10 @@ export const parseRedisConnectionOptions = (
         throw new Error(`Unsupported REDIS_URL protocol: ${redisUrl.protocol}`);
     }
 
-    if (nodeEnv === "production" && redisUrl.protocol !== "rediss:") {
-        throw new Error("Production Redis connections must use rediss://");
+    const isInternalRailwayRedis = isRailwayInternalHost(redisUrl.hostname);
+
+    if (nodeEnv === "production" && redisUrl.protocol !== "rediss:" && !isInternalRailwayRedis) {
+        throw new Error("Production Redis connections must use rediss:// unless using *.railway.internal");
     }
 
     if (nodeEnv === "production" && redisUrl.username.trim().length === 0 && redisUrl.password.trim().length === 0) {

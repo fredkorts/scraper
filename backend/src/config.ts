@@ -15,6 +15,7 @@ const booleanStringSchema = z.preprocess((value) => {
 }, z.boolean());
 const authCookieSameSiteSchema = z.enum(["strict", "lax", "none"]);
 const JWT_KEYSET_SECRET_MIN_LENGTH = 32;
+const RAILWAY_INTERNAL_HOST_SUFFIX = ".railway.internal";
 const placeholderSecretFragments = [
     "change-me",
     "replace-with",
@@ -33,6 +34,11 @@ const isLikelyPlaceholderSecret = (value: string): boolean => {
     }
 
     return placeholderSecretFragments.some((fragment) => normalized.includes(fragment));
+};
+
+const isRailwayInternalHost = (hostname: string): boolean => {
+    const normalizedHost = hostname.trim().toLowerCase();
+    return normalizedHost === "railway.internal" || normalizedHost.endsWith(RAILWAY_INTERNAL_HOST_SUFFIX);
 };
 
 const parseJwtKeyset = (raw: string): Record<string, string> | null => {
@@ -227,11 +233,12 @@ const envSchema = z
 
         if (value.NODE_ENV === "production") {
             const redisUrl = new URL(value.REDIS_URL);
+            const isInternalRailwayRedis = isRailwayInternalHost(redisUrl.hostname);
 
-            if (redisUrl.protocol !== "rediss:") {
+            if (redisUrl.protocol !== "rediss:" && !isInternalRailwayRedis) {
                 ctx.addIssue({
                     code: z.ZodIssueCode.custom,
-                    message: "REDIS_URL must use rediss:// in production",
+                    message: "REDIS_URL must use rediss:// in production unless using *.railway.internal",
                     path: ["REDIS_URL"],
                 });
             }

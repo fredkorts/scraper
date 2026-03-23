@@ -30,11 +30,16 @@ describe("security config validation", () => {
         expect(() => parseConfigFromEnv(env)).not.toThrow();
     });
 
-    it("requires rediss and auth credentials in production", () => {
+    it("requires secure/auth Redis in production while allowing railway internal redis://", () => {
         const insecureProtocolEnv = {
             ...baseEnv(),
             NODE_ENV: "production",
             REDIS_URL: "redis://localhost:6379",
+        };
+        const railwayInternalEnv = {
+            ...baseEnv(),
+            NODE_ENV: "production",
+            REDIS_URL: "redis://default:strongpass@redis.railway.internal:6379/0",
         };
         const missingAuthEnv = {
             ...baseEnv(),
@@ -48,6 +53,7 @@ describe("security config validation", () => {
         };
 
         expect(() => parseConfigFromEnv(insecureProtocolEnv)).toThrow();
+        expect(() => parseConfigFromEnv(railwayInternalEnv)).not.toThrow();
         expect(() => parseConfigFromEnv(missingAuthEnv)).toThrow();
         expect(() => parseConfigFromEnv(secureEnv)).not.toThrow();
     });
