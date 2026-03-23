@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { GlobalErrorPageView } from "../features/public/views";
+import { tryRecoverFromChunkLoadError } from "../shared/utils/chunk-load-recovery";
 
 interface GlobalErrorPageProps {
     error: unknown;
@@ -6,5 +8,25 @@ interface GlobalErrorPageProps {
 }
 
 export const GlobalErrorPage = ({ error, onRetry }: GlobalErrorPageProps) => (
-    <GlobalErrorPageView error={error} onRetry={onRetry} />
+    <GlobalErrorPageWithChunkRecovery error={error} onRetry={onRetry} />
 );
+
+const GlobalErrorPageWithChunkRecovery = ({ error, onRetry }: GlobalErrorPageProps) => {
+    useEffect(() => {
+        void tryRecoverFromChunkLoadError(error, () => {
+            window.location.reload();
+        });
+    }, [error]);
+
+    const handleRetry = () => {
+        const recovered = tryRecoverFromChunkLoadError(error, () => {
+            window.location.reload();
+        });
+
+        if (!recovered) {
+            onRetry();
+        }
+    };
+
+    return <GlobalErrorPageView error={error} onRetry={handleRetry} />;
+};
