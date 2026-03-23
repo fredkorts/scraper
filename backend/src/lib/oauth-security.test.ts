@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const loadSecurityModule = async () => {
@@ -16,6 +17,7 @@ describe("oauth-security", () => {
         const security = await loadSecurityModule();
         const value = security.signOAuthChallengeCookieValue("challenge-id-1");
 
+        expect(value).not.toContain("challenge-id-1");
         expect(security.verifyOAuthChallengeCookieValue(value)).toBe("challenge-id-1");
     });
 
@@ -39,6 +41,18 @@ describe("oauth-security", () => {
         const value = security.signOAuthChallengeCookieValue("challenge-id-3");
 
         expect(security.verifyOAuthChallengeCookieValue(`${value}tampered`)).toBeNull();
+    });
+
+    it("keeps validating legacy signed challenge cookies during rollout", async () => {
+        const currentKey = "legacy-signing-key-legacy-signing-key-legacy-signing";
+        vi.stubEnv("AUTH_OAUTH_COOKIE_SIGNING_KEY", currentKey);
+
+        const challengeId = "challenge-id-legacy";
+        const signature = createHmac("sha256", currentKey).update(challengeId).digest("base64url");
+        const legacyValue = `${challengeId}.${signature}`;
+
+        const security = await loadSecurityModule();
+        expect(security.verifyOAuthChallengeCookieValue(legacyValue)).toBe(challengeId);
     });
 
     it("encrypts and decrypts code verifiers", async () => {
