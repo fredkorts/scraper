@@ -11,13 +11,14 @@ import { prisma } from "../lib/prisma";
 import { useTestDatabase } from "../test/db";
 import { createUser } from "../test/factories";
 import { requireAdmin, requireAuth, requireAuthzFresh } from "./auth";
+import { highCostReadLimiter } from "./rate-limit";
 
 useTestDatabase();
 
 const createProtectedTestApp = () => {
     const app = express();
     app.use(cookieParser());
-    app.get("/admin-only", requireAuth, requireAuthzFresh, requireAdmin, (_req, res) => {
+    app.get("/admin-only", highCostReadLimiter, requireAuth, requireAuthzFresh, requireAdmin, (_req, res) => {
         res.status(200).json({ success: true });
     });
     app.use((error: unknown, _req: Request, res: Response, next: NextFunction) => {

@@ -45,7 +45,9 @@ import {
     encryptMfaSecret,
     generateRecoveryCodes,
     generateTotpSecret,
+    hashRecoveryCode,
     normalizeRecoveryCode,
+    verifyRecoveryCodeHash,
     verifyTotpCode,
 } from "../lib/mfa";
 import { logger } from "../lib/logger";
@@ -313,21 +315,31 @@ const verifyUserMfaCode = async (
 
     if (recoveryCode) {
         const normalized = normalizeRecoveryCode(recoveryCode);
-        const hashed = hashToken(normalized);
-        const code = await prisma.mfaRecoveryCode.findFirst({
+        const candidateCodes = await prisma.mfaRecoveryCode.findMany({
             where: {
                 userId: user.id,
-                codeHash: hashed,
                 usedAt: null,
             },
+            select: {
+                id: true,
+                codeHash: true,
+            },
         });
+        let matchedCodeId: string | null = null;
 
-        if (!code) {
+        for (const candidateCode of candidateCodes) {
+            if (await verifyRecoveryCodeHash(normalized, candidateCode.codeHash)) {
+                matchedCodeId = candidateCode.id;
+                break;
+            }
+        }
+
+        if (!matchedCodeId) {
             return { ok: false, usedRecoveryCode: false };
         }
 
         await prisma.mfaRecoveryCode.update({
-            where: { id: code.id },
+            where: { id: matchedCodeId },
             data: {
                 usedAt: new Date(),
             },
@@ -1028,10 +1040,12 @@ export const confirmMfaSetup = async (
         });
 
         await tx.mfaRecoveryCode.createMany({
-            data: recoveryCodes.map((code) => ({
-                userId,
-                codeHash: hashToken(normalizeRecoveryCode(code)),
-            })),
+            data: await Promise.all(
+                recoveryCodes.map(async (code) => ({
+                    userId,
+                    codeHash: await hashRecoveryCode(code),
+                })),
+            ),
         });
     });
 
@@ -1095,10 +1109,12 @@ export const regenerateRecoveryCodes = async (
         });
 
         await tx.mfaRecoveryCode.createMany({
-            data: recoveryCodes.map((code) => ({
-                userId,
-                codeHash: hashToken(normalizeRecoveryCode(code)),
-            })),
+            data: await Promise.all(
+                recoveryCodes.map(async (code) => ({
+                    userId,
+                    codeHash: await hashRecoveryCode(code),
+                })),
+            ),
         });
     });
 

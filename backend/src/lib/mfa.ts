@@ -1,3 +1,4 @@
+import bcrypt from "bcrypt";
 import { createCipheriv, createDecipheriv, createHmac, createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { config } from "../config";
 
@@ -129,3 +130,9 @@ const randomRecoveryCodeChunk = (): string => randomBytes(3).toString("hex").sli
 
 export const generateRecoveryCodes = (count = 8): string[] =>
     Array.from({ length: count }, () => `${randomRecoveryCodeChunk()}-${randomRecoveryCodeChunk()}`);
+
+export const hashRecoveryCode = async (value: string): Promise<string> =>
+    bcrypt.hash(normalizeRecoveryCode(value), config.BCRYPT_ROUNDS);
+
+export const verifyRecoveryCodeHash = async (value: string, recoveryCodeHash: string): Promise<boolean> =>
+    bcrypt.compare(normalizeRecoveryCode(value), recoveryCodeHash);
