@@ -903,6 +903,59 @@ describe("dashboard and runs routes", () => {
         expect(response.body.items[0].product.id).toBe(deadpoolProduct.id);
     });
 
+    it("filters cross-run changes by multiple change types", async () => {
+        const app = createApp();
+        const { user } = await createUser({ email: "global-changes-multi-type@example.com" });
+        const category = await createCategory("global-multi-type", "Global Multi Type");
+        await subscribeToCategory(user.id, category.id);
+
+        const run = await createRun(category.id, { totalProducts: 3 });
+        const report = await prisma.changeReport.create({
+            data: {
+                scrapeRunId: run.id,
+                totalChanges: 3,
+            },
+        });
+
+        const soldOutProduct = await createProduct("global-multi-sold-out", { name: "Sold Out Product" });
+        const priceDropProduct = await createProduct("global-multi-price-drop", { name: "Price Drop Product" });
+        const newProduct = await createProduct("global-multi-new", { name: "New Product" });
+
+        await prisma.changeItem.createMany({
+            data: [
+                {
+                    changeReportId: report.id,
+                    productId: soldOutProduct.id,
+                    changeType: PrismaChangeType.SOLD_OUT,
+                    oldStockStatus: true,
+                    newStockStatus: false,
+                },
+                {
+                    changeReportId: report.id,
+                    productId: priceDropProduct.id,
+                    changeType: PrismaChangeType.PRICE_DECREASE,
+                },
+                {
+                    changeReportId: report.id,
+                    productId: newProduct.id,
+                    changeType: PrismaChangeType.NEW_PRODUCT,
+                },
+            ],
+        });
+
+        const response = await request(app)
+            .get("/api/changes?page=1&pageSize=25&windowDays=30&changeType=sold_out,price_decrease")
+            .set("Cookie", authCookie(user.id, user.email));
+
+        expect(response.status).toBe(200);
+        expect(response.body.totalItems).toBe(2);
+        expect(response.body.items).toHaveLength(2);
+        expect(response.body.items.map((item: { changeType: string }) => item.changeType).sort()).toEqual([
+            "price_decrease",
+            "sold_out",
+        ]);
+    });
+
     it("filters cross-run changes by preorder state", async () => {
         const app = createApp();
         const { user } = await createUser({ email: "global-changes-preorder@example.com" });

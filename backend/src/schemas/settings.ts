@@ -33,4 +33,5 @@ export const updateCategorySettingsSchema = z.object({
 
 export const triggerRunSchema = z.object({
     categoryId: z.string().uuid(),
+    force: z.boolean().optional().default(true),
 });

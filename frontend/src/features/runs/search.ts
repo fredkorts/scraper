@@ -49,6 +49,36 @@ const toBooleanString = (value: unknown): "true" | "false" | undefined => {
     return undefined;
 };
 
+export const parseChangeTypeFilterValues = (value: unknown): Array<(typeof runChangeTypeValues)[number]> => {
+    const rawValues = Array.isArray(value)
+        ? value.filter((entry): entry is string => typeof entry === "string").flatMap((entry) => entry.split(","))
+        : typeof value === "string"
+          ? value.split(",")
+          : [];
+
+    const parsedValues: Array<(typeof runChangeTypeValues)[number]> = [];
+    const seen = new Set<(typeof runChangeTypeValues)[number]>();
+
+    for (const rawValue of rawValues) {
+        const normalized = rawValue.trim();
+
+        if (!runChangeTypeValues.includes(normalized as (typeof runChangeTypeValues)[number])) {
+            continue;
+        }
+
+        const typedValue = normalized as (typeof runChangeTypeValues)[number];
+
+        if (seen.has(typedValue)) {
+            continue;
+        }
+
+        seen.add(typedValue);
+        parsedValues.push(typedValue);
+    }
+
+    return parsedValues;
+};
+
 export { defaultChangesListSearch, defaultDashboardHomeSearch, defaultRunDetailSectionSearch, defaultRunsListSearch };
 export { normalizeTableSearchQuery };
 
@@ -138,7 +168,7 @@ export const parseChangesListSearch = (
     pageSize: number;
     sortBy: (typeof changesSortByValues)[number];
     sortOrder: (typeof changesSortOrderValues)[number];
-    changeType?: (typeof runChangeTypeValues)[number];
+    changeType?: string;
     preorder: (typeof preorderFilterSearchValues)[number];
     categoryId?: string;
     windowDays: (typeof changesWindowValues)[number];
@@ -146,7 +176,7 @@ export const parseChangesListSearch = (
 } => {
     const sortBy = toOptionalString(search.sortBy);
     const sortOrder = toOptionalString(search.sortOrder);
-    const changeType = toOptionalString(search.changeType);
+    const parsedChangeTypes = parseChangeTypeFilterValues(search.changeType);
     const categoryId = toOptionalString(search.categoryId);
     const parsedWindowDays =
         typeof search.windowDays === "number"
@@ -167,9 +197,7 @@ export const parseChangesListSearch = (
         sortOrder: changesSortOrderValues.includes(sortOrder as (typeof changesSortOrderValues)[number])
             ? (sortOrder as (typeof changesSortOrderValues)[number])
             : defaultChangesListSearch.sortOrder,
-        changeType: runChangeTypeValues.includes(changeType as (typeof runChangeTypeValues)[number])
-            ? (changeType as (typeof runChangeTypeValues)[number])
-            : undefined,
+        changeType: parsedChangeTypes.length > 0 ? parsedChangeTypes.join(",") : undefined,
         preorder: normalizePreorderFilterValue(search.preorder, defaultChangesListSearch.preorder),
         categoryId: categoryId && z.string().uuid().safeParse(categoryId).success ? categoryId : undefined,
         windowDays,

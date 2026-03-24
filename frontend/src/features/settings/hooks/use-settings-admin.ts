@@ -100,10 +100,6 @@ export const useSettingsAdmin = (enabled: boolean): UseSettingsAdminResult => {
             return "This category is inactive and cannot be scraped.";
         }
 
-        if (item.queueStatus === "queued") {
-            return "A scrape job is already queued for this category.";
-        }
-
         if (item.queueStatus === "active") {
             return "A scrape job is currently running for this category.";
         }
@@ -160,7 +156,7 @@ export const useSettingsAdmin = (enabled: boolean): UseSettingsAdminResult => {
         }
 
         try {
-            const result = await triggerRunMutation.mutateAsync({ categoryId: targetCategoryId });
+            const result = await triggerRunMutation.mutateAsync({ categoryId: targetCategoryId, force: true });
             notify({
                 variant: "info",
                 message: NOTIFICATION_MESSAGES.settings.runTriggered.message,

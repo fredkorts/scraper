@@ -305,6 +305,35 @@ describe("scrape views", () => {
         });
     }, 10_000);
 
+    it("supports multiple change type filters from URL-backed state", async () => {
+        const { fetchMock } = await renderRouterApp({
+            initialEntry:
+                "/app/changes?page=1&pageSize=25&sortBy=changedAt&sortOrder=desc&changeType=sold_out,price_decrease&windowDays=30",
+            session: mockUser,
+            apiResponses: {
+                changesList: {
+                    items: [],
+                    page: 1,
+                    pageSize: 25,
+                    totalItems: 0,
+                    totalPages: 0,
+                },
+            },
+        });
+
+        expect(await screen.findByRole("heading", { name: "Changes Explorer" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Remove filter Change type: Sold Out" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Remove filter Change type: Price Decrease" })).toBeInTheDocument();
+        expect(screen.queryByText(/\+\s*\d+\s*\.\.\./)).not.toBeInTheDocument();
+
+        const changesRequestUrl = fetchMock.mock.calls
+            .map(([input]) => String(input))
+            .find((url) => url.includes("/api/changes"));
+
+        expect(changesRequestUrl).toBeDefined();
+        expect(decodeURIComponent(changesRequestUrl!)).toContain("changeType=sold_out,price_decrease");
+    });
+
     it("renders PriceTag variants in changes explorer details cells", async () => {
         await renderRouterApp({
             initialEntry: "/app/changes",

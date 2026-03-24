@@ -1,0 +1,48 @@
+.root:global(.ant-btn) {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    width: fit-content;
+    border-radius: 999px;
+    border-color: var(--color-border);
+    background: var(--color-page);
+    color: var(--color-text);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+}
+
+.root:global(.ant-btn) > span {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+}
+
+.root:global(.ant-btn) :global(.anticon) {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+}
+
+.root:global(.ant-btn):focus-visible {
+    box-shadow: 0 0 0 3px var(--button-secondary-focus-ring);
+}
+
+.root:global(.ant-btn):hover:not(:disabled, .ant-btn-disabled) {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+    color: var(--color-text);
+}
+
+.root:global(.ant-btn):active:not(:disabled, .ant-btn-disabled) {
+    background: var(--button-secondary-active-bg);
+    border-color: var(--button-secondary-active-border);
+    color: var(--button-secondary-active-text);
+}
+
+.small:global(.ant-btn) {
+    padding-inline: var(--space-xs);
+}
+
+.medium:global(.ant-btn) {
+    padding-inline: var(--space-sm);
+}

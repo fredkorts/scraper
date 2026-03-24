@@ -241,7 +241,7 @@ interface ListChangesWithScopeParams {
     pageSize: number;
     sortBy: "changedAt" | "changeType" | "productName" | "categoryName";
     sortOrder: "asc" | "desc";
-    changeType?: RunChangesQuery["changeType"];
+    changeType?: RunChangesQuery["changeType"] | ChangesListQuery["changeType"];
     preorder?: "all" | "only" | "exclude";
     query?: string;
     categoryId?: string;
@@ -300,9 +300,19 @@ const listChangesWithScope = async ({
     };
 
     const searchTokens = tokenizeSearchQuery(query);
+    const selectedChangeTypes = !changeType ? [] : Array.isArray(changeType) ? changeType : [changeType];
     const where: Prisma.ChangeItemWhereInput = {
         changeReport: changeReportWhere,
-        ...(changeType ? { changeType: changeTypeInputMap[changeType] } : {}),
+        ...(selectedChangeTypes.length > 0
+            ? {
+                  changeType:
+                      selectedChangeTypes.length === 1
+                          ? changeTypeInputMap[selectedChangeTypes[0]]
+                          : {
+                                in: selectedChangeTypes.map((item) => changeTypeInputMap[item]),
+                            },
+              }
+            : {}),
         ...(preorder === "only"
             ? {
                   product: {

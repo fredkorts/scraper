@@ -17,7 +17,7 @@ import styles from "./changes-filter-bar.module.scss";
 interface ChangesFilterBarProps {
     query: string;
     categoryId?: string;
-    changeType?: (typeof runChangeTypeValues)[number];
+    changeTypes: Array<(typeof runChangeTypeValues)[number]>;
     preorder: "all" | "only" | "exclude";
     windowDays: 1 | 7 | 30;
     pageSize: number;
@@ -26,7 +26,7 @@ interface ChangesFilterBarProps {
     activeAdvancedCount: number;
     onQueryChange: (value: string) => void;
     onCategoryChange: (value?: string) => void;
-    onChangeTypeChange: (value?: (typeof runChangeTypeValues)[number]) => void;
+    onChangeTypeChange: (value: Array<(typeof runChangeTypeValues)[number]>) => void;
     onPreorderChange: (value: "all" | "only" | "exclude") => void;
     onWindowDaysChange: (value: 1 | 7 | 30) => void;
     onPageSizeChange: (value: number) => void;
@@ -37,7 +37,7 @@ interface ChangesFilterBarProps {
 export const ChangesFilterBar = ({
     query,
     categoryId,
-    changeType,
+    changeTypes,
     preorder,
     windowDays,
     pageSize,
@@ -79,17 +79,16 @@ export const ChangesFilterBar = ({
                         ariaLabel="Change type"
                         className={styles.select}
                         id="changes-change-type-filter"
+                        mode="multiple"
+                        hideSelectionTags
                         options={RUN_CHANGE_TYPE_FILTER_OPTIONS}
                         placeholder="All change types"
-                        value={changeType}
+                        value={changeTypes}
                         onChange={(value) =>
                             onChangeTypeChange(
-                                (value as
-                                    | "price_increase"
-                                    | "price_decrease"
-                                    | "new_product"
-                                    | "sold_out"
-                                    | "back_in_stock") || undefined,
+                                value as Array<
+                                    "price_increase" | "price_decrease" | "new_product" | "sold_out" | "back_in_stock"
+                                >,
                             )
                         }
                     />

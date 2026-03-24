@@ -577,6 +577,7 @@ export interface AdminSchedulerStateResponse {
 
 export interface TriggerRunRequest {
     categoryId: string;
+    force?: boolean;
 }
 
 export interface TriggerRunResponse {

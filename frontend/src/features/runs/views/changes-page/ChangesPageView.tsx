@@ -9,7 +9,7 @@ import { RUN_PREORDER_FILTER_OPTIONS, RUN_CHANGE_WINDOW_OPTIONS } from "../../co
 import { useChangesListColumns } from "../../hooks/use-changes-list-columns";
 import { formatChangeTypeLabel } from "../../formatters";
 import { useChangesListQuery } from "../../queries";
-import { defaultChangesListSearch, normalizeTableSearchQuery } from "../../search";
+import { defaultChangesListSearch, normalizeTableSearchQuery, parseChangeTypeFilterValues } from "../../search";
 import { useDebouncedValue } from "../../../../shared/hooks/use-debounced-value";
 import { useClampedPage } from "../../../../shared/hooks/use-clamped-page";
 import { useRouteSearchUpdater } from "../../../../shared/hooks/use-route-search-updater";
@@ -41,6 +41,7 @@ export const ChangesPageView = () => {
     const setSearch = useRouteSearchUpdater(navigate);
     const [queryInput, setQueryInput] = useState(search.query ?? "");
     const debouncedQueryInput = useDebouncedValue(queryInput, 350);
+    const selectedChangeTypes = useMemo(() => parseChangeTypeFilterValues(search.changeType), [search.changeType]);
     const activeAdvancedCount =
         Number(search.preorder !== defaultChangesListSearch.preorder) +
         Number(search.windowDays !== defaultChangesListSearch.windowDays) +
@@ -86,10 +87,6 @@ export const ChangesPageView = () => {
     const selectedCategoryLabel = categoriesQuery.data
         ? getCategoryLabelById(categoriesQuery.data.categories, search.categoryId)
         : undefined;
-    const changeTypeLabel = useMemo(
-        () => (search.changeType ? formatChangeTypeLabel(search.changeType) : "All change types"),
-        [search.changeType],
-    );
     const windowLabel = useMemo(() => {
         const entry = RUN_CHANGE_WINDOW_OPTIONS.find((option) => Number(option.value) === search.windowDays);
         return entry?.label ?? "Last 7 days";
@@ -116,13 +113,22 @@ export const ChangesPageView = () => {
     const activeFilterChips: ActiveFilterChip[] = useMemo(() => {
         const chips: ActiveFilterChip[] = [];
 
-        if (search.changeType) {
+        for (const selectedChangeType of selectedChangeTypes) {
+            const selectedChangeTypeLabel = formatChangeTypeLabel(selectedChangeType);
             chips.push({
-                id: "changeType",
+                id: `changeType:${selectedChangeType}`,
                 label: "Change type",
-                value: changeTypeLabel,
-                valueContent: <ChangeDescription label={changeTypeLabel} variant={search.changeType} />,
-                onRemove: () => setSearch({ changeType: undefined, page: 1 }),
+                value: selectedChangeTypeLabel,
+                valueContent: <ChangeDescription label={selectedChangeTypeLabel} variant={selectedChangeType} />,
+                hideLabel: true,
+                onRemove: () => {
+                    const remainingChangeTypes = selectedChangeTypes.filter((value) => value !== selectedChangeType);
+
+                    setSearch({
+                        changeType: remainingChangeTypes.length > 0 ? remainingChangeTypes.join(",") : undefined,
+                        page: 1,
+                    });
+                },
             });
         }
 
@@ -173,22 +179,21 @@ export const ChangesPageView = () => {
 
         return chips;
     }, [
-        changeTypeLabel,
         pageSizeLabel,
         preorderLabel,
         search.categoryId,
-        search.changeType,
         search.pageSize,
         search.preorder,
         search.query,
         search.windowDays,
+        selectedChangeTypes,
         selectedCategoryLabel,
         setSearch,
         windowLabel,
     ]);
 
     const showEmptyMismatchHelper =
-        Boolean(search.changeType) && (changesQuery.data?.totalItems ?? 0) === 0 && !changesQuery.isError;
+        selectedChangeTypes.length > 0 && (changesQuery.data?.totalItems ?? 0) === 0 && !changesQuery.isError;
 
     return (
         <section className={styles.page}>
@@ -205,7 +210,7 @@ export const ChangesPageView = () => {
                 categoryId={search.categoryId}
                 query={queryInput}
                 categoryTreeData={categoryTreeData}
-                changeType={search.changeType}
+                changeTypes={selectedChangeTypes}
                 isAdvancedOpen={isAdvancedOpen}
                 activeAdvancedCount={activeAdvancedCount}
                 preorder={search.preorder}
@@ -214,7 +219,12 @@ export const ChangesPageView = () => {
                 onToggleAdvanced={() => setIsAdvancedOpen((previous) => !previous)}
                 onCategoryChange={(value) => setSearch({ categoryId: value, page: 1 })}
                 onQueryChange={setQueryInput}
-                onChangeTypeChange={(value) => setSearch({ changeType: value, page: 1 })}
+                onChangeTypeChange={(values) =>
+                    setSearch({
+                        changeType: values.length > 0 ? values.join(",") : undefined,
+                        page: 1,
+                    })
+                }
                 onPreorderChange={(value) => setSearch({ preorder: value, page: 1 })}
                 onWindowDaysChange={(value) => setSearch({ windowDays: value, page: 1 })}
                 onPageSizeChange={(value) => setSearch({ pageSize: value, page: 1 })}
@@ -241,7 +251,7 @@ export const ChangesPageView = () => {
                         ? PREORDER_EMPTY_FILTER_ONLY_MESSAGE
                         : search.preorder === "exclude"
                           ? PREORDER_EMPTY_FILTER_EXCLUDE_MESSAGE
-                          : search.changeType || search.categoryId || search.query
+                          : selectedChangeTypes.length > 0 || search.categoryId || search.query
                             ? "No changes matched the current filters. Adjust filters or reset all filters."
                             : "No changes were recorded for the selected window."
                 }

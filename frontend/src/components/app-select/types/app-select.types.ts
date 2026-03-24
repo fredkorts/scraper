@@ -4,14 +4,27 @@ export interface AppSelectOption {
     disabled?: boolean;
 }
 
-export interface AppSelectProps {
+interface AppSelectBaseProps {
     ariaLabel: string;
     className?: string;
     disabled?: boolean;
     id?: string;
     options: AppSelectOption[];
     placeholder?: string;
-    value?: string;
     allowClear?: boolean;
+    hideSelectionTags?: boolean;
+}
+
+interface AppSelectSingleProps extends AppSelectBaseProps {
+    mode?: undefined;
+    value?: string;
     onChange: (value: string | undefined) => void;
 }
+
+interface AppSelectMultipleProps extends AppSelectBaseProps {
+    mode: "multiple";
+    value?: string[];
+    onChange: (value: string[]) => void;
+}
+
+export type AppSelectProps = AppSelectSingleProps | AppSelectMultipleProps;

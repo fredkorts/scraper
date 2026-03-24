@@ -4,6 +4,7 @@ const MAX_PAGE_SIZE = 100;
 const MAX_PAGE = 500;
 const MAX_OFFSET = 50_000;
 const MAX_SEARCH_QUERY_LENGTH = 100;
+const CHANGE_TYPE_VALUES = ["price_increase", "price_decrease", "new_product", "sold_out", "back_in_stock"] as const;
 
 const paginationShape = {
     page: z.coerce.number().int().min(1).max(MAX_PAGE).default(1),
@@ -11,6 +12,24 @@ const paginationShape = {
 };
 
 const preorderFilterSchema = z.enum(["all", "only", "exclude"]).default("all");
+const changeTypeSchema = z.enum(CHANGE_TYPE_VALUES);
+const changeTypeListSchema = z.preprocess((value) => {
+    const splitAndNormalize = (rawValue: string): string[] =>
+        rawValue
+            .split(",")
+            .map((entry) => entry.trim())
+            .filter((entry) => entry.length > 0);
+
+    if (Array.isArray(value)) {
+        return value.flatMap((entry) => (typeof entry === "string" ? splitAndNormalize(entry) : []));
+    }
+
+    if (typeof value === "string") {
+        return splitAndNormalize(value);
+    }
+
+    return undefined;
+}, z.array(changeTypeSchema).min(1).optional());
 const searchQuerySchema = z.preprocess((value) => {
     if (typeof value !== "string") {
         return undefined;
@@ -75,7 +94,7 @@ export const runChangesQuerySchema = z
     .object({
         ...paginationShape,
         query: searchQuerySchema,
-        changeType: z.enum(["price_increase", "price_decrease", "new_product", "sold_out", "back_in_stock"]).optional(),
+        changeType: changeTypeSchema.optional(),
         preorder: preorderFilterSchema,
         includeSystemNoise: includeSystemNoiseSchema,
     })
@@ -87,7 +106,7 @@ export const changesListQuerySchema = z
         query: searchQuerySchema,
         sortBy: z.enum(["changedAt", "changeType", "productName", "categoryName"]).default("changedAt"),
         sortOrder: z.enum(["asc", "desc"]).default("desc"),
-        changeType: z.enum(["price_increase", "price_decrease", "new_product", "sold_out", "back_in_stock"]).optional(),
+        changeType: changeTypeListSchema,
         preorder: preorderFilterSchema,
         categoryId: z.string().uuid().optional(),
         windowDays: z.coerce.number().int().min(1).max(30).default(7),

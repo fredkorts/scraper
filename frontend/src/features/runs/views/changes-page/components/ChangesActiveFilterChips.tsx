@@ -1,5 +1,6 @@
 import { CloseCircleOutlined } from "@ant-design/icons";
 import type { ReactNode } from "react";
+import { ChipButton } from "../../../../../shared/components/chip-button/ChipButton";
 import styles from "./changes-active-filter-chips.module.scss";
 
 export interface ActiveFilterChip {
@@ -7,6 +8,7 @@ export interface ActiveFilterChip {
     label: string;
     value: string;
     valueContent?: ReactNode;
+    hideLabel?: boolean;
     onRemove: () => void;
 }
 
@@ -24,17 +26,17 @@ export const ChangesActiveFilterChips = ({ chips, sortingLabel }: ChangesActiveF
             <ul className={styles.chipList}>
                 {chips.map((chip) => (
                     <li key={chip.id}>
-                        <button
+                        <ChipButton
                             aria-label={`Remove filter ${chip.label}: ${chip.value}`}
-                            className={styles.chipButton}
-                            type="button"
+                            size="medium"
                             onClick={chip.onRemove}
                         >
-                            <span>
-                                {chip.label}: <strong>{chip.valueContent ?? chip.value}</strong>
+                            <span className={styles.chipContent}>
+                                {chip.hideLabel ? null : `${chip.label}: `}
+                                <strong>{chip.valueContent ?? chip.value}</strong>
                             </span>
                             <CloseCircleOutlined aria-hidden />
-                        </button>
+                        </ChipButton>
                     </li>
                 ))}
             </ul>

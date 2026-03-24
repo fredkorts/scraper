@@ -60,7 +60,14 @@ describe("settings admin service", () => {
             mode: "queued",
             jobId: `scrape:category:${category.id}`,
         });
-        expect(enqueueScrapeCategoryJob).toHaveBeenCalled();
+        expect(enqueueScrapeCategoryJob).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                categoryId: category.id,
+                trigger: "manual",
+                forceEnqueue: true,
+            }),
+        );
     });
 
     it("builds admin scheduler state with eligibility and queue status", async () => {

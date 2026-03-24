@@ -16,7 +16,7 @@ export const updateCategorySettingsHandler = async (req: Request, res: Response,
 export const triggerRunHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const input = triggerRunSchema.parse(req.body);
-        const payload = await triggerCategoryRun(input.categoryId, req.requestId);
+        const payload = await triggerCategoryRun(input.categoryId, req.requestId, input.force);
         res.status(202).json(payload);
     } catch (error) {
         next(error);

@@ -177,6 +177,7 @@ export const updateCategorySettings = async (
 export const triggerCategoryRun = async (
     categoryId: string,
     requestId?: string,
+    force: boolean = true,
 ): Promise<{
     accepted: true;
     categoryId: string;
@@ -207,6 +208,7 @@ export const triggerCategoryRun = async (
             categoryId,
             trigger: "manual",
             requestId,
+            forceEnqueue: force,
         });
 
         return {

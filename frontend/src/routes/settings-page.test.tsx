@@ -120,6 +120,39 @@ describe("settings page", () => {
                     used: 0,
                     remaining: null,
                 },
+                adminSchedulerState: {
+                    items: [
+                        {
+                            categoryId: "22222222-2222-4222-8222-222222222222",
+                            categorySlug: "lauamangud",
+                            categoryNameEt: "Lauamangud",
+                            categoryPathNameEt: "Lauamangud",
+                            isActive: true,
+                            scrapeIntervalHours: 12,
+                            nextRunAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+                            activeSubscriberCount: 1,
+                            eligibilityStatus: "not_due_yet",
+                            queueStatus: "queued",
+                            lastRunAt: new Date().toISOString(),
+                            lastRunStatus: "running",
+                        },
+                        {
+                            categoryId: "33333333-3333-4333-8333-333333333333",
+                            categorySlug: "lauamangud/strateegia",
+                            categoryNameEt: "Strateegia",
+                            categoryPathNameEt: "Lauamangud / Strateegia",
+                            isActive: true,
+                            scrapeIntervalHours: 12,
+                            nextRunAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+                            activeSubscriberCount: 1,
+                            eligibilityStatus: "eligible",
+                            queueStatus: "queued",
+                            lastRunAt: new Date().toISOString(),
+                            lastRunStatus: "running",
+                        },
+                    ],
+                    generatedAt: new Date().toISOString(),
+                },
                 notificationChannels: {
                     channels: [
                         {
@@ -140,7 +173,7 @@ describe("settings page", () => {
         expect(screen.getByRole("heading", { name: "Category Schedule State" })).toBeInTheDocument();
         expect(screen.getAllByRole("button", { name: /edit interval for/i }).length).toBeGreaterThan(0);
         await user.type(screen.getByLabelText("Search scheduler categories"), "queued");
-        expect(screen.getByText("Queued")).toBeInTheDocument();
+        expect(screen.getAllByText("Queued").length).toBeGreaterThan(0);
         await selectAntOption(user, "Scheduler category filter", "Strateegia");
         await user.clear(screen.getByLabelText("Search scheduler categories"));
         await user.type(screen.getByLabelText("Search scheduler categories"), "idle");
@@ -149,7 +182,9 @@ describe("settings page", () => {
 
         const manualTriggerSection = screen.getByRole("heading", { name: "Manual scrape trigger" }).closest("article");
         expect(manualTriggerSection).not.toBeNull();
-        await user.click(within(manualTriggerSection!).getByRole("button", { name: /scrape now/i }));
+        const scrapeNowButton = within(manualTriggerSection!).getByRole("button", { name: /scrape now/i });
+        expect(scrapeNowButton).toBeEnabled();
+        await user.click(scrapeNowButton);
         expect(await screen.findByText(/Queued job/i)).toBeInTheDocument();
 
         await user.click(screen.getByRole("tab", { name: "Notifications" }));

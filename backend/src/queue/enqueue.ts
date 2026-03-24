@@ -33,6 +33,7 @@ interface EnqueueScrapeCategoryInput {
     requestedAt?: Date;
     requestId?: string;
     jobOptions?: JobsOptions;
+    forceEnqueue?: boolean;
 }
 
 export const buildCategoryScrapeJobId = (categoryId: string): string => {
@@ -62,19 +63,25 @@ export const enqueueScrapeCategoryJob = async (
     input: EnqueueScrapeCategoryInput,
 ): Promise<EnqueueScrapeCategoryResult> => {
     const requestedAt = input.requestedAt ?? new Date();
-    const jobId = buildCategoryScrapeJobId(input.categoryId);
-    const existingJob = await queue.getJob(jobId);
+    const canonicalJobId = buildCategoryScrapeJobId(input.categoryId);
+    const existingJob = await queue.getJob(canonicalJobId);
 
     if (existingJob) {
         const state = await existingJob.getState();
         if (ACTIVE_JOB_STATES.has(state)) {
-            return {
-                categoryId: input.categoryId,
-                jobId,
-                status: "skipped-existing",
-            };
+            if (input.forceEnqueue && state !== "active") {
+                await existingJob.remove();
+            } else {
+                return {
+                    categoryId: input.categoryId,
+                    jobId: canonicalJobId,
+                    status: "skipped-existing",
+                };
+            }
         }
     }
+
+    const jobId = canonicalJobId;
 
     const payload = validateJobPayload({
         categoryId: input.categoryId,
@@ -93,7 +100,7 @@ export const enqueueScrapeCategoryJob = async (
         if (isDuplicateJobError(error)) {
             return {
                 categoryId: input.categoryId,
-                jobId,
+                jobId: canonicalJobId,
                 status: "skipped-existing",
             };
         }
