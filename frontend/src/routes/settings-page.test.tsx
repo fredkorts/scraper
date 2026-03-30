@@ -171,9 +171,11 @@ describe("settings page", () => {
 
         expect(await screen.findByRole("tab", { name: "Admin" })).toHaveAttribute("aria-selected", "true");
         expect(screen.getByRole("heading", { name: "Category Schedule State" })).toBeInTheDocument();
+        expect(screen.queryByRole("columnheader", { name: /Eligibility/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole("columnheader", { name: /Queue/i })).not.toBeInTheDocument();
         expect(screen.getAllByRole("button", { name: /edit interval for/i }).length).toBeGreaterThan(0);
         await user.type(screen.getByLabelText("Search scheduler categories"), "queued");
-        expect(screen.getAllByText("Queued").length).toBeGreaterThan(0);
+        expect(screen.getAllByText("Lauamangud").length).toBeGreaterThan(0);
         await selectAntOption(user, "Scheduler category filter", "Strateegia");
         await user.clear(screen.getByLabelText("Search scheduler categories"));
         await user.type(screen.getByLabelText("Search scheduler categories"), "idle");

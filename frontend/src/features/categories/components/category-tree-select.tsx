@@ -1,4 +1,4 @@
-import { TreeSelect } from "antd";
+import { CategoryCascader } from "../../../components/category-cascader/CategoryCascader";
 import type { CategoryTreeSelectProps } from "../types/category-tree-select-props";
 
 export const CategoryTreeSelect = ({
@@ -12,20 +12,15 @@ export const CategoryTreeSelect = ({
     allowClear = false,
     onChange,
 }: CategoryTreeSelectProps) => (
-    <TreeSelect
+    <CategoryCascader
         allowClear={allowClear}
-        aria-label={ariaLabel}
+        ariaLabel={ariaLabel}
         className={className}
         disabled={disabled}
         id={id}
         placeholder={placeholder}
-        popupMatchSelectWidth={false}
-        showSearch
-        size="large"
         treeData={treeData}
-        treeDefaultExpandAll
-        treeNodeFilterProp="title"
         value={value}
-        onChange={(nextValue) => onChange(nextValue)}
+        onChange={onChange}
     />
 );

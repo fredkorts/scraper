@@ -1,7 +1,7 @@
 import { DownOutlined, UpOutlined } from "@ant-design/icons";
 import { AppButton } from "../../../../../components/app-button/AppButton";
 import { AppSelect } from "../../../../../components/app-select/AppSelect";
-import { CategoryTreeSelect } from "../../../../../components/category-tree-select/CategoryTreeSelect";
+import { CategoryCascader } from "../../../../../components/category-cascader/CategoryCascader";
 import { TableSearchInput } from "../../../../../components/table-search-input/TableSearchInput";
 import { TABLE_SEARCH_QUERY_MAX_LENGTH } from "../../../../../shared/search/query";
 import {
@@ -98,7 +98,7 @@ export const ChangesFilterBar = ({
                     <label className={styles.label} htmlFor="changes-category-filter">
                         Category
                     </label>
-                    <CategoryTreeSelect
+                    <CategoryCascader
                         allowClear
                         ariaLabel="Category"
                         className={styles.select}

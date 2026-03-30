@@ -6,7 +6,6 @@ import { SortHeader } from "../../../components/sort-header/SortHeader";
 import { formatDateTime, formatStatusLabel } from "../../../shared/formatters/display";
 import { ScrapeStatusLabel } from "../../../shared/components/scrape-status-label/ScrapeStatusLabel";
 import { SCHEDULER_LAST_RUN_STATUS_TONES } from "../constants/admin-scheduler-state.constants";
-import { formatEligibilityStatusLabel, formatQueueStatusLabel } from "../formatters/admin-scheduler-state.formatters";
 import type { AdminSchedulerStateItemData } from "../types/settings-schema.types";
 import type { UseAdminSchedulerColumnsOptions } from "../types/use-admin-scheduler-columns.types";
 
@@ -48,17 +47,6 @@ export const useAdminSchedulerColumns = ({
                     ),
                     cell: (info) => `${info.getValue()}h`,
                 }),
-                columnHelper.accessor("nextRunAt", {
-                    header: () => (
-                        <SortHeader
-                            label="Next run"
-                            isActive={sortBy === "nextRunAt"}
-                            order={sortOrder}
-                            onToggle={() => onToggleSort("nextRunAt")}
-                        />
-                    ),
-                    cell: (info) => formatDateTime(info.getValue()),
-                }),
                 columnHelper.accessor("activeSubscriberCount", {
                     header: () => (
                         <SortHeader
@@ -70,27 +58,16 @@ export const useAdminSchedulerColumns = ({
                     ),
                     cell: (info) => info.getValue(),
                 }),
-                columnHelper.accessor("eligibilityStatus", {
+                columnHelper.accessor("nextRunAt", {
                     header: () => (
                         <SortHeader
-                            label="Eligibility"
-                            isActive={sortBy === "eligibilityStatus"}
+                            label="Next run"
+                            isActive={sortBy === "nextRunAt"}
                             order={sortOrder}
-                            onToggle={() => onToggleSort("eligibilityStatus")}
+                            onToggle={() => onToggleSort("nextRunAt")}
                         />
                     ),
-                    cell: (info) => formatEligibilityStatusLabel(info.getValue()),
-                }),
-                columnHelper.accessor("queueStatus", {
-                    header: () => (
-                        <SortHeader
-                            label="Queue"
-                            isActive={sortBy === "queueStatus"}
-                            order={sortOrder}
-                            onToggle={() => onToggleSort("queueStatus")}
-                        />
-                    ),
-                    cell: (info) => formatQueueStatusLabel(info.getValue()),
+                    cell: (info) => formatDateTime(info.getValue()),
                 }),
                 columnHelper.display({
                     id: "lastRun",

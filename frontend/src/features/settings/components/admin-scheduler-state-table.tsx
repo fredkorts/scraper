@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { DataTable } from "../../../components/data-table/DataTable";
 import { AppButton } from "../../../components/app-button/AppButton";
 import { AppSelect } from "../../../components/app-select/AppSelect";
-import { CategoryTreeSelect } from "../../../components/category-tree-select/CategoryTreeSelect";
+import { CategoryCascader } from "../../../components/category-cascader/CategoryCascader";
 import { TableSearchInput } from "../../../components/table-search-input/TableSearchInput";
 import { PaginationControls } from "../../../components/pagination/PaginationControls";
 import { formatDateTime } from "../../../shared/formatters/display";
@@ -13,8 +13,6 @@ import {
 } from "../../../shared/search/query";
 import {
     DEFAULT_SCHEDULER_TABLE_PAGE_SIZE,
-    SCHEDULER_ELIGIBILITY_LABELS,
-    SCHEDULER_QUEUE_STATUS_LABELS,
     SCHEDULER_TABLE_PAGE_SIZE_OPTIONS,
 } from "../constants/admin-scheduler-state.constants";
 import { formatEligibilityStatusLabel, formatQueueStatusLabel } from "../formatters/admin-scheduler-state.formatters";
@@ -135,18 +133,6 @@ export const AdminSchedulerStateTable = ({
                     return a.activeSubscriberCount - b.activeSubscriberCount;
                 }
 
-                if (sortBy === "eligibilityStatus") {
-                    return SCHEDULER_ELIGIBILITY_LABELS[a.eligibilityStatus].localeCompare(
-                        SCHEDULER_ELIGIBILITY_LABELS[b.eligibilityStatus],
-                    );
-                }
-
-                if (sortBy === "queueStatus") {
-                    return SCHEDULER_QUEUE_STATUS_LABELS[a.queueStatus].localeCompare(
-                        SCHEDULER_QUEUE_STATUS_LABELS[b.queueStatus],
-                    );
-                }
-
                 return normalizeDateValue(a.lastRunAt) - normalizeDateValue(b.lastRunAt);
             })();
 
@@ -240,7 +226,7 @@ export const AdminSchedulerStateTable = ({
                             <label className={styles.label} htmlFor="scheduler-category-filter">
                                 Category
                             </label>
-                            <CategoryTreeSelect
+                            <CategoryCascader
                                 allowClear
                                 ariaLabel="Scheduler category filter"
                                 className={[styles.select, styles.schedulerFilterSelect].join(" ")}
